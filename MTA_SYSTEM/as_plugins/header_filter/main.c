@@ -4,7 +4,7 @@
 #include "util.h"
 #include <stdio.h>
 
-#define SPAM_STATISTIC_HEADER_FILTER		34
+#define SPAM_STATISTIC_HEADER_FILTER		11
 
 typedef struct _FIELD_NODE {
 	DOUBLE_LIST_NODE node;
@@ -15,7 +15,7 @@ typedef struct _FIELD_NODE {
 } FIELD_NODE;
 
 typedef void (*SPAM_STATISTIC)(int);
-typedef BOOL (*CHECK_TAGGING)(const char*, MEM_FILE*);
+typedef BOOL (*WHITELIST_QUERY)(char*);
 
 static int header_filter(int context_ID, MAIL_ENTITY *pmail,
 	CONNECTION *pconnection, char *reason, int length);
@@ -23,7 +23,10 @@ static int header_filter(int context_ID, MAIL_ENTITY *pmail,
 DECLARE_API;
 
 static SPAM_STATISTIC spam_statistic;
-static CHECK_TAGGING check_tagging;
+static WHITELIST_QUERY ip_whitelist_query;
+static WHITELIST_QUERY from_whitelist_query;
+static WHITELIST_QUERY domain_whitelist_query;
+
 static char g_return_string[1024];
 static DOUBLE_LIST g_field_list;
 
@@ -41,9 +44,25 @@ int AS_LibMain(int reason, void **ppdata)
     switch (reason) {
     case PLUGIN_INIT:
 		LINK_API(ppdata);
-		check_tagging = (CHECK_TAGGING)query_service("check_tagging");
-		if (NULL == check_tagging) {
-			printf("[header_filter]: fail to get \"check_tagging\" service\n");
+		ip_whitelist_query = (WHITELIST_QUERY)
+			query_service("ip_whitelist_query");
+		if (NULL == ip_whitelist_query) {
+			printf("[header_filter]: fail to get "
+				"\"ip_whitelist_query\" service\n");
+			return FALSE;
+		}
+		domain_whitelist_query = (WHITELIST_QUERY)
+			query_service("domain_whitelist_query");
+		if (NULL == domain_whitelist_query) {
+			printf("[header_filter]: fail to get "
+				"\"domain_whitelist_query\" service\n");
+			return FALSE;
+		}
+		from_whitelist_query = (WHITELIST_QUERY)
+			query_service("from_whitelist_query");
+		if (NULL == from_whitelist_query) {
+			printf("[header_filter]: fail to get "
+				"\"from_whitelist_query\" service\n");
 			return FALSE;
 		}
 		spam_statistic = (SPAM_STATISTIC)query_service("spam_statistic");
@@ -60,7 +79,7 @@ int AS_LibMain(int reason, void **ppdata)
 		}
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_return_string, "000034 your "
+			strcpy(g_return_string, "000011 your "
 				"mail contains illegal header field");
 		} else {
 			strcpy(g_return_string, str_value);
@@ -129,11 +148,20 @@ static int header_filter(int context_ID, MAIL_ENTITY *pmail,
 	CONNECTION *pconnection,  char *reason, int length)
 {
 	char buf[256];
+	char *pdomain;
 	FIELD_NODE *pfnode;
 	int tag_len, val_len;
 	DOUBLE_LIST_NODE *pnode;
 
-	if (TRUE == pmail->penvelop->is_relay) {
+	if (TRUE == pmail->penvelop->is_relay ||
+		TRUE == pmail->penvelop->is_known) {
+		return MESSAGE_ACCEPT;
+	}
+	pdomain = strchr(pmail->penvelop->from, '@');
+	pdomain ++;
+	if (TRUE == ip_whitelist_query(pconnection->client_ip) ||
+		TRUE == domain_whitelist_query(pdomain) ||
+		TRUE == from_whitelist_query(pmail->penvelop->from)) {
 		return MESSAGE_ACCEPT;
 	}
 	while (MEM_END_OF_FILE != mem_file_read(
@@ -159,17 +187,11 @@ static int header_filter(int context_ID, MAIL_ENTITY *pmail,
 								return MESSAGE_ACCEPT;
 							}
 						}
-						if (TRUE == check_tagging(pmail->penvelop->from,
-							&pmail->penvelop->f_rcpt_to)) {
-							mark_context_spam(context_ID);
-							return MESSAGE_ACCEPT;
-						} else {
-							if (NULL != spam_statistic) {
-								spam_statistic(SPAM_STATISTIC_HEADER_FILTER);
-							}
-							strncpy(reason, g_return_string, length);
-							return MESSAGE_REJECT;
+						if (NULL != spam_statistic) {
+							spam_statistic(SPAM_STATISTIC_HEADER_FILTER);
 						}
+						strncpy(reason, g_return_string, length);
+						return MESSAGE_REJECT;
 					}
 				}
 			}

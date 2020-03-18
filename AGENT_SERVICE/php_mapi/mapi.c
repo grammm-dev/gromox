@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TOOLS_PATH									"/var/pandora/tools"
+#define TOOLS_PATH									"/var/grid-agent/tools"
 
 #define PR_ATTACH_DATA_OBJ                          0x3701000D
 #define PR_CONTENTS_SYNCHRONIZER					0x662D000D
@@ -195,7 +195,7 @@ static zend_function_entry mapi_functions[] = {
 
 	ZEND_FE(mapi_enable_exceptions, NULL)
 	
-    ZEND_FE(mapi_feature, NULL)
+	ZEND_FE(mapi_feature, NULL)
 
 	ZEND_FALIAS(mapi_attach_openbin, mapi_openproperty, NULL)
 	ZEND_FALIAS(mapi_msgstore_getprops, mapi_getprops, NULL)
@@ -210,8 +210,7 @@ static zend_function_entry mapi_functions[] = {
 	ZEND_FE(kc_session_save, second_arg_force_ref)
 	ZEND_FE(kc_session_restore, second_arg_force_ref)
 	
-	ZEND_FE(nsp_getuserinfo, NULL)
-	ZEND_FE(nsp_setuserpasswd, NULL)
+	ZEND_FE(mapi_setuserpasswd, NULL)
 	
 	ZEND_FE(mapi_linkmessage, NULL)
 	
@@ -254,9 +253,6 @@ static char name_mapi_message[] = "MAPI Message";
 static char name_mapi_attachment[] = "MAPI Attachment";
 static char name_mapi_property[] = "MAPI Property";
 static char name_stream[] = "IStream Interface";
-static char name_fb_data[] = "Freebusy Data Interface";
-static char name_fb_update[] = "Freebusy Update Interface";
-static char name_fb_enumblock[] = "Freebusy Enumblock Interface";
 static char name_mapi_exportchanges[] = "ICS Export Changes";
 static char name_mapi_advisesink[] = "MAPI Advise sink";
 static char name_mapi_importhierarchychanges[] =
@@ -6057,45 +6053,7 @@ ZEND_FUNCTION(kc_session_restore)
 	RETVAL_LONG(EC_SUCCESS);
 }
 
-
-ZEND_FUNCTION(nsp_getuserinfo)
-{
-	char *px500dn;
-	BINARY entryid;
-	char *username;
-	uint32_t result;
-	int username_len;
-	char *pdisplay_name;
-	uint32_t privilege_bits;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"s", &username, &username_len) == FAILURE) {
-		MAPI_G(hr) = EC_INVALID_PARAMETER;
-		goto THROW_EXCEPTION;	
-	}
-	result = zarafa_client_uinfo(username, &entryid,
-		&pdisplay_name, &px500dn, &privilege_bits);
-	if (EC_SUCCESS != result) {
-		MAPI_G(hr) = result;
-		goto THROW_EXCEPTION;
-	}
-	array_init(return_value);
-	add_assoc_stringl(return_value, "userid", entryid.pb, entryid.cb, 1);
-	add_assoc_string(return_value, "username", username, 1);
-	add_assoc_string(return_value, "fullname", pdisplay_name, 1);
-	add_assoc_string(return_value, "essdn", px500dn, 1);
-	add_assoc_long(return_value, "privilege", privilege_bits);
-	MAPI_G(hr) = EC_SUCCESS;
-	return;
-THROW_EXCEPTION:
-	if (MAPI_G(exceptions_enabled)) {
-		zend_throw_exception(MAPI_G(exception_ce),
-			"MAPI error ", MAPI_G(hr) TSRMLS_CC);
-	}
-	RETVAL_FALSE;
-}
-
-ZEND_FUNCTION(nsp_setuserpasswd)
+ZEND_FUNCTION(mapi_setuserpasswd)
 {
 	char *username;
 	uint32_t result;

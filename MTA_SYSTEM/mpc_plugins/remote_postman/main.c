@@ -11,11 +11,12 @@ BOOL HOOK_LibMain(int reason, void **ppdata)
 	BOOL tls_switch;
 	char tmp_path[256];
 	CONFIG_FILE *pfile;
-	 char separator[16];
+	char separator[16];
 	char temp_buff[256];
 	char file_name[256];
 	int times, interval;
 	char timer_path[256];
+	char script_path[256];
 	int max_thr, max_rcpt;
 	char routing_path[256];
 	int alarm_interval, len;
@@ -232,7 +233,12 @@ BOOL HOOK_LibMain(int reason, void **ppdata)
 		} else {
 			printf("[remote_postman]: STARTTLS support is OFF\n");
 		}
-		
+		str_value = config_file_get_value(pfile, "SENDER_LIST_SCRIPT_PATH");
+		if (NULL == str_value) {
+			script_path[0] = '\0';
+		} else {
+			strcpy(script_path, str_value);
+		}
 		if (FALSE == config_file_save(pfile)) {
 			printf("[remote_postman]: fail to save config file\n");
 			config_file_free(pfile);
@@ -242,7 +248,7 @@ BOOL HOOK_LibMain(int reason, void **ppdata)
 			alarm_interval, tls_switch, trying_times, max_rcpt,
 			resource_path, separator, timer_path, timer_threads,
 			scan_interval, fresh_interval, retrying_interval,
-			final_interval, routing_path, tmp_path);
+			final_interval, script_path, routing_path, tmp_path);
 
 		config_file_free(pfile);
 		

@@ -87,7 +87,6 @@
 #define CALL_ID_ICALTOMESSAGE						0x4e
 #define CALL_ID_MESSAGETOVCF						0x4f
 #define CALL_ID_VCFTOMESSAGE						0x50
-#define CALL_ID_UINFO								0x51
 #define CALL_ID_CHECKSESSION						0x52
 #define CALL_ID_GETUSERAVAILABILITY					0x53
 #define CALL_ID_SETPASSWD							0x54
@@ -347,8 +346,8 @@ void common_util_init(const char *org_name, const char *hostname,
 	const char *default_charset, const char *default_zone, int mime_num,
 	int max_rcpt, int max_message, unsigned int max_mail_len,
 	unsigned int max_rule_len, const char *smtp_ip, int smtp_port,
-	const char *freebusy_path, const char *langmap_path,
-	const char *folderlang_path, const char *submit_command);
+	const char *freebusy_path, const char *folderlang_path,
+	const char *submit_command);
 
 int common_util_run();
 

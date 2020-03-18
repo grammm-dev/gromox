@@ -147,9 +147,6 @@ zend_bool ext_pack_push_long_array(
 zend_bool ext_pack_push_longlong_array(
 	PUSH_CTX *pctx, const LONGLONG_ARRAY *r);
 
-zend_bool ext_pack_push_slonglong_array(
-	PUSH_CTX *pctx, const LONGLONG_ARRAY *r);
-
 zend_bool ext_pack_push_binary_array(
 	PUSH_CTX *pctx, const BINARY_ARRAY *r);
 

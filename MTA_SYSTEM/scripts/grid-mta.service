@@ -1,0 +1,12 @@
+[Unit]
+Description=grid MTA service
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/mta /var/grid-mta start
+Restart=/usr/bin/mta /var/grid-mta restart
+ExecStop=/usr/bin/mta /var/grid-mta stop
+
+[Install]
+WantedBy=multi-user.target

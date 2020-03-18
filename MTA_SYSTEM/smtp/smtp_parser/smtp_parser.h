@@ -104,7 +104,8 @@ typedef struct _ENVELOP_INFO{
     MEM_FILE    f_rcpt_to;         /* envelop's rcpt to message */
     BOOL        is_login;          /* user is logged in */
     BOOL        is_outbound;       /* in-bound or out-bound */
-    BOOL        is_relay;           /* indicate whether this mail is relaying */
+    BOOL        is_relay;          /* indicate whether this mail is relaying */
+	BOOL        is_known;          /* is sender in rcpts' sender list */
     int         auth_times;        /* recording the times of auth */
 } ENVELOP_INFO;
 

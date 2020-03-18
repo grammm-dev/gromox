@@ -12,6 +12,7 @@ BOOL (*system_services_check_relay)(const char*);
 BOOL (*system_services_check_domain)(const char*);
 BOOL (*system_services_check_user)(const char*, char*);
 BOOL (*system_services_check_full)(const char*);
+BOOL (*system_services_check_sender)(const char*, const char*);
 void (*system_services_log_info)(int, char*, ...);
 const char* (*system_services_auth_ehlo)();
 int (*system_services_auth_process)(int,const char*, int, char*, int);
@@ -19,6 +20,11 @@ BOOL (*system_services_auth_retrieve)(int, char*, int);
 void (*system_services_auth_clear)(int);
 void (*system_services_etrn_process)(const char*, int, char*, int);
 void (*system_services_vrfy_process)(const char*, int, char*, int);
+BOOL (*system_services_login_check_judge)(const char*);
+int (*system_services_login_check_add)(const char*, int);
+BOOL (*system_services_fcgi_rpc)(const uint8_t *pbuff_in,
+	uint32_t in_len, uint8_t **ppbuff_out, uint32_t *pout_len,
+	const char *script_path);
 
 /*
  *	module's construct function
@@ -75,8 +81,8 @@ int system_services_run()
 		printf("[system_services]: fail to get \"user_filter_judge\" service\n");
 		return -7;
 	}
-	system_services_add_user_into_temp_list = service_query("user_filter_add", 
-												"system");
+	system_services_add_user_into_temp_list = 
+		service_query("user_filter_add", "system");
 	if (NULL == system_services_add_user_into_temp_list) {
 		printf("[system_services]: fail to get \"user_filter_add\" service\n");
 		return -8;
@@ -105,8 +111,28 @@ int system_services_run()
 		printf("[system_services]: fail to get \"check_domain\" service\n");
 		return -10;
 	}
+	system_services_login_check_judge = service_query(
+						"login_check_judge", "system");
+	if (NULL == system_services_login_check_judge) {
+		printf("[system_services]: fail to get"
+			" \"login_check_judge\" service\n");
+		return -11;
+	}
+	system_services_login_check_add = service_query(
+						"login_check_add", "system");
+	if (NULL == system_services_login_check_add) {
+		printf("[system_services]: fail to get"
+			" \"login_check_add\" service\n");
+		return -12;
+	}
+	system_services_fcgi_rpc = service_query("fcgi_rpc", "system");
+	if (NULL == system_services_fcgi_rpc) {
+		printf("[system_services]: fail to get \"fcgi_rpc\" service\n");
+		return -13;
+	}
 	system_services_check_user = service_query("check_user", "system");
 	system_services_check_full = service_query("check_full", "system");
+	system_services_check_sender = service_query("check_sender", "system");
 	system_services_etrn_process = service_query("etrn_process", "system");
 	system_services_vrfy_process = service_query("vrfy_process", "system");
 	return 0;
@@ -144,6 +170,9 @@ int system_services_stop()
 		service_release("auth_retrieve", "system");
 		service_release("auth_clear", "system");
 	}
+	service_release("login_check_judge", "system");
+	service_release("login_check_add", "system");
+	service_release("fcgi_rpc", "system");
 	return 0;
 }
 

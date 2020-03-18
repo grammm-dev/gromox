@@ -658,7 +658,7 @@ static void whitelist_ui_broadcast_list()
 			0 == strcmp(direntp->d_name, "..")) {
 			continue;
 		}
-		sprintf(temp_path, "%s/%s/data/smtp/tagging_table.txt",
+		sprintf(temp_path, "%s/%s/data/smtp/from_whitelist.txt",
 			g_mount_path, direntp->d_name);
 		fd = open(temp_path, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
 		if (-1 == fd) {

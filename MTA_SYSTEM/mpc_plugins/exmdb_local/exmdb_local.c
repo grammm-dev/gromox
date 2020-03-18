@@ -602,6 +602,16 @@ int exmdb_local_deliverquota(MESSAGE_CONTEXT *pcontext, const char *address)
 	
 	tpropval_array_remove_propval(
 		&pmsg->proplist, PROP_TAG_CHANGENUMBER);
+	
+	if (TRUE == pcontext->pcontrol->is_spam) {
+		/* make the message as spam, [MS-OXCSPAM] 2.2.1.3 */
+		propval.proptag = PROP_TAG_CONTENTFILTERSPAMCONFIDENCELEVEL;
+		propval.pvalue = &tmp_int32;
+		tmp_int32 = 9;
+		tpropval_array_set_propval(
+			&pmsg->proplist, &propval);
+	}
+	
 	result = exmdb_client_delivery_message(
 		home_dir, pcontext->pcontrol->from,
 		address, 0, pmsg, temp_buff);

@@ -10,7 +10,7 @@ MAIN_HTML_TITLE			mail\ system\ information
 REAL_DOMAIN_NUM			real\ domain\ number
 BACKUP_DOMAIN_NUM		mail\ archive\ domain\ number
 MONITOR_DOMAIN_NUM		mail\ monitor\ domain\ number
-UNCHECK_USER_DOMAIN_NUM	ignore\ checking\ user\ domain\ number
+WEBMEETING_DOMAIN_NUM	web\ meeting\ domain\ number
 SUBSYSTEM_DOMAIN_NUM	mail\ sub-system\ domain\ number
 NETDISK_DOMAIN_NUM		netdisk\ domain\ number
 EXTPASSWD_DOMAIN_NUM	password\ regularly\ changing\ domain\ number

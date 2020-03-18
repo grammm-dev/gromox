@@ -26,7 +26,6 @@ int main(int argc, char **argv)
 	char aliasaddress_path[256];
 	char aliasdomain_path[256];
 	char backup_path[256];
-	char unchkusr_path[256];
 	char collector_path[256];
 	char subsystem_path[256];
 	char console_path[256];
@@ -66,8 +65,6 @@ int main(int argc, char **argv)
 	sprintf(aliasaddress_path, "%s/alias_addresses.txt", data_path);
 	sprintf(aliasdomain_path, "%s/alias_domains.txt", data_path);
 	sprintf(backup_path, "%s/backup_list.txt", data_path);
-	sprintf(unchkusr_path, "%s/uncheck_domains.txt", data_path);
-	sprintf(collector_path, "%s/mailbox_collector.txt", data_path);
 	sprintf(subsystem_path, "%s/domain_subsystem.txt", data_path);
 	sprintf(console_path, "%s/console_table.txt", data_path);
 
@@ -150,9 +147,8 @@ int main(int argc, char **argv)
 	
 	data_source_init(mysql_host, mysql_port, mysql_user, mysql_passwd, db_name);
 	
-	engine_init(mount_path, domainlist_path,
-		aliasaddress_path, aliasdomain_path, backup_path,
-		unchkusr_path, collector_path, subsystem_path);
+	engine_init(mount_path, domainlist_path, aliasaddress_path,
+		aliasdomain_path, backup_path, subsystem_path);
 
 
 	config_file_save(pconfig);

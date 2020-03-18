@@ -3686,20 +3686,21 @@ static DCERPC_INFO pdu_processor_get_rpc_info()
 	HTTP_CONTEXT *pcontext;
 	
 	memset(&info, 0, sizeof(DCERPC_INFO));
-	pcall = pdu_processor_get_call();
 	pcontext = http_parser_get_context();
-	if (NULL != pcontext) {
-		info.client_ip = pcontext->connection.client_ip;
-		info.client_port = pcontext->connection.client_port;
-		info.server_ip = pcontext->connection.server_ip;
-		info.server_port = pcontext->connection.server_port;
-		info.ep_host = pcontext->host;
-		info.ep_port = pcontext->port;
-		info.username = pcontext->username;
-		info.maildir = pcontext->maildir;
-		info.lang = pcontext->lang;
+	if (NULL == pcontext) {
+		return info;
 	}
-	if (NULL != pcall) {
+	info.client_ip = pcontext->connection.client_ip;
+	info.client_port = pcontext->connection.client_port;
+	info.server_ip = pcontext->connection.server_ip;
+	info.server_port = pcontext->connection.server_port;
+	info.ep_host = pcontext->host;
+	info.ep_port = pcontext->port;
+	info.username = pcontext->username;
+	info.maildir = pcontext->maildir;
+	info.lang = pcontext->lang;
+	if (NULL != pcontext->pchannel) {
+		pcall = pdu_processor_get_call();
 		if (NULL == pcall->pauth_ctx) {
 			info.is_login = FALSE;
 		} else {
@@ -3709,12 +3710,11 @@ static DCERPC_INFO pdu_processor_get_rpc_info()
 			info.stat_flags = pcall->pcontext->stat_flags;
 		}
 	} else {
-		if (NULL == pcontext || '\0' == pcontext->username[0]) {
+		if ('\0' == pcontext->username[0]) {
 			info.is_login = FALSE;
 		} else {
 			info.is_login = TRUE;
 		}
-		info.stat_flags = 0;
 	}
 	return info;
 }

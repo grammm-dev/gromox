@@ -1,0 +1,13 @@
+[Unit]
+Description=grid CORE service
+After=network.target
+
+[Service]
+LimitCORE=infinity
+Type=forking
+ExecStart=/usr/bin/core /var/grid-core start
+Restart=/usr/bin/core /var/grid-core restart
+ExecStop=/usr/bin/core /var/grid-core stop
+
+[Install]
+WantedBy=multi-user.target

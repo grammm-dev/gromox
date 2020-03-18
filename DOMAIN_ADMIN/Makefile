@@ -12,6 +12,7 @@ domain_log \
 domain_main \
 domain_mlists\
 domain_monitor \
+domain_meetings \
 domain_sign \
 domain_keyword \
 domain_setup \

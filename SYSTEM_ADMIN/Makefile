@@ -9,29 +9,24 @@ area_list \
 archiver_list \
 athena \
 bl_delete \
-boundary_blacklist \
 cdnd \
 daemon \
 daily_statistic \
 daily_status \
 dispasswd \
 dns_table \
-domain_blacklist \
 domain_list \
 domain_mailbox \
 domain_whitelist \
-dynamic_dnslist \
 enpasswd \
 event \
 forward_table \
-from_blacklist \
 from_replace\
 ip_blacklist \
 ip_whitelist \
 ipdomain_table \
 keyword_group \
 keyword_statistic \
-keyword_upload \
 locker \
 mensual_statistic \
 message_sign \
@@ -67,7 +62,6 @@ system_users \
 tagging_whitelist \
 timer \
 userinfo \
-xmailer_blacklist\
 
 SCRIPTS_PATH=./scripts
 #object files under "lib" directory, used for linking

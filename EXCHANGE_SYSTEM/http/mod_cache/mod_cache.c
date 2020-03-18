@@ -247,7 +247,7 @@ void mod_cache_free()
 	double_list_free(&g_item_list);
 }
 
-static CACHE_CONTEXT* mod_cache_get_cache_context(HTTP_CONTEXT *phttp)
+static CACHE_CONTEXT* mod_cache_get_cache_context(struct _HTTP_CONTEXT *phttp)
 {
 	int context_id;
 	
@@ -255,7 +255,7 @@ static CACHE_CONTEXT* mod_cache_get_cache_context(HTTP_CONTEXT *phttp)
 	return g_context_list + context_id;
 }
 
-BOOL mod_cache_check_caching(HTTP_CONTEXT *phttp)
+BOOL mod_cache_check_caching(struct _HTTP_CONTEXT *phttp)
 {
 	CACHE_CONTEXT *pcontext;
 	
@@ -370,7 +370,7 @@ static BOOL mod_cache_parse_rfc1123_dstring(
 	return TRUE;
 }
 
-static BOOL mod_cache_response_unmodified(HTTP_CONTEXT *phttp)
+static BOOL mod_cache_response_unmodified(struct _HTTP_CONTEXT *phttp)
 {
 	time_t cur_time;
 	struct tm tmp_tm;
@@ -393,7 +393,7 @@ static BOOL mod_cache_response_unmodified(HTTP_CONTEXT *phttp)
 	return TRUE;
 }
 
-static BOOL mod_cache_response_single_header(HTTP_CONTEXT *phttp)
+static BOOL mod_cache_response_single_header(struct _HTTP_CONTEXT *phttp)
 {
 	char etag[128];
 	time_t cur_time;
@@ -492,7 +492,7 @@ static uint32_t mod_cache_calculate_content_length(CACHE_CONTEXT *pcontext)
 	return content_length;
 }
 
-static BOOL mod_cache_response_multiple_header(HTTP_CONTEXT *phttp)
+static BOOL mod_cache_response_multiple_header(struct _HTTP_CONTEXT *phttp)
 {
 	char etag[128];
 	time_t cur_time;
@@ -630,7 +630,7 @@ static BOOL mod_cache_parse_range_value(char *value,
 	return TRUE;
 }
 
-BOOL mod_cache_get_context(HTTP_CONTEXT *phttp)
+BOOL mod_cache_get_context(struct _HTTP_CONTEXT *phttp)
 {
 	int fd;
 	ino_t ino;
@@ -874,7 +874,7 @@ INVALIDATE_ITEM:
 	return TRUE;
 }
 
-void mod_cache_put_context(HTTP_CONTEXT *phttp)
+void mod_cache_put_context(struct _HTTP_CONTEXT *phttp)
 {
 	CACHE_ITEM *pitem;
 	CACHE_CONTEXT *pcontext;
@@ -901,7 +901,7 @@ void mod_cache_put_context(HTTP_CONTEXT *phttp)
 	}
 }
 
-BOOL mod_cache_check_responded(HTTP_CONTEXT *phttp)
+BOOL mod_cache_check_responded(struct _HTTP_CONTEXT *phttp)
 {
 	CACHE_CONTEXT *pcontext;
 	
@@ -909,7 +909,7 @@ BOOL mod_cache_check_responded(HTTP_CONTEXT *phttp)
 	return pcontext->b_header;
 }
 
-BOOL mod_cache_read_response(HTTP_CONTEXT *phttp)
+BOOL mod_cache_read_response(struct _HTTP_CONTEXT *phttp)
 {
 	int tmp_len;
 	char tmp_buff[1024];

@@ -16,8 +16,6 @@ REPORT_TYPE_DETAIL		daily\ detail
 REPORT_TYPE_SIMPLE		mensual\ statistics
 TIP_LIMIT_TYPE			if\ list\ type\ is\ "deny",\ transporting\ with\ these\ items\ are\ forbidden;\ if\ type\ is\ "allow",\ only\ items\ are\ allowed\ to\ be\ transported\ with
 MAIN_LIMIT_TYPE			limit\ list\ type
-TIP_COLLECTOR			all\ mails\ to\ unavailable\ users\ will\ be\ redirect\ to\ the\ mailbox
-MAIN_COLLECTOR			unavailable\ user\ collecting\ mailbox
 TIP_EXTPASS_TYPE		except\ specified\ users,\ all\ users'\ default\ expire\ date\ will\ be\ the\ set\ date
 MAIN_EXTPASS_TYPE		default\ password\ expire\ date
 PASSWORD_AGING_NEVER	never\ expire

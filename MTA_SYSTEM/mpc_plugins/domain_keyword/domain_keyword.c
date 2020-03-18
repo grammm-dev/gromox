@@ -716,7 +716,7 @@ static BOOL domain_keyword_get_fwdinfo(const char *domain,
 	if (NULL != str_value) {
 		strncpy(lang, str_value, 32);
 	} else {
-		strcpy(lang, "en");
+		strcpy(lang, "en-us");
 	}
 
 	str_value = config_file_get_value(pconfig, "KBOUNCE_MAILBOX");

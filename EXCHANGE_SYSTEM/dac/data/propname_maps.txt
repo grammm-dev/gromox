@@ -1,0 +1,1 @@
+profile		thumbnail-photo			config/portrait.jpg

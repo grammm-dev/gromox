@@ -49,6 +49,7 @@ typedef struct _USER_INFO {
 	char username[128];
 	char maildir[128];
 	char password[128];
+	char lang[64];
 } USER_INFO;
 
 

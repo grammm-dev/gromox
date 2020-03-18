@@ -20,6 +20,8 @@ BACKUP_DIR='backup'
 COMMON_LIB='common.so'
 SCHEDULER_LIB='epoll_scheduler.so'
 EMAIL_LIB='email_lib.so'
+RPC_LIB='rpc_lib.so'
+MAPI_LIB='mapi_lib.so'
 SMTP_NAME='smtp'
 DELIVERY_NAME='delivery'
 
@@ -69,10 +71,9 @@ mkdir $RELEASE_HOME/$SDK_DIR/$SERVICE_DIR/include
 mkdir $RELEASE_HOME/$SDK_DIR/$SERVICE_DIR/sample
 mkdir $RELEASE_HOME/$BACKUP_DIR
 cp scripts/install* $RELEASE_HOME
-cp herculiz/README $RELEASE_HOME
-cp herculiz/herculiz.bin $RELEASE_HOME/$BIN_DIR
-cp scripts/herculiz.sh $RELEASE_HOME/$BIN_DIR
-cp scripts/herculiz.service $RELEASE_HOME/$BIN_DIR
+cp mta/mta.bin $RELEASE_HOME/$BIN_DIR
+cp scripts/grid-mta.sh $RELEASE_HOME/$BIN_DIR
+cp scripts/grid-mta.service $RELEASE_HOME/$BIN_DIR
 cp smtp/$SMTP_NAME $RELEASE_HOME/$BIN_DIR
 cp delivery_app/$DELIVERY_NAME $RELEASE_HOME/$BIN_DIR
 cp smtp/$CONFIGS_DIR/smtp.cfg $RELEASE_HOME/$CONFIGS_DIR/smtp.cfg
@@ -81,6 +82,8 @@ cp smtp/$DATA_DIR/*.txt $RELEASE_HOME/$DATA_DIR/$SMTP_DIR
 cp common/$COMMON_LIB $RELEASE_HOME/$LIB_DIR
 cp epoll_scheduler/$SCHEDULER_LIB $RELEASE_HOME/$LIB_DIR
 cp email_lib/$EMAIL_LIB $RELEASE_HOME/$LIB_DIR
+cp rpc_lib/$RPC_LIB $RELEASE_HOME/$LIB_DIR
+cp mapi_lib/$MAPI_LIB $RELEASE_HOME/$LIB_DIR
 cp $AS_DIR/*/*.pas $RELEASE_HOME/$AS_DIR
 cp $AS_DIR/*/*.bak $RELEASE_HOME/$AS_DIR
 cp $AS_DIR/*/*.cfg $RELEASE_HOME/$CONFIGS_DIR/$SMTP_DIR
@@ -89,29 +92,27 @@ cp $AS_DIR/keyword_filter/keyword_filter/*.txt $RELEASE_HOME/$DATA_DIR/$SMTP_DIR
 cp $MPC_DIR/anonymous_keyword/anonymous_keyword/*.txt $RELEASE_HOME/$DATA_DIR/$DELIVERY_DIR/anonymous_keyword
 cp $SERVICE_DIR/ip_container/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/ip_container.svc
 cp $SERVICE_DIR/ip_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/ip_filter.svc
-cp $SERVICE_DIR/ip_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/protection_ip_audit.svc
 cp $SERVICE_DIR/ip_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/inmail_frequency_audit.svc
 cp $SERVICE_DIR/str_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/user_filter.svc
+cp $SERVICE_DIR/str_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/login_check_audit.svc
 cp $SERVICE_DIR/str_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/attachment_audit.bak
 cp $SERVICE_DIR/str_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/outmail_frequency_audit.svc
 cp $SERVICE_DIR/str_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/outmail_limitation_audit.svc
-cp $SERVICE_DIR/str_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/mail_subject_audit.svc
 cp $SERVICE_DIR/str_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/mail_from_audit.svc
-cp $SERVICE_DIR/str_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/special_protection_audit.svc
 cp $SERVICE_DIR/ip_table/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/relay_list.svc
 cp $SERVICE_DIR/ip_table/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/ip_whitelist.svc
 echo "127.0.0.1" > $RELEASE_HOME/$DATA_DIR/$SMTP_DIR/relay_list.txt
 cp $SERVICE_DIR/str_table/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/domain_list.svc
 cp $SERVICE_DIR/str_table/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/domain_whitelist.svc
+cp $SERVICE_DIR/str_table/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/from_whitelist.svc
 cp $SERVICE_DIR/str_table/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/forbidden_from.svc
 cp $SERVICE_DIR/str_table/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/forbidden_domain.svc
 cp $SERVICE_DIR/str_table/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/forbidden_rcpt.svc
-cp $SERVICE_DIR/str_table/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/boundary_list.svc
+cp $SERVICE_DIR/fcgi_rpc/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/fcgi_rpc.svc
 cp $SERVICE_DIR/log_plugin/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/log_plugin.svc
 cp $SERVICE_DIR/invalid_user/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/invalid_user.svc
 cp $SERVICE_DIR/esmtp_auth/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/esmtp_auth.svc
 cp $SERVICE_DIR/retrying_table/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/retrying_table.svc
-cp $SERVICE_DIR/tagging_table/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/tagging_table.svc
 cp $SERVICE_DIR/spam_statistic/*.svc $RELEASE_HOME/$SERVICE_DIR/$SMTP_DIR/spam_statistic.svc
 cp $SERVICE_DIR/$CONFIGS_DIR/$SMTP_DIR/*.cfg $RELEASE_HOME/$CONFIGS_DIR/$SMTP_DIR
 cp $SERVICE_DIR/$DATA_DIR/$SMTP_DIR/*.txt $RELEASE_HOME/$DATA_DIR/$SMTP_DIR
@@ -155,10 +156,8 @@ cp $MPC_DIR/remote_postman/remote_routing.txt $RELEASE_HOME/$DATA_DIR/$DELIVERY_
 cp -R $MPC_DIR/remote_postman/resource $RELEASE_HOME/$DATA_DIR/$DELIVERY_DIR/remote_bounce
 cp $MPC_DIR/report_forms/report_forms.hook $RELEASE_HOME/$MPC_DIR
 cp $MPC_DIR/spam_complain/spam_complain.hook $RELEASE_HOME/$MPC_DIR
-cp $MPC_DIR/spam_tagging/spam_tagging.hook $RELEASE_HOME/$MPC_DIR
 cp $MPC_DIR/status_forms/status_forms.hook $RELEASE_HOME/$MPC_DIR
 cp $MPC_DIR/system_sign/system_sign.hook $RELEASE_HOME/$MPC_DIR
-cp $MPC_DIR/system_updater/system_updater.hook $RELEASE_HOME/$MPC_DIR
 cp $MPC_DIR/*/*.cfg $RELEASE_HOME/$CONFIGS_DIR/$DELIVERY_DIR
 cp $MPC_DIR/*/*.txt $RELEASE_HOME/$DATA_DIR/$DELIVERY_DIR
 unix2dos $RELEASE_HOME/$DATA_DIR/$DELIVERY_DIR/gateway_bounce/*/*

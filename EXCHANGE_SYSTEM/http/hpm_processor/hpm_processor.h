@@ -13,8 +13,6 @@
 
 struct _HTTP_CONTEXT;
 
-typedef struct _HTTP_CONTEXT HTTP_CONTEXT;
-
 typedef struct _HPM_INTERFACE {
 	BOOL (*preproc)(int);
 	BOOL (*proc)(int, const void*, uint64_t);
@@ -43,24 +41,24 @@ int hpm_processor_stop();
 
 void hpm_processor_free();
 
-BOOL hpm_processor_get_context(HTTP_CONTEXT *phttp);
+BOOL hpm_processor_get_context(struct _HTTP_CONTEXT *phttp);
 
-void hpm_processor_put_context(HTTP_CONTEXT *phttp);
+void hpm_processor_put_context(struct _HTTP_CONTEXT *phttp);
 
-BOOL hpm_processor_check_context(HTTP_CONTEXT *phttp);
+BOOL hpm_processor_check_context(struct _HTTP_CONTEXT *phttp);
 
-BOOL hpm_processor_write_request(HTTP_CONTEXT *phttp);
+BOOL hpm_processor_write_request(struct _HTTP_CONTEXT *phttp);
 
-BOOL hpm_processor_check_end_of_request(HTTP_CONTEXT *phttp);
+BOOL hpm_processor_check_end_of_request(struct _HTTP_CONTEXT *phttp);
 
-BOOL hpm_processor_proc(HTTP_CONTEXT *phttp);
+BOOL hpm_processor_proc(struct _HTTP_CONTEXT *phttp);
 
-int hpm_processor_retrieve_response(HTTP_CONTEXT *phttp);
+int hpm_processor_retrieve_response(struct _HTTP_CONTEXT *phttp);
 
-BOOL hpm_processor_send(HTTP_CONTEXT *phttp,
+BOOL hpm_processor_send(struct _HTTP_CONTEXT *phttp,
 	const void *pbuff, int length);
 
-int hpm_processor_receive(HTTP_CONTEXT *phttp,
+int hpm_processor_receive(struct _HTTP_CONTEXT *phttp,
 	char *pbuff, int length);
 
 void hpm_processor_enum_plugins(ENUM_PLUGINS enum_func);

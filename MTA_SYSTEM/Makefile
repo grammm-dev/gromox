@@ -5,13 +5,14 @@ PARTS_LIST=smtp\
 		   as_plugins\
 		   delivery_app\
 		   mpc_plugins\
-		   herculiz
+		   mta
 
 SCRIPTS_PATH=./scripts
 #object files under "lib" directory, used for linking
 REMOTE_LINKS=../common/common.so\
 			 ../epoll_scheduler/epoll_scheduler.so\
 			 ../email_lib/email_lib.so\
+			 ../rpc_lib/rpc_lib.so\
 			 ../mapi_lib/mapi_lib.so
 
 .PHONY : normal

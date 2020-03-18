@@ -1,11 +1,12 @@
 #add project parts name here
 PARTS_LIST=http\
 		   midb\
+		   dac \
 		   zcore\
 		   service_plugins\
 		   proc_plugins\
 		   hpm_plugins\
-		   medusa
+		   core
 
 SCRIPTS_PATH=./scripts
 #object files under "lib" directory, used for linking

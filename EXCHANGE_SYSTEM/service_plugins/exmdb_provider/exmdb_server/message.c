@@ -5387,6 +5387,12 @@ BOOL exmdb_server_delivery_message(const char *dir,
 			b_oof = TRUE;
 		}
 		fid_val = PRIVATE_FID_INBOX;
+		/* deliver message to "junk" folder if it is marked as spam */
+		pvalue = common_util_get_propvals(&pmsg->proplist,
+				PROP_TAG_CONTENTFILTERSPAMCONFIDENCELEVEL);
+		if (NULL != pvalue && 9 == *(uint32_t*)pvalue) {
+			fid_val = PRIVATE_FID_JUNK;
+		}
 	} else {
 		b_oof = FALSE;
 		//TODO get public folder id

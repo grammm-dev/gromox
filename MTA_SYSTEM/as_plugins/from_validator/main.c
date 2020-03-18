@@ -3,16 +3,16 @@
 #include "mail_func.h"
 #include <stdio.h>
 
-#define SPAM_STATISTIC_FROM_VALIDATOR			6
+#define SPAM_STATISTIC_FROM_VALIDATOR			10
 
-typedef BOOL (*WHITELIST_QUERY)(char*);
 typedef void (*SPAM_STATISTIC)(int);
+typedef BOOL (*WHITELIST_QUERY)(char*);
 typedef BOOL (*CHECKING_USER)(char*, char*);
 
-static WHITELIST_QUERY ip_whitelist_query;
-static SPAM_STATISTIC spam_statistic;
 static CHECKING_USER check_user;
-
+static SPAM_STATISTIC spam_statistic;
+static WHITELIST_QUERY ip_whitelist_query;
+static WHITELIST_QUERY from_whitelist_query;
 
 DECLARE_API;
 
@@ -32,21 +32,28 @@ BOOL AS_LibMain(int reason, void **ppdata)
     case PLUGIN_INIT:
 		LINK_API(ppdata);
 		if (NULL == check_domain) {
-			printf("[from_validator]: fail to get \"check_domain\" "
-				"service\n");
+			printf("[from_validator]: fail to "
+				"get \"check_domain\" service\n");
 			return FALSE;
 		}
 		check_user = (CHECKING_USER)query_service("check_user");
 		if (NULL == check_user) {
-			printf("[from_validator]: fail to get \"check_user\" "
-				"service\n");
+			printf("[from_validator]: fail to "
+				"get \"check_user\" service\n");
 			return FALSE;
 		}
-		ip_whitelist_query = (WHITELIST_QUERY)query_service(
-				            "ip_whitelist_query");
+		ip_whitelist_query = (WHITELIST_QUERY)
+			query_service("ip_whitelist_query");
 		if (NULL == ip_whitelist_query) {
-			printf("[from_validator]: fail to get \"ip_whitelist_query\" "
-					"service\n");
+			printf("[from_validator]: fail to get "
+				"\"ip_whitelist_query\" service\n");
+			return FALSE;
+		}
+		from_whitelist_query = (WHITELIST_QUERY)
+			query_service("from_whitelist_query");
+		if (NULL == from_whitelist_query) {
+			printf("[from_validator]: fail to get "
+				"\"from_whitelist_query\" service\n");
 			return FALSE;
 		}
 		spam_statistic = (SPAM_STATISTIC)query_service("spam_statistic");
@@ -87,38 +94,36 @@ static int envelop_judge(int context_ID, ENVELOP_INFO *penvelop,
 	char *pdomain;
 	char tmp_buff[256];
 	
-	if (TRUE == penvelop->is_outbound || TRUE == penvelop->is_relay) {
+	if (TRUE == penvelop->is_outbound ||
+		TRUE == penvelop->is_relay) {
+		return MESSAGE_ACCEPT;
+	}
+	if (NULL == check_user) {
 		return MESSAGE_ACCEPT;
 	}
 	if (TRUE == ip_whitelist_query(pconnection->client_ip)) {
 		return MESSAGE_ACCEPT;
 	}
-
-	if (NULL == check_user) {
+	if (TRUE == from_whitelist_query(penvelop->from)) {
 		return MESSAGE_ACCEPT;
 	}
-
 	pdomain = strchr(penvelop->from, '@');
 	if (NULL == pdomain) {
 		return MESSAGE_ACCEPT;
 	}
 	pdomain ++;
-
 	if (FALSE == check_domain(pdomain)) {
 		return MESSAGE_ACCEPT;
 	}
-
 	if (TRUE == check_user(penvelop->from, tmp_buff)) {
 		mem_file_readline(&penvelop->f_rcpt_to, tmp_buff, 256);
 		if (0 != strcasecmp(penvelop->from, tmp_buff)) {
 			return MESSAGE_ACCEPT;
 		}
 	}
-	
 	strncpy(reason, g_return_reason, length);
 	if (NULL != spam_statistic) {
 		spam_statistic(SPAM_STATISTIC_FROM_VALIDATOR);
 	}
 	return MESSAGE_REJECT;
 }
-

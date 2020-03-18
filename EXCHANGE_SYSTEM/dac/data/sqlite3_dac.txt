@@ -1,0 +1,41 @@
+CREATE TABLE propvals(
+	val_id INTEGER PRIMARY KEY AUTOINCREMENT,
+	namespace TEXT NOT NULL,
+	propname TEXT NOT NULL,
+	type INTEGER NOT NULL,
+	propval NONE NOT NULL);
+CREATE INDEX namespace_index ON propvals(namespace);
+CREATE UNIQUE INDEX namespace_propname_index ON propvals(namespace, propname);
+
+CREATE TABLE objtbls(
+	object_id INTEGER PRIMARY KEY AUTOINCREMENT,
+	namespace TEXT,
+	tablename TEXT,
+	valid_days INTEGER,
+	unique_name TEXT);
+CREATE INDEX namespace_propname_tblidx ON objtbls(namespace, tablename);
+
+CREATE TABLE tblrows(
+	row_id INTEGER PRIMARY KEY AUTOINCREMENT,
+	ctime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	unique_val NONE NOT NULL,
+	object_id INTEGER NOT NULL,
+	FOREIGN KEY (object_id)
+		REFERENCES objtbls(object_id)
+		ON DELETE CASCADE
+		ON UPDATE CASCADE);
+CREATE INDEX object_id_index ON tblrows(object_id);
+CREATE UNIQUE INDEX object_id_unique_val_index ON tblrows(object_id, unique_val);
+
+CREATE TABLE cellvals(
+	cell_id INTEGER PRIMARY KEY AUTOINCREMENT,
+	row_id INTEGER NOT NULL,
+	name TEXT COLLATE NOCASE NOT NULL,
+	type INTEGER NOT NULL,
+	value NONE NOT NULL,
+	FOREIGN KEY (row_id)
+		REFERENCES tblrows(row_id)
+		ON DELETE CASCADE
+		ON UPDATE CASCADE);
+CREATE INDEX row_id_index ON cellvals(row_id);
+CREATE UNIQUE INDEX row_id_name_index ON cellvals(row_id, name);

@@ -1,6 +1,5 @@
-#include "cdner_agent.h"
 #include "mysql_adaptor.h"
-#include "uncheck_domains.h"
+#include "cdner_agent.h"
 #include "double_list.h"
 #include "util.h"
 #include <stdio.h>
@@ -116,13 +115,13 @@ int mysql_adaptor_run()
 				mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
 					&g_timeout);
 			}
-			if (NULL != mysql_real_connect(pconnection->pmysql, g_host, g_user,
-				g_password, g_db_name, g_port, NULL, 0)) {
+			if (NULL != mysql_real_connect(pconnection->pmysql, g_host,
+				g_user, g_password, g_db_name, g_port, NULL, 0)) {
 				double_list_append_as_tail(&g_connection_list,
 					&pconnection->node);
 			} else {
-				printf("[mysql_adaptor]: fail to connect to mysql server, "
-					"reason: %s\n", mysql_error(pconnection->pmysql));
+				printf("[mysql_adaptor]: fail to connect to mysql server,"
+					" reason: %s\n", mysql_error(pconnection->pmysql));
 				mysql_close(pconnection->pmysql);
 				pconnection->pmysql = NULL;
 				double_list_append_as_tail(&g_invalid_list, &pconnection->node);
@@ -340,24 +339,24 @@ RETRYING:
 			mysql_options(pmysql, MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pmysql, g_host, g_user, g_password,
-			g_db_name, g_port, NULL, 0)) {
+		if (NULL == mysql_real_connect(pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0)) {
 			mysql_close(pmysql);
 			strncpy(reason, "database error, please try later!", length);
 			return FALSE;
 
 		}
 
-		snprintf(sql_string, 1024, "UPDATE users SET password='%s' WHERE "
-			"username='%s'", encrypt_passwd, temp_name);
+		snprintf(sql_string, 1024, "UPDATE users SET password='%s'"
+			" WHERE username='%s'", encrypt_passwd, temp_name);
 		if (0 != mysql_query(pmysql, sql_string)) {
 			mysql_close(pmysql);
 			strncpy(reason, "database error, please try later!", length);
 			return FALSE;
 		}
 
-		snprintf(sql_string, 1024, "SELECT aliasname FROM aliases WHERE "
-			"mainname='%s'", temp_name);
+		snprintf(sql_string, 1024, "SELECT aliasname FROM"
+			" aliases WHERE mainname='%s'", temp_name);
 		if (0 != mysql_query(pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pmysql))) {
 			mysql_close(pmysql);
@@ -366,8 +365,8 @@ RETRYING:
 		}
 
 		mysql_adaptor_encode_squote(pdomain, temp_name);
-		snprintf(sql_string, 1024, "SELECT aliasname FROM aliases WHERE "
-			"mainname='%s'", temp_name);
+		snprintf(sql_string, 1024, "SELECT aliasname FROM"
+			" aliases WHERE mainname='%s'", temp_name);
 		if (0 != mysql_query(pmysql, sql_string) ||
 			NULL == (pmyres1 = mysql_store_result(pmysql))) {
 			mysql_free_result(pmyres);
@@ -404,8 +403,8 @@ RETRYING:
 				pat = strchr(virtual_address, '@') + 1;
 				strcpy(pat, myrow1[0]);
 				mysql_adaptor_encode_squote(virtual_address, temp_name);
-				snprintf(sql_string, 1024, "UPDATE users SET password='%s' "
-					"WHERE username='%s'", encrypt_passwd, temp_name);
+				snprintf(sql_string, 1024, "UPDATE users SET password='%s'"
+					" WHERE username='%s'", encrypt_passwd, temp_name);
 				mysql_query(pmysql, sql_string);
 
 			}
@@ -510,21 +509,13 @@ RETRYING:
 BOOL mysql_adaptor_check_user(const char *username, char *path)
 {
 	int i;
-	char *pdomain;
+	MYSQL_ROW myrow;
+	MYSQL_RES *pmyres;
 	char temp_name[512];
 	char sql_string[1024];
-	MYSQL_RES *pmyres;
-	MYSQL_ROW myrow;
 	DOUBLE_LIST_NODE *pnode;
 	CONNECTION_NODE *pconnection;
 	
-	pdomain = strchr(username, '@');
-	if (NULL != pdomain && TRUE == uncheck_domains_query(pdomain + 1)) {
-		if (NULL != path) {
-			path[0] = '\0';
-		}
-		return TRUE;
-	}
 	/* 
 	 * if no valid connection node available, it means the
 	 * database is down, return TRUE immediately!!!
@@ -560,8 +551,8 @@ RETRYING:
 
 	pconnection = (CONNECTION_NODE*)pnode->pdata;
 	
-	snprintf(sql_string, 1024, "SELECT address_status, maildir FROM users "
-		"WHERE username='%s'", temp_name);
+	snprintf(sql_string, 1024, "SELECT address_status, "
+		"maildir FROM users WHERE username='%s'", temp_name);
 	
 	if (0 != mysql_query(pconnection->pmysql, sql_string) ||
 		NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
@@ -578,14 +569,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -598,7 +589,6 @@ RETRYING:
 			goto RETRYING;
 		}
 	}
-	
 	
 	pthread_mutex_lock(&g_list_lock);
 	double_list_append_as_tail(&g_connection_list, &pconnection->node);
@@ -660,8 +650,8 @@ RETRYING:
 
 	pconnection = (CONNECTION_NODE*)pnode->pdata;
 	
-	snprintf(sql_string, 1024, "SELECT lang FROM users "
-		"WHERE username='%s'", temp_name);
+	snprintf(sql_string, 1024, "SELECT lang FROM"
+		" users WHERE username='%s'", temp_name);
 	
 	if (0 != mysql_query(pconnection->pmysql, sql_string) ||
 		NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
@@ -678,14 +668,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -749,8 +739,8 @@ RETRYING:
 
 	pconnection = (CONNECTION_NODE*)pnode->pdata;
 	
-	snprintf(sql_string, 1024, "SELECT timezone FROM users "
-		"WHERE username='%s'", temp_name);
+	snprintf(sql_string, 1024, "SELECT timezone FROM"
+		" users WHERE username='%s'", temp_name);
 	
 	if (0 != mysql_query(pconnection->pmysql, sql_string) ||
 		NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
@@ -767,14 +757,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -857,14 +847,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -953,14 +943,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -1038,8 +1028,8 @@ RETRYING:
 
 	pconnection = (CONNECTION_NODE*)pnode->pdata;
 	
-	snprintf(sql_string, 1024, "SELECT username FROM users "
-		"WHERE id=%d", user_id);
+	snprintf(sql_string, 1024, "SELECT username"
+		" FROM users WHERE id=%d", user_id);
 	
 	if (0 != mysql_query(pconnection->pmysql, sql_string) ||
 		NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
@@ -1056,14 +1046,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -1127,8 +1117,8 @@ RETRYING:
 
 	pconnection = (CONNECTION_NODE*)pnode->pdata;
 	
-	snprintf(sql_string, 1024, "SELECT homedir, domain_status FROM domains "
-		"WHERE domainname='%s'", temp_name);
+	snprintf(sql_string, 1024, "SELECT homedir, domain_status"
+		" FROM domains WHERE domainname='%s'", temp_name);
 	
 	if (0 != mysql_query(pconnection->pmysql, sql_string) ||
 		NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
@@ -1145,14 +1135,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -1248,14 +1238,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -1324,8 +1314,8 @@ RETRYING:
 
 	pconnection = (CONNECTION_NODE*)pnode->pdata;
 	
-	snprintf(sql_string, 1024, "SELECT group_id, address_status FROM users "
-		"WHERE username='%s'", temp_name);
+	snprintf(sql_string, 1024, "SELECT group_id, address_status"
+		" FROM users WHERE username='%s'", temp_name);
 	
 	if (0 != mysql_query(pconnection->pmysql, sql_string) ||
 		NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
@@ -1342,14 +1332,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -1392,8 +1382,8 @@ RETRYING:
 		return TRUE;
 	}
 
-	snprintf(sql_string, 1024, "SELECT groupname FROM groups WHERE id=%d",
-		group_id);
+	snprintf(sql_string, 1024, "SELECT groupname"
+		" FROM groups WHERE id=%d", group_id);
 	
 	if (0 != mysql_query(pconnection->pmysql, sql_string) ||
 		NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
@@ -1455,8 +1445,8 @@ RETRYING:
 
 	pconnection = (CONNECTION_NODE*)pnode->pdata;
 	
-	snprintf(sql_string, 1024, "SELECT destination, forward_type FROM "
-		"forwards WHERE username='%s'", temp_name);
+	snprintf(sql_string, 1024, "SELECT destination, forward_type"
+		" FROM forwards WHERE username='%s'", temp_name);
 	
 	if (0 != mysql_query(pconnection->pmysql, sql_string) ||
 		NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
@@ -1473,14 +1463,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -1592,14 +1582,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -1612,8 +1602,6 @@ RETRYING:
 			goto RETRYING;
 		}
 	}
-	
-	
 	
 	if (1 != mysql_num_rows(pmyres)) {
 		pthread_mutex_lock(&g_list_lock);
@@ -2146,8 +2134,8 @@ RETRYING:
 				mem_file_seek(&file_temp1, MEM_FILE_READ_PTR, 0,
 					MEM_FILE_SEEK_BEGIN);
 				b_same = FALSE;
-				while (MEM_END_OF_FILE != mem_file_readline(&file_temp1,
-					temp_name, 256)) {
+				while (MEM_END_OF_FILE != mem_file_readline(
+					&file_temp1, temp_name, 256)) {
 					if (0 == strcasecmp(myrow[0], temp_name)) {
 						b_same = TRUE;
 						break;
@@ -2162,8 +2150,8 @@ RETRYING:
 		}
 		mem_file_free(&file_temp);
 		if (TRUE == b_chkintl) {
-			while (MEM_END_OF_FILE != mem_file_readline(&file_temp1,
-				temp_name, 256)) {
+			while (MEM_END_OF_FILE != mem_file_readline(
+				&file_temp1, temp_name, 256)) {
 				if (0 == strcasecmp(temp_name, from)) {
 					b_chkintl = FALSE;
 				}
@@ -2181,8 +2169,8 @@ RETRYING:
 			
 		}
 		mem_file_seek(&file_temp1, MEM_FILE_READ_PTR, 0, MEM_FILE_SEEK_BEGIN);
-		while (MEM_END_OF_FILE != mem_file_readline(&file_temp1,
-			temp_name, 256)) {
+		while (MEM_END_OF_FILE != mem_file_readline(
+			&file_temp1, temp_name, 256)) {
 			mem_file_writeline(pfile, temp_name);
 		}
 		mem_file_free(&file_temp1);
@@ -2222,7 +2210,8 @@ static BOOL mysql_adaptor_expand_hierarchy(
 		child_id = atoi(myrow[0]);
 		b_include = FALSE;
 		mem_file_seek(pfile, MEM_FILE_READ_PTR, 0, MEM_FILE_SEEK_BEGIN);
-		while (MEM_END_OF_FILE != mem_file_read(pfile, &temp_id, sizeof(int))) {
+		while (MEM_END_OF_FILE != mem_file_read(
+			pfile, &temp_id, sizeof(int))) {
 			if (temp_id == child_id) {
 				b_include = TRUE;
 				break;
@@ -2241,8 +2230,8 @@ static BOOL mysql_adaptor_expand_hierarchy(
 	return TRUE;
 }
 
-BOOL mysql_adaptor_check_virtual(const char *username, const char *from,
-	BOOL *pb_expanded, MEM_FILE *pfile)
+BOOL mysql_adaptor_check_virtual(const char *username,
+	const char *from, BOOL *pb_expanded, MEM_FILE *pfile)
 {
 	int i;
 	int result;
@@ -2283,8 +2272,8 @@ RETRYING:
 
 	pconnection = (CONNECTION_NODE*)pnode->pdata;
 	
-	snprintf(sql_string, 1024, "SELECT list_privilege FROM "
-		"mlists WHERE listname='%s'", temp_name);
+	snprintf(sql_string, 1024, "SELECT list_privilege"
+		" FROM mlists WHERE listname='%s'", temp_name);
 	
 	if (0 != mysql_query(pconnection->pmysql, sql_string) ||
 		NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
@@ -2301,14 +2290,14 @@ RETRYING:
 		}
 
 		if (g_timeout > 0) {
-			mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-				&g_timeout);
-			mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-				&g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+			mysql_options(pconnection->pmysql,
+				MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 		}
 
-		if (NULL == mysql_real_connect(pconnection->pmysql, g_host, g_user,
-			g_password, g_db_name, g_port, NULL, 0) ||
+		if (NULL == mysql_real_connect(pconnection->pmysql, g_host,
+			g_user, g_password, g_db_name, g_port, NULL, 0) ||
 			0 != mysql_query(pconnection->pmysql, sql_string) ||
 			NULL == (pmyres = mysql_store_result(pconnection->pmysql))) {
 			mysql_close(pconnection->pmysql);
@@ -2353,9 +2342,10 @@ RETRYING:
 static void* thread_work_func(void *arg)
 {
 	int i;
+	DOUBLE_LIST temp_list;
 	CONNECTION_NODE *pconnection;
 	DOUBLE_LIST_NODE *phead, *ptail, *pnode;
-	DOUBLE_LIST temp_list;
+	
 	
 	i = 0;
 	double_list_init(&temp_list);
@@ -2375,10 +2365,10 @@ static void* thread_work_func(void *arg)
 			pconnection->pmysql = mysql_init(NULL);
 			if (NULL != pconnection->pmysql) {
 				if (g_timeout > 0) {
-					mysql_options(pconnection->pmysql, MYSQL_OPT_READ_TIMEOUT,
-						&g_timeout);
-					mysql_options(pconnection->pmysql, MYSQL_OPT_WRITE_TIMEOUT,
-						&g_timeout);
+					mysql_options(pconnection->pmysql,
+						MYSQL_OPT_READ_TIMEOUT, &g_timeout);
+					mysql_options(pconnection->pmysql,
+						MYSQL_OPT_WRITE_TIMEOUT, &g_timeout);
 				}
 				if (NULL != mysql_real_connect(pconnection->pmysql, g_host,
 					g_user, g_password, g_db_name, g_port, NULL, 0)) {
@@ -2397,7 +2387,8 @@ static void* thread_work_func(void *arg)
 		while (pnode=double_list_get_from_head(&temp_list)) {
 			pconnection = (CONNECTION_NODE*)pnode->pdata;
 			double_list_remove(&g_invalid_list, &pconnection->node);
-			double_list_append_as_tail(&g_connection_list, &pconnection->node);
+			double_list_append_as_tail(
+				&g_connection_list, &pconnection->node);
 		}
 		pthread_mutex_unlock(&g_list_lock);
 		i = 0;
@@ -2441,4 +2432,3 @@ static void mysql_adaptor_encode_squote(const char *in, char *out)
 	}
 	out[j] = '\0';
 }
-

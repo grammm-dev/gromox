@@ -911,45 +911,6 @@ uint32_t zarafa_server_checksession(GUID hsession)
 	return EC_SUCCESS;
 }
 
-uint32_t zarafa_server_uinfo(const char *username, BINARY *pentryid,
-	char **ppdisplay_name, char **ppx500dn, uint32_t *pprivilege_bits)
-{
-	char x500dn[1024];
-	EXT_PUSH ext_push;
-	char display_name[1024];
-	ADDRESSBOOK_ENTRYID tmp_entryid;
-	
-	if (FALSE == system_services_get_user_displayname(
-		username, display_name) ||
-		FALSE == system_services_get_user_privilege_bits(
-		username, pprivilege_bits) || FALSE ==
-		common_util_username_to_essdn(username, x500dn)) {
-		return EC_NOT_FOUND;
-	}
-	tmp_entryid.flags = 0;
-	rop_util_get_provider_uid(PROVIDER_UID_ADDRESS_BOOK,
-							tmp_entryid.provider_uid);
-	tmp_entryid.version = 1;
-	tmp_entryid.type = ADDRESSBOOK_ENTRYID_TYPE_LOCAL_USER;
-	tmp_entryid.px500dn = x500dn;
-	pentryid->pb = common_util_alloc(1280);
-	if (NULL == pentryid->pb) {
-		return EC_ERROR;
-	}
-	ext_buffer_push_init(&ext_push, pentryid->pb, 1280, EXT_FLAG_UTF16);
-	if (EXT_ERR_SUCCESS != ext_buffer_push_addressbook_entryid(
-		&ext_push, &tmp_entryid)) {
-		return EC_ERROR;
-	}
-	pentryid->cb = ext_push.offset;
-	*ppdisplay_name = common_util_dup(display_name);
-	*ppx500dn = common_util_dup(x500dn);
-	if (NULL == *ppdisplay_name || NULL == *ppx500dn) {
-		return EC_ERROR;
-	}
-	return EC_SUCCESS;
-}
-
 uint32_t zarafa_server_unloadobject(GUID hsession, uint32_t hobject)
 {
 	USER_INFO *pinfo;
@@ -962,7 +923,6 @@ uint32_t zarafa_server_unloadobject(GUID hsession, uint32_t hobject)
 	zarafa_server_put_user_info(pinfo);
 	return EC_SUCCESS;
 }
-
 
 uint32_t zarafa_server_openentry(GUID hsession, BINARY entryid,
 	uint32_t flags, uint8_t *pmapi_type, uint32_t *phobject)

@@ -1,0 +1,16 @@
+ERROR_HTML_TITLE        错误
+ERROR_REQUEST           错误请求
+ERROR_INTERNAL          内部错误
+ERROR_SESSION           会话超时，或者未登录，请重新登录
+BACK_LABEL              重新登录
+MAIN_HTML_TITLE			视频会议房间列表
+MAIN_ROOM				房间名称
+MAIN_OPERATION			操作
+MAIN_TABLE_TITLE		视频会议房间列表
+ADD_LABEL				添加
+DELETE_LABEL			删除
+EDIT_LABEL				编辑权限
+PERMISSION_HTML_TITLE	权限列表
+BACK_TO_MAIN			返回房间列表
+MAIN_USERNAME			邮件地址
+PERMISSION_TABLE_TITLE	权限列表

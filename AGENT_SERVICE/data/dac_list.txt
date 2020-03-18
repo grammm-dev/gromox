@@ -1,0 +1,4 @@
+#prefix			simple|private|public		ip_address		port
+/u-data/		private				127.0.0.1		5001
+/d-data/		public				127.0.0.1		5001
+#/s-data/		simple				127.0.0.1		5001

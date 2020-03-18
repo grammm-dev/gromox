@@ -17,6 +17,11 @@ int (*system_services_check_cdn_user)(const char*);
 int (*system_services_create_cdn_user)(const char*);
 void (*system_services_broadcast_event)(const char*);
 void (*system_services_log_info)(int, char*, ...);
+BOOL (*system_services_login_check_judge)(const char*);
+int (*system_services_login_check_add)(const char*, int);
+BOOL (*system_services_fcgi_rpc)(const uint8_t *pbuff_in,
+	uint32_t in_len, uint8_t **ppbuff_out, uint32_t *pout_len,
+	const char *script_path);
 
 /*
  *	module's construct function
@@ -83,16 +88,37 @@ int system_services_run()
 		printf("[system_services]: fail to get \"delete_mail\" service\n");
 		return -9;
 	}
+	system_services_broadcast_event =
+		service_query("broadcast_event", "system");
+	if (NULL == system_services_broadcast_event) {
+		printf("[system_services]: fail to get "
+				"\"broadcast_event\" service\n");
+		return -10;
+	}
+	system_services_login_check_judge = service_query(
+						"login_check_judge", "system");
+	if (NULL == system_services_login_check_judge) {
+		printf("[system_services]: fail to get"
+			" \"login_check_judge\" service\n");
+		return -11;
+	}
+	system_services_login_check_add = service_query(
+						"login_check_add", "system");
+	if (NULL == system_services_login_check_add) {
+		printf("[system_services]: fail to get"
+			" \"login_check_add\" service\n");
+		return -12;
+	}
+	system_services_fcgi_rpc = service_query("fcgi_rpc", "system");
+	if (NULL == system_services_fcgi_rpc) {
+		printf("[system_services]: fail to get \"fcgi_rpc\" service\n");
+		return -13;
+	}
 	system_services_list_cdn_mail = service_query("cdn_uidl", "system");
 	system_services_delete_cdn_mail = service_query("cdn_remove", "system");
 	system_services_check_cdn_user = service_query("cdn_check", "system");
 	system_services_auth_cdn_user = service_query("cdn_auth", "system");
 	system_services_create_cdn_user = service_query("cdn_create", "system");
-	system_services_broadcast_event = service_query("broadcast_event", "system");
-	if (NULL == system_services_broadcast_event) {
-		printf("[system_services]: fail to get \"broadcast_event\" service\n");
-		return -10;
-	}
 	return 0;
 }
 
@@ -116,6 +142,9 @@ int system_services_stop()
 	service_release("list_mail", "system");
 	service_release("delete_mail", "system");
 	service_release("broadcast_event", "system");
+	service_release("login_check_judge", "system");
+	service_release("login_check_add", "system");
+	service_release("fcgi_rpc", "system");
 	if (NULL != system_services_check_cdn_user) {
 		service_release("cdn_uidl", "system");
 		service_release("cdn_remove", "system");

@@ -5,15 +5,15 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#define SPAM_STATISTIC_ATTACH_WILDCARD		48
+#define SPAM_STATISTIC_ATTACH_WILDCARD		2
 
 typedef void (*SPAM_STATISTIC)(int);
 typedef BOOL (*WHITELIST_QUERY)(char*);
-typedef BOOL (*CHECK_TAGGING)(const char*, MEM_FILE*);
 
-static SPAM_STATISTIC    spam_statistic;
-static WHITELIST_QUERY   ip_whitelist_query;
-static CHECK_TAGGING     check_tagging;
+static SPAM_STATISTIC spam_statistic;
+static WHITELIST_QUERY ip_whitelist_query;
+static WHITELIST_QUERY from_whitelist_query;
+static WHITELIST_QUERY domain_whitelist_query;
 
 DECLARE_API;
 
@@ -26,16 +26,11 @@ static BOOL extract_attachment_name(MEM_FILE *pmem_file, char *file_name);
 
 static BOOL reload_list();
 
-static char g_return_reason[1024];
-
-static char g_list_path[256];
-
 static BOOL *g_context_list;
-
-static pthread_rwlock_t g_list_lock;
-
+static char g_list_path[256];
+static char g_return_reason[1024];
 static LIST_FILE *g_wildcard_list;
-
+static pthread_rwlock_t g_list_lock;
 
 int AS_LibMain(int reason, void **ppdata, char *path)
 {
@@ -47,16 +42,18 @@ int AS_LibMain(int reason, void **ppdata, char *path)
     switch (reason) {
     case PLUGIN_INIT:
 		LINK_API(ppdata);
-        ip_whitelist_query = (WHITELIST_QUERY)query_service(
-				             "ip_whitelist_query");
+        ip_whitelist_query = (WHITELIST_QUERY)
+			query_service("ip_whitelist_query");
 		if (NULL == ip_whitelist_query) {
-			printf("[attach_wildcard]: fail to get "
-					"\"ip_whitelist_query\" service\n");
+			printf("[attach_wildcard]: fail to get"
+				" \"ip_whitelist_query\" service\n");
 			return FALSE;
 		}
-		check_tagging = (CHECK_TAGGING)query_service("check_tagging");
-		if (NULL == check_tagging) {
-			printf("[attach_wildcard]: fail to get \"check_tagging\" service\n");
+		from_whitelist_query = (WHITELIST_QUERY)
+			query_service("from_whitelist_query");
+		if (NULL == from_whitelist_query) {
+			printf("[attach_wildcard]: fail to get"
+				" \"from_whitelist_query\" service\n");
 			return FALSE;
 		}
 		spam_statistic = (SPAM_STATISTIC)query_service("spam_statistic");
@@ -75,7 +72,7 @@ int AS_LibMain(int reason, void **ppdata, char *path)
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING");
 		if (NULL == str_value) {
 			strcpy(g_return_reason,
-				"000048 attachment filename is not allowed");
+				"000002 attachment filename is not allowed");
 		} else {
 			strcpy(g_return_reason, str_value);
 		}
@@ -116,7 +113,6 @@ int AS_LibMain(int reason, void **ppdata, char *path)
     return TRUE;
 }
 
-
 static BOOL reload_list()
 {
 	LIST_FILE *pfile;
@@ -126,7 +122,6 @@ static BOOL reload_list()
 	if (NULL == pfile) {
 		return FALSE;
 	}
-
 	pthread_rwlock_wrlock(&g_list_lock);
 	pfile_tmp = g_wildcard_list;
 	g_wildcard_list = pfile;
@@ -141,12 +136,12 @@ static BOOL reload_list()
 static int attach_name_filter(int action, int context_ID,
 	MAIL_BLOCK* mail_blk, char* reason, int length)
 {
-	size_t i, num;
+	int i, num;
 	char *pwildcards;
 	char file_name[256];
 	MAIL_ENTITY mail_entity;
-    char attachment_name[1024];
 	CONNECTION *pconnection;
+    char attachment_name[1024];
 
     switch (action) {
     case ACTION_BLOCK_NEW:
@@ -157,16 +152,18 @@ static int attach_name_filter(int action, int context_ID,
         	return MESSAGE_ACCEPT;
 		}
 		mail_entity = get_mail_entity(context_ID);
-		if (TRUE == mail_entity.penvelop->is_relay) {
+		if (TRUE == mail_entity.penvelop->is_relay ||
+			TRUE == mail_entity.penvelop->is_known) {
 			return MESSAGE_ACCEPT;
 		}
 		pconnection = get_connection(context_ID);
-		if (TRUE == ip_whitelist_query(pconnection->client_ip)) {
+		if (TRUE == ip_whitelist_query(pconnection->client_ip) ||
+			TRUE == from_whitelist_query(mail_entity.penvelop->from)) {
 			g_context_list[context_ID] = TRUE;
 			return MESSAGE_ACCEPT;
 		}
-        if (FALSE == extract_attachment_name(mail_blk->fp_mime_info,
-			attachment_name)) {
+        if (FALSE == extract_attachment_name(
+			mail_blk->fp_mime_info, attachment_name)) {
 			g_context_list[context_ID] = TRUE;
 			return MESSAGE_ACCEPT;
 		}
@@ -175,20 +172,14 @@ static int attach_name_filter(int action, int context_ID,
 		pwildcards = list_file_get_list(g_wildcard_list);
 		num = list_file_get_item_num(g_wildcard_list);
 		for (i=0; i<num; i++) {
-			if (0 != wildcard_match(attachment_name, pwildcards + 128*i, TRUE)) {
+			if (0 != wildcard_match(attachment_name,
+				pwildcards + 128*i, TRUE)) {
 				pthread_rwlock_unlock(&g_list_lock);
-				if (TRUE == check_tagging(mail_entity.penvelop->from,
-					&mail_entity.penvelop->f_rcpt_to)) {
-					mark_context_spam(context_ID);
-					g_context_list[context_ID] = TRUE;
-					return MESSAGE_ACCEPT;
-				} else {
-					if (NULL!= spam_statistic) {
-						spam_statistic(SPAM_STATISTIC_ATTACH_WILDCARD);
-					}
-					strncpy(reason, g_return_reason, length);
-					return MESSAGE_REJECT;
+				if (NULL!= spam_statistic) {
+					spam_statistic(SPAM_STATISTIC_ATTACH_WILDCARD);
 				}
+				strncpy(reason, g_return_reason, length);
+				return MESSAGE_REJECT;
 			}
 		}
 		pthread_rwlock_unlock(&g_list_lock);

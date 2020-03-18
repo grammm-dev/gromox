@@ -28,6 +28,7 @@ extern BOOL (*system_services_check_relay)(const char*);
 extern BOOL (*system_services_check_domain)(const char*);
 extern BOOL (*system_services_check_user)(const char*, char*);
 extern BOOL (*system_services_check_full)(const char*);
+extern BOOL (*system_services_check_sender)(const char*, const char*);
 extern void (*system_services_log_info)(int, char*, ...);
 extern const char* (*system_services_auth_ehlo)();
 extern int (*system_services_auth_process)(int, const char*, int, char*, int);
@@ -35,5 +36,10 @@ extern BOOL (*system_services_auth_retrieve)(int, char*, int);
 extern void (*system_services_auth_clear)(int);
 extern void (*system_services_etrn_process)(const char*, int, char*, int);
 extern void (*system_services_vrfy_process)(const char*, int, char*, int);
+extern BOOL (*system_services_login_check_judge)(const char*);
+extern int (*system_services_login_check_add)(const char*, int);
+extern BOOL (*system_services_fcgi_rpc)(const uint8_t *pbuff_in,
+	uint32_t in_len, uint8_t **ppbuff_out, uint32_t *pout_len,
+	const char *script_path);
 
 #endif /* _H_SYSTEM_SERVICES_ */

@@ -13,7 +13,7 @@
 
 #define RESPONSE_CODE_SUCCESS      			0x00
 
-#define CS_PATH								"/var/medusa/token/zarafa"
+#define CS_PATH								"/var/grid-core/token/zarafa"
 
 static int zarafa_client_connect()
 {
@@ -169,26 +169,6 @@ uint32_t zarafa_client_checksession(GUID hsession)
 	request.payload.checksession.hsession = hsession;
 	if (!zarafa_client_do_rpc(&request, &response)) {
 		return EC_RPC_FAIL;
-	}
-	return response.result;
-}
-
-uint32_t zarafa_client_uinfo(const char *username, BINARY *pentryid,
-	char **ppdisplay_name, char **ppx500dn, uint32_t *pprivilege_bits)
-{
-	RPC_REQUEST request;
-	RPC_RESPONSE response;
-	
-	request.call_id = CALL_ID_UINFO;
-	request.payload.uinfo.username = (void*)username;
-	if (!zarafa_client_do_rpc(&request, &response)) {
-		return EC_RPC_FAIL;
-	}
-	if (EC_SUCCESS == response.result) {
-		*pentryid = response.payload.uinfo.entryid;
-		*ppdisplay_name = response.payload.uinfo.pdisplay_name;
-		*ppx500dn = response.payload.uinfo.px500dn;
-		*pprivilege_bits = response.payload.uinfo.privilege_bits;
 	}
 	return response.result;
 }

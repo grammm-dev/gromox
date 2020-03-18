@@ -558,7 +558,7 @@ void hpm_processor_enum_plugins(ENUM_PLUGINS enum_func)
 	}
 }
 
-BOOL hpm_processor_get_context(HTTP_CONTEXT *phttp)
+BOOL hpm_processor_get_context(struct _HTTP_CONTEXT *phttp)
 {
 	int tmp_len;
 	int context_id;
@@ -640,7 +640,7 @@ BOOL hpm_processor_get_context(HTTP_CONTEXT *phttp)
 	return FALSE;
 }
 
-BOOL hpm_processor_check_context(HTTP_CONTEXT *phttp)
+BOOL hpm_processor_check_context(struct _HTTP_CONTEXT *phttp)
 {
 	int context_id;
 	HPM_CONTEXT *phpm_ctx;
@@ -650,7 +650,7 @@ BOOL hpm_processor_check_context(HTTP_CONTEXT *phttp)
 	return phpm_ctx->b_preproc;
 }
 
-BOOL hpm_processor_write_request(HTTP_CONTEXT *phttp)
+BOOL hpm_processor_write_request(struct _HTTP_CONTEXT *phttp)
 {
 	int size;
 	int tmp_len;
@@ -774,7 +774,7 @@ CHUNK_BEGIN:
 	return TRUE;
 }
 
-BOOL hpm_processor_check_end_of_request(HTTP_CONTEXT *phttp)
+BOOL hpm_processor_check_end_of_request(struct _HTTP_CONTEXT *phttp)
 {
 	int context_id;
 	HPM_CONTEXT *phpm_ctx;
@@ -784,7 +784,7 @@ BOOL hpm_processor_check_end_of_request(HTTP_CONTEXT *phttp)
 	return phpm_ctx->b_end;
 }
 
-BOOL hpm_processor_proc(HTTP_CONTEXT *phttp)
+BOOL hpm_processor_proc(struct _HTTP_CONTEXT *phttp)
 {
 	BOOL b_result;
 	void *pcontent;
@@ -840,7 +840,7 @@ BOOL hpm_processor_proc(HTTP_CONTEXT *phttp)
 	return b_result;
 }
 
-BOOL hpm_processor_send(HTTP_CONTEXT *phttp,
+BOOL hpm_processor_send(struct _HTTP_CONTEXT *phttp,
 	const void *pbuff, int length)
 {
 	int context_id;
@@ -852,7 +852,7 @@ BOOL hpm_processor_send(HTTP_CONTEXT *phttp,
 	
 }
 
-int hpm_processor_receive(HTTP_CONTEXT *phttp,
+int hpm_processor_receive(struct _HTTP_CONTEXT *phttp,
 	char *pbuff, int length)
 {
 	int context_id;
@@ -863,7 +863,7 @@ int hpm_processor_receive(HTTP_CONTEXT *phttp,
 	return phpm_ctx->pinterface->receive(context_id, pbuff, length);
 }
 
-int hpm_processor_retrieve_response(HTTP_CONTEXT *phttp)
+int hpm_processor_retrieve_response(struct _HTTP_CONTEXT *phttp)
 {
 	int context_id;
 	HPM_CONTEXT *phpm_ctx;
@@ -873,7 +873,7 @@ int hpm_processor_retrieve_response(HTTP_CONTEXT *phttp)
 	return phpm_ctx->pinterface->retr(context_id);
 }
 
-void hpm_processor_put_context(HTTP_CONTEXT *phttp)
+void hpm_processor_put_context(struct _HTTP_CONTEXT *phttp)
 {
 	int context_id;
 	char tmp_path[256];

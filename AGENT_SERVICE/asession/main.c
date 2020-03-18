@@ -25,7 +25,7 @@
 
 #define ASESSION_VERSION        "1.0"
 
-#define CS_PATH                 "/var/pandora/token/asession"
+#define CS_PATH                 "/var/grid-agent/token/asession"
 
 #define SOCKET_TIMEOUT          60
 

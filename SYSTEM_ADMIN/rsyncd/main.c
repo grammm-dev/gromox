@@ -1,5 +1,6 @@
 #include "util.h"
 #include "mail_func.h"
+#include "list_file.h"
 #include "config_file.h"
 #include "double_list.h"
 #include <zlib.h>
@@ -23,10 +24,15 @@
 #include <openssl/err.h>
 
 
-#define RSYNC_VERSION		"1.0"
+#define RSYNC_VERSION		"2.0"
 
 
 #define SOCKET_TIMEOUT		300
+
+typedef struct _ACL_ITEM {
+	DOUBLE_LIST_NODE node;
+	char ip_addr[16];
+} ACL_ITEM;
 
 typedef struct _CONNECTION_NODE {
 	pthread_t thr_id;
@@ -43,6 +49,8 @@ typedef struct _CONNECTION_NODE {
 
 static BOOL g_notify_stop;
 static SSL_CTX *g_ssl_ctx;
+static char g_list_path[256];
+static DOUBLE_LIST g_acl_list;
 static DOUBLE_LIST g_connection_list;
 static pthread_mutex_t *g_ssl_mutex_buf;
 static pthread_mutex_t g_connection_lock;
@@ -67,9 +75,11 @@ int main(int argc, char **argv)
 	int i, num;
 	int optval;
 	BOOL b_listen;
+	ACL_ITEM *pacl;
 	int listen_port;
-	int sockd, status;
+	LIST_FILE *plist;
 	pthread_t thr_id;
+	int sockd, status;
 	char ca_path[256];
 	char temp_buff[32];
 	struct in_addr addr;
@@ -79,8 +89,8 @@ int main(int argc, char **argv)
 	struct sockaddr_in my_name;
 	char certificate_path[256];
 	char private_key_path[256];
-	char certificate_passwd[1024];
 	CONNECTION_NODE *pconnection;
+	char certificate_passwd[1024];
 
 	
 	if (2 != argc) {
@@ -102,7 +112,14 @@ int main(int argc, char **argv)
 		printf("[system]: fail to open config file %s\n", argv[1]);
 		return -2;
 	}
-
+	
+	str_value = config_file_get_value(pconfig, "DATA_FILE_PATH");
+	if (NULL == str_value) {
+		strcpy(g_list_path, "../data/rsync_acl.txt");
+	} else {
+		snprintf(g_list_path, 255, "%s/rsync_acl.txt", str_value);
+	}
+	
 	str_value = config_file_get_value(pconfig, "RSYNC_LISTEN_PORT");
 	if (NULL == str_value) {
 		listen_port = 44444;
@@ -247,12 +264,46 @@ int main(int argc, char **argv)
 	pthread_mutex_init(&g_connection_lock, NULL);
 	
 	double_list_init(&g_connection_list);
+	double_list_init(&g_acl_list);
+	
+	plist = list_file_init(g_list_path, "%s:16");
+	if (NULL == plist) {
+		printf("[system]: fail to load acl from %s\n", g_list_path);
+		SSL_CTX_free(g_ssl_ctx);
+		CRYPTO_set_id_callback(NULL);
+		CRYPTO_set_locking_callback(NULL);
+		for (i=0; i<CRYPTO_num_locks(); i++) {
+			pthread_mutex_destroy(&g_ssl_mutex_buf[i]);
+		}
+		free(g_ssl_mutex_buf);
+		double_list_free(&g_acl_list);
+		double_list_free(&g_connection_list);
 
+		pthread_mutex_destroy(&g_connection_lock);
+		SSL_CTX_free(g_ssl_ctx);
+		close(sockd);
+		return -7;
+	}
+	num = list_file_get_item_num(plist);
+	pitem = list_file_get_list(plist);
+	for (i=0; i<num; i++) {
+		pacl = (ACL_ITEM*)malloc(sizeof(ACL_ITEM));
+		if (NULL == pacl) {
+			continue;
+		}
+		pacl->node.pdata = pacl;
+		strcpy(pacl->ip_addr, pitem + 16*i);
+		double_list_append_as_tail(&g_acl_list, &pacl->node);
+	}
+	list_file_free(plist);
 
 	if (0 != pthread_create(&thr_id, NULL, accept_work_func, (void*)(long)sockd)) {
 		printf("[system]: fail to create accept thread\n");
-
-		close(sockd);
+		
+		while (pnode=double_list_get_from_head(&g_acl_list)) {
+			free(pnode->pdata);
+		}
+		
 		SSL_CTX_free(g_ssl_ctx);
 		
 		CRYPTO_set_id_callback(NULL);
@@ -261,18 +312,18 @@ int main(int argc, char **argv)
 			pthread_mutex_destroy(&g_ssl_mutex_buf[i]);
 		}
 		free(g_ssl_mutex_buf);
-
+		double_list_free(&g_acl_list);
 		double_list_free(&g_connection_list);
 
 		pthread_mutex_destroy(&g_connection_lock);
 		SSL_CTX_free(g_ssl_ctx);
 		close(sockd);
-		return -7;
+		return -8;
 	}
 	
 	g_notify_stop = FALSE;
 	signal(SIGTERM, term_handler);
-	printf("[system]: RSYNC is now rinning\n");
+	printf("[system]: RSYNC is now running\n");
 	while (FALSE == g_notify_stop) {
 		sleep(1);
 	}
@@ -286,7 +337,10 @@ int main(int argc, char **argv)
 		close(pconnection->sockd);
 		free(pconnection);
 	}
-
+	while(pnode=double_list_get_from_head(&g_acl_list)) {
+		free(pnode->pdata);
+	}
+	double_list_free(&g_acl_list);
 	double_list_free(&g_connection_list);
 
 	pthread_mutex_destroy(&g_connection_lock);
@@ -307,10 +361,13 @@ int main(int argc, char **argv)
 
 static void *accept_work_func(void *param)
 {
+	ACL_ITEM *pacl;
 	int sockd, sockd2;
 	socklen_t addrlen;
 	X509 *client_cert;
-	X509_NAME *subjectName; 
+	char client_hostip[16];
+	X509_NAME *subjectName;
+	DOUBLE_LIST_NODE *pnode;
 	struct sockaddr_in peer_name;
 	CONNECTION_NODE *pconnection;	
 
@@ -323,7 +380,21 @@ static void *accept_work_func(void *param)
 		if (-1 == sockd2) {
 			continue;
 		}
-
+		strcpy(client_hostip, inet_ntoa(peer_name.sin_addr));
+		if (0 != double_list_get_nodes_num(&g_acl_list)) {
+			for (pnode=double_list_get_head(&g_acl_list); NULL!=pnode;
+				pnode=double_list_get_after(&g_acl_list, pnode)) {
+				pacl = (ACL_ITEM*)pnode->pdata;
+				if (0 == strcmp(client_hostip, pacl->ip_addr)) {
+					break;
+				}
+			}
+			if (NULL == pnode) {
+				write(sockd2, "Access Deny\r\n", 13);
+				close(sockd2);
+				continue;
+			}
+		}
 		pconnection = (CONNECTION_NODE*)malloc(sizeof(CONNECTION_NODE));
 		if (NULL == pconnection) {
 			write(sockd2, "Internal Error!\r\n", 17);

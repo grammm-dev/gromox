@@ -4,4 +4,3 @@
 *								/data/picture		/var/posidon/data/picture
 *								/html				/var/posidon/html
 *								/webapp				/var/steep-webapp
-*								/					/var/webmail/public

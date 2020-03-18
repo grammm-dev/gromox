@@ -16,8 +16,6 @@ REPORT_TYPE_DETAIL		每日完整报表
 REPORT_TYPE_SIMPLE		月统计报表
 TIP_LIMIT_TYPE			如果选择禁止名单，那么列表中的地址或域将不能与本域通信；如果选择允许名单，那么仅允许列表中的地址或域与本域通信
 MAIN_LIMIT_TYPE			限制名单类型
-TIP_COLLECTOR			通过设置这个邮箱地址，所有收件人不存在的邮件将被转发到设置的邮箱
-MAIN_COLLECTOR			离职员工邮件收集邮箱
 TIP_EXTPASS_TYPE		通过设定默认密码有效期，除去特别指定的用户外，用户的密码有效期都将设置为指定的有效期限
 MAIN_EXTPASS_TYPE		默认密码有效期
 PASSWORD_AGING_NEVER	永不过期

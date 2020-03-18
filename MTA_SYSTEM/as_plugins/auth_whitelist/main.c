@@ -3,7 +3,7 @@
 #include "mail_func.h"
 #include <stdio.h>
 
-#define SPAM_STATISTIC_NEED_AUTH		6
+#define SPAM_STATISTIC_NEED_AUTH		3
 
 typedef BOOL (*WHITELIST_QUERY)(char*);
 typedef void (*SPAM_STATISTIC)(int);
@@ -50,7 +50,7 @@ int AS_LibMain(int reason, void **ppdata)
 		}
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_return_string, "authentification needed");
+			strcpy(g_return_string, "authentication needed");
 		} else {
 			strcpy(g_return_string, str_value);
 		}

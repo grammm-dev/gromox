@@ -17,7 +17,6 @@ BOOL SVC_LibMain(int reason, void** ppdata)
 	CONFIG_FILE  *pfile;
 	char file_name[256];
 	char config_path[256];
-	char uncheck_path[256];
 	char temp_buff[128];
 	char *str_value, *psearch;
 	char mysql_host[256], mysql_user[256];
@@ -36,7 +35,6 @@ BOOL SVC_LibMain(int reason, void** ppdata)
 		}
 		sprintf(config_path, "%s/%s.cfg", get_config_path(), file_name);
 		strcpy(g_config_path, config_path);
-		sprintf(uncheck_path, "%s/uncheck_domains.txt", get_data_path());
 		pfile = config_file_init(config_path);
 		if (NULL == pfile) {
 			printf("[mysql_adaptor]: error to open config file!!!\n");

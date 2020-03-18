@@ -56,7 +56,6 @@ int main(int argc, char **argv)
 	char config_path[256];
 	char service_path[256];
 	
-
 	
 	if (2 != argc) {
 		printf("%s <cfg file>\n", argv[0]);

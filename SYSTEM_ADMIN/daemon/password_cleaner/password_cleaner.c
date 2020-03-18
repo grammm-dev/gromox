@@ -17,10 +17,9 @@ static time_t password_cleaner_monthitvl(time_t from_time, int itvl_month);
 
 static time_t password_cleaner_type_until(time_t cur_time, int type);
 
-static void password_cleaner_verify_user(int default_type, time_t cur_time,
-	const char *username, const char *maildir, const char *password);
-
-static password_cleaner_get_userlang(const char *maildir, char *lang);
+static void password_cleaner_verify_user(int default_type,
+	time_t cur_time, const char *username, const char *maildir,
+	const char *password, const char *language);
 
 static void password_cleaner_send_mail(char *msg_buff, int length,
 	const char *maildir);
@@ -89,8 +88,8 @@ int password_cleaner_run()
 			!data_source_collect_done(pcollect1);
 			data_source_collect_forward(pcollect1)) {
 			puser = (USER_INFO*)data_source_collect_get_value(pcollect1);
-			password_cleaner_verify_user(type, g_now_time, puser->username,
-				puser->maildir, puser->password);
+			password_cleaner_verify_user(type, g_now_time,
+				puser->username, puser->maildir, puser->password, puser->lang);
 		}
 		data_source_collect_free(pcollect1);
 
@@ -113,8 +112,9 @@ void password_cleaner_free()
 	/* do nothing */
 }
 
-static void password_cleaner_verify_user(int default_type, time_t cur_time,
-	const char *username, const char *maildir, const char *password)
+static void password_cleaner_verify_user(int default_type,
+	time_t cur_time, const char *username, const char *maildir,
+	const char *password, const char *language)
 {
 	int fd;
 	int type;
@@ -122,7 +122,6 @@ static void password_cleaner_verify_user(int default_type, time_t cur_time,
 	int obsolete;
 	time_t zero_time;
 	time_t until_time;
-	char language[32];
 	char num_buff[32];
 	char temp_path[256];
 	char temp_buff[1024];
@@ -210,7 +209,6 @@ static void password_cleaner_verify_user(int default_type, time_t cur_time,
 		until_time = password_cleaner_type_until(zero_time, type);
 		if (cur_time >= until_time - 7*24*60*60 &&
 			cur_time < until_time - 6*24*60*60) {
-			password_cleaner_get_userlang(maildir, language);
 			message_make(message_buff, MESSAGE_PASSWORD_AGING,
 				language, username, "notifier@system.mail");
 			password_cleaner_send_mail(message_buff,
@@ -331,74 +329,6 @@ static int password_cleaner_daysofmonth(int year, int month)
 		}
 	default:
 		return 0;
-	}
-}
-
-static password_cleaner_get_userlang(const char *maildir, char *lang)
-{
-	int fd;
-	size_t tmp_len;
-	char *pbuff;
-	char temp_lang[32];
-	char temp_lang1[32];
-	char temp_lang2[32];
-	char temp_path[256];
-	struct stat node_stat;
-	
-	snprintf(temp_path, 255, "%s/config/setting.cfg", maildir);
-	if (0 != stat(temp_path, &node_stat) || 0 == S_ISREG(node_stat.st_mode)) {
-		strcpy(lang, "en");
-		return;
-	}
-	
-	pbuff = malloc(node_stat.st_size + 1);
-	if (NULL == pbuff) {
-		strcpy(lang, "en");
-		return;
-	}
-	
-	fd = open(temp_path, O_RDONLY);
-	if (-1 == fd) {
-		free(pbuff);
-		strcpy(lang, "en");
-		return;
-	}
-	
-	if (node_stat.st_size != read(fd, pbuff, node_stat.st_size)) {
-		close(fd);
-		free(pbuff);
-		strcpy(lang, "en");
-		return;
-	}
-	
-	close(fd);
-	pbuff[node_stat.st_size] = '\0';
-	if (FALSE == get_digest(pbuff, "lang", temp_lang, sizeof(temp_lang))) {
-		free(pbuff);
-		strcpy(lang, "en");
-		return;
-	}
-	
-	free(pbuff);
-	
-	tmp_len = 32;
-	if (0 == decode64(temp_lang, strlen(temp_lang),
-		temp_lang1, &tmp_len) && 0 == encode64(temp_lang1,
-		strlen(temp_lang1), temp_lang2, 32, &tmp_len) &&
-		0 == strcmp(temp_lang, temp_lang2)) {
-		strcpy(lang, temp_lang1);
-	} else {
-		strcpy(lang, temp_lang);
-	}
-
-	if (0 == strcasecmp(lang, "zh")) {
-		strcpy(lang, "zh-cn");
-	} else if (0 == strcasecmp(lang, "cn")) {
-		strcpy(lang, "zh-tw");
-	} else if (0 == strcasecmp(lang, "jp")) {
-		strcpy(lang, "ja");
-	} else {
-		strcpy(lang, "en");
 	}
 }
 

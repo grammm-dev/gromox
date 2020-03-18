@@ -193,5 +193,3 @@ static void *thread_work_func(void *param)
 	
 	pthread_exit(0);
 }
-
-

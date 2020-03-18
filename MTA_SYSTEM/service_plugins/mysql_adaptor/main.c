@@ -1,7 +1,6 @@
 #include "service_common.h"
 #include "service_auth.h"
 #include "mysql_adaptor.h"
-#include "uncheck_domains.h"
 #include "cdner_agent.h"
 #include "util.h"
 #include "config_file.h"
@@ -17,18 +16,21 @@ static void console_talk(int argc, char **argv, char *result, int length);
 
 BOOL SVC_LibMain(int reason, void** ppdata)
 {
-	CONFIG_FILE  *pfile;
+	char db_name[256];
+	char *mysql_passwd;
+	CONFIG_FILE *pfile;
 	int cdner_conn_num;
 	int cdner_host_port;
 	char file_name[256];
-	char config_path[256];
-	char uncheck_path[256];
-	char cdner_host_ip[16];
 	char temp_buff[128];
+	char mysql_host[256];
+	char mysql_user[256];
+	char config_path[256];
+	char cdner_host_ip[16];
+	int mysql_port, timeout;
 	char *str_value, *psearch;
-	char mysql_host[256], mysql_user[256];
-	char *mysql_passwd, db_name[256]; 
-	int conn_num, scan_interval, mysql_port, timeout;
+	int conn_num, scan_interval;
+	
 
     switch(reason) {
     case PLUGIN_INIT:
@@ -42,7 +44,6 @@ BOOL SVC_LibMain(int reason, void** ppdata)
 		}
 		sprintf(config_path, "%s/%s.cfg", get_config_path(), file_name);
 		strcpy(g_config_path, config_path);
-		sprintf(uncheck_path, "%s/uncheck_domains.txt", get_data_path());
 		pfile = config_file_init(config_path);
 		if (NULL == pfile) {
 			printf("[mysql_adaptor]: error to open config file!!!\n");
@@ -184,9 +185,8 @@ BOOL SVC_LibMain(int reason, void** ppdata)
 		}
 
 		cdner_agent_init(cdner_conn_num, cdner_host_ip, cdner_host_port);
-		uncheck_domains_init(uncheck_path);	
-		mysql_adaptor_init(conn_num, scan_interval, mysql_host, mysql_port,
-			mysql_user, mysql_passwd, db_name, timeout);
+		mysql_adaptor_init(conn_num, scan_interval, mysql_host,
+			mysql_port, mysql_user, mysql_passwd, db_name, timeout);
 		service_auth_init(get_context_num(), mysql_adaptor_login);
 
 		config_file_save(pfile);
@@ -194,11 +194,6 @@ BOOL SVC_LibMain(int reason, void** ppdata)
 
 		if (0 != cdner_agent_run()) {
 			printf("[mysql_adaptor]: fail to run cdner agent\n");
-			return FALSE;
-		}
-		
-		if (0 != uncheck_domains_run()) {
-			printf("[mysql_adaptor]: fail to run uncheck domains\n");
 			return FALSE;
 		}
 		if (0 != mysql_adaptor_run()) {
@@ -302,8 +297,6 @@ BOOL SVC_LibMain(int reason, void** ppdata)
 		mysql_adaptor_free();
 		service_auth_stop();
 		service_auth_free();
-		uncheck_domains_stop();
-		uncheck_domains_free();
 		cdner_agent_stop();
 		cdner_agent_free();
         return TRUE;
@@ -320,16 +313,14 @@ static void console_talk(int argc, char **argv, char *result, int length)
 						 "\t%s info\r\n"
 						 "\t    --print the module information\r\n"
 						 "\t%s set scan-interval <interval>\r\n"
-						 "\t    --set reconnecting thread's scanning interval\r\n"
-						 "\t%s reload uncheck-domains\r\n"
-						 "\t    --reload uncheck domain table";
+						 "\t    --set reconnecting thread's scanning interval";
 
 	if (1 == argc) {
 		strncpy(result, "550 too few arguments", length);
 		return;
 	}
 	if (2 == argc && 0 == strcmp("--help", argv[1])) {
-		snprintf(result, length, help_string, argv[0], argv[0], argv[0]);
+		snprintf(result, length, help_string, argv[0], argv[0]);
 		result[length - 1] = '\0';
 		return;
 	}
@@ -373,22 +364,6 @@ static void console_talk(int argc, char **argv, char *result, int length)
 		mysql_adaptor_set_param(MYSQL_ADAPTOR_SCAN_INTERVAL, scan_interval);
 		snprintf(result, length, "250 scan-interval set OK");
 		return;
-	}
-
-	if (3 == argc && 0 == strcmp("reload", argv[1]) &&
-		0 == strcmp("uncheck-domains", argv[2])) {
-		switch(uncheck_domains_refresh()) {
-		case TABLE_REFRESH_OK:
-			strncpy(result, "250 uncheck domain table reload OK", length);
-			return;
-		case TABLE_REFRESH_FILE_ERROR:
-			strncpy(result, "550 uncheck domain list file error", length);
-			return;
-		case TABLE_REFRESH_HASH_FAIL:
-			strncpy(result, "550 hash map error for uncheck domain table",
-				length);
-			return;
-		}
 	}
 	
 	snprintf(result, length, "550 invalid argument %s", argv[1]);

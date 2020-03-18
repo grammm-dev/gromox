@@ -3,12 +3,24 @@
 #include "util.h"
 #include <stdio.h>
 
-#define SPAM_STATISTIC_OUTMAIL_FREQUENCY			5
+#define SPAM_STATISTIC_OUTMAIL_FREQUENCY			14
 
 
-typedef BOOL (*OUTMAIL_FREQUENCY_AUDIT)(char*);
 typedef void (*SPAM_STATISTIC)(int);
-typedef BOOL (*WHITELIST_QUERY)(char*);
+typedef void (*DISABLE_SMTP)(const char*);
+typedef BOOL (*WHITELIST_QUERY)(const char*);
+typedef BOOL (*OUTMAIL_FREQUENCY_AUDIT)(const char*);
+
+DECLARE_API;
+
+static DISABLE_SMTP disable_smtp;
+static SPAM_STATISTIC spam_statistic;
+static WHITELIST_QUERY from_whitelist_query;
+static OUTMAIL_FREQUENCY_AUDIT outmail_frequency_audit;
+
+static char g_edm_script[256];
+static char g_return_string_1[1024];
+static char g_return_string_2[1024];
 
 static BOOL (*check_virtual)(const char *username,
 	const char *from, BOOL *pb_expanded, MEM_FILE *pfile);
@@ -16,50 +28,54 @@ static BOOL (*check_virtual)(const char *username,
 static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
     CONNECTION *pconnection, char *reason, int length);
 
-static void console_talk(int argc, char **argv, char *result, int length);
+static BOOL (*fcgi_rpc)(const uint8_t *pbuff_in, uint32_t in_len,
+	uint8_t **ppbuff_out, uint32_t *pout_len, const char *script_path);
 
-DECLARE_API;
-
-static OUTMAIL_FREQUENCY_AUDIT outmail_frequency_audit;
-static SPAM_STATISTIC spam_statistic;
-static WHITELIST_QUERY domain_whitelist_query;
-
-static int g_block_interval;
-static char g_config_file[256];
-static char g_return_string_1[1024];
-static char g_return_string_2[1024];
 
 BOOL AS_LibMain(int reason, void **ppdata)
 {
-	CONFIG_FILE *pconfig_file;
-	char file_name[256], temp_path[256];
+	char *psearch;
+	char *str_value;
 	char temp_buff[64];
-	char *str_value, *psearch;
+	char file_name[256];
+	char temp_path[256];
+	CONFIG_FILE *pconfig_file;
 	
     /* path conatins the config files directory */
     switch (reason) {
     case PLUGIN_INIT:
 		LINK_API(ppdata);
-		
-		check_virtual = query_service("check_virtual_mailbox");
-		if (NULL == check_virtual) {
-			printf("[outmail_frequency]: fail to get \"check_virtual_mailbox\" "
-				"service\n");
+		fcgi_rpc = query_service("fcgi_rpc");
+        if (NULL == fcgi_rpc) {
+			printf("[outmail_frequency]: fail to "
+					"get \"fcgi_rpc\" service\n");
+			return FALSE;
+        }
+		disable_smtp = (DISABLE_SMTP)query_service("disable_smtp");
+		if (NULL == disable_smtp) {
+			printf("[outmail_frequency]: fail to"
+				" get \"disable_smtp\" service\n");
 			return FALSE;
 		}
-		outmail_frequency_audit = (OUTMAIL_FREQUENCY_AUDIT)query_service(
-								"outmail_frequency_audit");
+		check_virtual = query_service("check_virtual_mailbox");
+		if (NULL == check_virtual) {
+			printf("[outmail_frequency]: fail to get "
+				"\"check_virtual_mailbox\" service\n");
+			return FALSE;
+		}
+		outmail_frequency_audit = (OUTMAIL_FREQUENCY_AUDIT)
+					query_service("outmail_frequency_audit");
 		if (NULL == outmail_frequency_audit) {
 			printf("[outmail_frequency]: fail to get "
-					"\"outmail_frequency_audit\" service\n");
+				"\"outmail_frequency_audit\" service\n");
 			return FALSE;
 		}
 		spam_statistic = (SPAM_STATISTIC)query_service("spam_statistic");
-		domain_whitelist_query =  (WHITELIST_QUERY)query_service(
-									"domain_whitelist_query");
-		if (NULL == domain_whitelist_query) {
+		from_whitelist_query = (WHITELIST_QUERY)
+			query_service("from_whitelist_query");
+		if (NULL == from_whitelist_query) {
 			printf("[outmail_frequency]: fail to get "
-				"\"domain_whitelist_query\" service\n");
+				"\"from_whitelist_query\" service\n");
 			return FALSE;
 		}
 		strcpy(file_name, get_plugin_name());
@@ -68,25 +84,24 @@ BOOL AS_LibMain(int reason, void **ppdata)
 			*psearch = '\0';
 		}
 		sprintf(temp_path, "%s/%s.cfg", get_config_path(), file_name);
-		strcpy(g_config_file, temp_path);
 		pconfig_file = config_file_init(temp_path);
 		if (NULL == pconfig_file) {
 			printf("[outmail_frequency]: error to open config file!!!\n");
 			return FALSE;
 		}
-		str_value = config_file_get_value(pconfig_file, "BLOCK_INTERVAL");
+		str_value = config_file_get_value(pconfig_file, "EDM_SCRIPT_PATH");
 		if (NULL == str_value) {
-			g_block_interval = 3600;
-			config_file_set_value(pconfig_file, "BLOCK_INTERVAL", "1hour");
-		} else {
-			g_block_interval = atoitvl(str_value);
+			config_file_free(pconfig_file);
+			printf("[outmail_frequency]: fail to get "
+				"EDM_SCRIPT_PATH from config file\n");
+			return FALSE;
 		}
-		itvltoa(g_block_interval, temp_buff);
-		printf("[outmail_frequency]: block interval is %s\n", temp_buff);
+		strcpy(g_edm_script, str_value);
+		printf("[outmail_frequency]: edm script path is %s\n", g_edm_script);
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING_1");
 		if (NULL == str_value) {
-			strcpy(g_return_string_1, "000005 this account has sent too many "
-				"mails, will be blocked for a while");
+			strcpy(g_return_string_1, "000014 this account has "
+				"sent too many mails, will be blocked for a while");
 		} else {
 			strcpy(g_return_string_1, str_value);
 		}
@@ -94,13 +109,13 @@ BOOL AS_LibMain(int reason, void **ppdata)
 				g_return_string_1);
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING_2");
 		if (NULL == str_value) {
-			strcpy(g_return_string_2, "000005 mail from address and account "
-				"name differ");
+			strcpy(g_return_string_2, "mail from "
+				"address and account name differ");
 		} else {
 			strcpy(g_return_string_2, str_value);
 		}
-		printf("[outmail_frequency]: return string 2 is %s\n",
-				g_return_string_2);
+		printf("[outmail_frequency]: return "
+			"string 2 is %s\n", g_return_string_2);
 		if (FALSE == config_file_save(pconfig_file)) {
 			printf("[outmail_frequency]: fail to save config file\n");
 			config_file_free(pconfig_file);
@@ -111,7 +126,6 @@ BOOL AS_LibMain(int reason, void **ppdata)
         if (FALSE == register_statistic(mail_statistic)) {
             return FALSE;
         }
-        register_talk(console_talk);
         return TRUE;
     case PLUGIN_FREE:
         return TRUE;
@@ -119,26 +133,30 @@ BOOL AS_LibMain(int reason, void **ppdata)
     return TRUE;
 }
 
-
 static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
     CONNECTION *pconnection, char *reason, int length)
 {
 	BOOL b_expanded;
+	uint32_t out_len;
 	MEM_FILE tmp_file;
+	uint8_t *pbuff_out;
 	char rcpt_buff[256];
-	const char *psrc_domain, *pdst_domain;
+	const char *psrc_domain;
+	const char *pdst_domain;
 	
-	/* ignore the inbound mails */
-	if (TRUE == pmail->penvelop->is_relay ||
-		FALSE == pmail->penvelop->is_outbound) {
+	
+	if (TRUE == pmail->penvelop->is_relay) {
+		return MESSAGE_ACCEPT;
+	}
+	if (FALSE == pmail->penvelop->is_outbound) {
 		return MESSAGE_ACCEPT;
 	}
 	if (0 == strcmp(pmail->penvelop->from, "none@none")) {
 		return MESSAGE_ACCEPT;
 	}
 	
-	if (TRUE == pmail->penvelop->is_login &&
-		0 != strcasecmp(pmail->penvelop->username, pmail->penvelop->from)) {
+	if (TRUE == pmail->penvelop->is_login && 0 != strcasecmp(
+		pmail->penvelop->username, pmail->penvelop->from)) {
 		mem_file_init(&tmp_file, pmail->penvelop->f_rcpt_to.allocator);
 		check_virtual(pmail->penvelop->username,
 			pmail->penvelop->from, &b_expanded, &tmp_file);
@@ -160,34 +178,25 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 	}
 	
 CHECK_FREQUENCY:
-	psrc_domain = strchr(pmail->penvelop->username, '@');
-	if (NULL != psrc_domain) {
-		psrc_domain ++;
-		if (TRUE == domain_whitelist_query((char*)psrc_domain)) {
-			return MESSAGE_ACCEPT;
-		}
-	}
-	psrc_domain = strchr(pmail->penvelop->from, '@') + 1;
-	if (TRUE == domain_whitelist_query((char*)psrc_domain)) {
+	if (TRUE == from_whitelist_query(pmail->penvelop->username)) {
 		return MESSAGE_ACCEPT;
 	}
-	
-	
+	if (TRUE == from_whitelist_query(pmail->penvelop->from)) {
+		return MESSAGE_ACCEPT;
+	}
+	psrc_domain = strchr(pmail->penvelop->from, '@') + 1;
 	while (MEM_END_OF_FILE != mem_file_readline(
 		&pmail->penvelop->f_rcpt_to, rcpt_buff, 256)) {
 		pdst_domain = strchr(rcpt_buff, '@') + 1;
 		if (0 == strcasecmp(pdst_domain, psrc_domain)) {
 			continue;
 		}
-		if (FALSE == outmail_frequency_audit(pmail->penvelop->from)) {
-			/* 
-			 * if user uses client tools to send mail, block the account
-			 * CAUSION!!! if user use webmail to send spam mail, smtp will
-			 * not block such users, these users can only be blocked by webmail
-			 * itself
-			 */
-			if (TRUE == pmail->penvelop->is_login) {
-				user_filter_add(pmail->penvelop->username, g_block_interval);
+		if (FALSE == outmail_frequency_audit(pmail->penvelop->username)) {
+			disable_smtp(pmail->penvelop->username);
+			if (TRUE == fcgi_rpc(pmail->penvelop->username,
+				strlen(pmail->penvelop->username) + 1,
+				&pbuff_out, &out_len, g_edm_script)) {
+				free(pbuff_out);	
 			}
 			if (NULL!= spam_statistic) {
 				spam_statistic(SPAM_STATISTIC_OUTMAIL_FREQUENCY);
@@ -198,61 +207,3 @@ CHECK_FREQUENCY:
 	}
 	return MESSAGE_ACCEPT;
 }
-
-static void console_talk(int argc, char **argv, char *result, int length)
-{
-	int block_interval, max_rcpt, len;
-	CONFIG_FILE *pfile;
-	char help_string[] = "250 outmail frequency help information:\r\n"
-	                     "\t%s info\r\n"
-						 "\t    --printf outmail frequency's information\r\n"
-						 "\t%s set block-interval <interval>\r\n"
-						 "\t    --set the block interval of outmail frequency";
-
-	if (1 == argc) {
-	    strncpy(result, "550 too few arguments", length);
-		return;
-				  }
-	if (2 == argc && 0 == strcmp("--help", argv[1])) {
-		snprintf(result, length, help_string, argv[0], argv[0]);
-	    result[length - 1] ='\0';
-	    return;
-	}
-	if (2 == argc && 0 == strcmp(argv[1], "info")) {
-		len = snprintf(result, length, "250 %s information:\r\n"
-		                         "\tblock interval                   ",
-			                     argv[0]);
-		itvltoa(g_block_interval, result + len);
-		return;
-	}
-	if (0 == strcmp("set", argv[1])) {
-		if (4 == argc && 0 == strcmp("block-interval", argv[2])) {
-			block_interval = atoitvl(argv[3]);
-			if (block_interval <= 0) {
-				snprintf(result, length, "550 illegal interval %s", argv[3]);
-				return;
-			} else {
-				pfile = config_file_init(g_config_file);
-				if (NULL == pfile) {
-					strncpy(result, "550 fail to open config file", length);
-					return;
-				}
-				config_file_set_value(pfile, "BLOCK_INTERVAL", argv[3]);
-				if (FALSE == config_file_save(pfile)) {
-					strncpy(result, "550 fail to save config file", length);
-					config_file_free(pfile);
-					return;
-				}
-				config_file_free(pfile);
-				g_block_interval = block_interval;
-				strncpy(result, "250 block-interval set OK", length);
-				return;
-			}
-		}
-		snprintf(result, length, "550 invalid argument %s", argv[2]);
-		return;
-	}
-	snprintf(result, length, "550 invalid argument %s", argv[1]);
-	return;
-}
-

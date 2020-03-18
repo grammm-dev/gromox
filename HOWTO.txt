@@ -3,10 +3,15 @@ COMPILING AND INSTALLING ON CENTOS 7 STEP BY STEP
 yum -y install gcc gcc-c++ makedepend mariadb mariadb-server mariadb-devel sqlite-devel php php-devel php-fpm php-xml php-soap php-gd php-process php-pear php-mbstring php-mysql libtool unzip wget dos2unix
 
 #build php-mapi, caution!!! cannot do this step after libiconv
-cd STEEP_SYSTEM-master/AGENT_SERVICE/php_mapi
+cd c-system/agent_service/php_mapi
 sh build.sh
 cp modules/mapi.so /usr/lib64/php/modules/
 cp mapi.ini /etc/php.d/
+
+cd c-system/agent_service/php_dac
+sh build.sh
+cp modules/dac.so /usr/lib64/php/modules/
+cp dac.ini /etc/php.d/
 
 #download libiconv from http://www.gnu.org/software/libiconv/ (e.g. wget https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.16.tar.gz)
 tar zxvf libiconv-1.16.tar.gz 
@@ -34,14 +39,14 @@ build/autogen.sh
 ./configure --prefix=/usr --libdir=/usr/lib64
 make && make install
 
-#download libxls from https://sourceforge.net/projects/libxls/files/libxls-old/ caution!!! please download libxls-1.1.0.zip
-unzip libxls-1.1.0.zip
-cd libxls
+#download libxls from https://github.com/libxls/libxls
+unzip libxls-master.zip
+cd libxls-master
 ./configure --prefix=/usr --libdir=/usr/lib64
 make && make install
 
 #build and install the whole system 
-cd STEEP_SYSTEM-master
+cd c-system
 sh build.sh && sh install.sh
 
 #create database
@@ -141,27 +146,27 @@ mkdir /var/tls
 -rw-r--r-- 1 root root 3725 Jun 11 19:19 mail.pem
 
 #if you want to modify X500_ORG_NAME, please find them in below files and set to the same value!
-/var/medusa/http/exchange_nsp.cfg
-/var/medusa/http/exchange_emsmdb.cfg
-/var/medusa/http/exmdb_provider.cfg
-/var/medusa/midb.cfg
-/var/medusa/zcore.cfg
-/var/herculiz/config/delivery/exmdb_local.cfg
-#also change orgnization of section "exchange" in /var/medusa/php/config/config.ini
+/var/grid-core/http/exchange_nsp.cfg
+/var/grid-core/http/exchange_emsmdb.cfg
+/var/grid-core/http/exmdb_provider.cfg
+/var/grid-core/midb.cfg
+/var/grid-core/zcore.cfg
+/var/grid-mta/config/delivery/exmdb_local.cfg
+#also change orgnization of section "exchange" in /var/grid-core/php/config/config.ini
 
 #if you want to modify DEFAULT_TIMEZONE, please find them in below files and set to the same value!
-/var/medusa/config/midb.cfg
-/var/medusa/config/zcore.cfg
-/var/herculiz/config/delivery/exmdb_local.cfg
-#also change timezone of section "default" in /var/medusa/php/config/config.ini
+/var/grid-core/config/midb.cfg
+/var/grid-core/config/zcore.cfg
+/var/grid-mta/config/delivery/exmdb_local.cfg
+#also change timezone of section "default" in /var/grid-core/php/config/config.ini
 
 #if you want to modify DEFAULT_CHARSET, please find them in below files and set to the same value!
-/var/medusa/config/midb.cfg
-/var/medusa/config/zcore.cfg
-/var/herculiz/config/delivery/exmdb_local.cfg
+/var/grid-core/config/midb.cfg
+/var/grid-core/config/zcore.cfg
+/var/grid-mta/config/delivery/exmdb_local.cfg
 
 #config smtp and delivery
-cd /var/herculiz/config/
+cd /var/grid-mta/config/
 #edit smtp.cfg
 #modify HOST_ID=your machine hostname (e.g. HOST_ID=host1.herculiz.com)
 #modify DEFAULT_DOMAIN (e.g. DEFAULT_DOMAIN=herculiz.com)
@@ -176,7 +181,7 @@ cd /var/herculiz/config/
 #modify ADMIN_MAILBOX=your email address(e.g. ADMIN_MAILBOX = admin@herculiz.com)
 
 #config pop3 and imap
-cd /var/apollo/config/
+cd /var/grid-mra/config/
 #edit pop3.cfg
 #modify HOST_ID=your machine hostname (e.g. HOST_ID=host1.herculiz.com)
 #modify DEFAULT_DOMAIN (e.g. DEFAULT_DOMAIN=herculiz.com)
@@ -195,7 +200,7 @@ cd /var/apollo/config/
 #if you want to force starttls in pop session, set IMAP_FORCE_STARTTLS=TRUE
 
 #config http midb zcore
-cd /var/medusa/config
+cd /var/grid-core/config
 #edit http.cfg
 #modify HOST_ID=your machine hostname (e.g. HOST_ID=host1.herculiz.com)
 #modify DEFAULT_DOMAIN (e.g. DEFAULT_DOMAIN=herculiz.com)
@@ -205,12 +210,12 @@ cd /var/medusa/config
 #modify HTTP_PRIVATE_KEY_PATH=/var/tls/mail.key
 
 #config autodiscover and EWS
-cd /var/medusa/php/config
+cd /var/grid-core/php/config
 #edit config.ini set hostname=autodiscover hostname under section "exchange"
 #set /u-data=proxy hostname (normally same as autodiscover hostname) under section "http-porxy"
 
 #start all steep services
-systemctl start medusa apollo herculiz pandora athena posidon
+systemctl start grid-core grid-mra grid-mta grid-agent athena posidon
 
 #system administration
 #visit the system administration UI by http://xxx.xxx.xxx.xxx:1080/cgi-bin/admin_main
@@ -254,9 +259,8 @@ maximum files: maximum files number kept in the area (e.g. 100000000)
 
 #for reference of system administration and domain administration, please see the sys-admin.pdf
 
-#install webapp, download webmail from https://github.com/steep-system/STEEP_WEBAPP
-#steep webapp comes from kopano webapp, for more information, please visit https://kopano.io/
-cd STEEP_WEBAPP-master
+#install webapp, steep webapp comes from kopano webapp, for more information, please visit https://kopano.io/
+cd php-system/steep-webapp
 make
 cp -R deploy /var/steep-webapp
 cd /var/steep-webapp
@@ -301,6 +305,36 @@ Redirect /AutoDiscover/AutoDiscover.xml https://exch1.herculiz.com/Autodiscover/
 adjmp.herculiz.com.			IN A 192.168.1.200
 #hosted domain abc.com should add a cname record
 autodiscover.abc.com		IN CNAME adjmp.herculiz.com
+#------------------------------------------------------------------------------------------------------
+
+#if you want to use system's rsync functionality, please rename rsyncd to rsync under /var/athena/bin
+# in master system and rename rsyncer to rsync under /var/athena/bin in slave system. issue your
+# certificate by following commands and set CA_PATH CERTIFICATE_PATH, PRIVATE_KEY_PATH RSYNC_HOST_IP and
+# RSYNC_HOST_PORT (for slave), RSYNC_LISTEN_PORT, CA_PATH CERTIFICATE_PATH, PRIVATE_KEY_PATH(for master)
+# in /var/athena/config/athena.cfg
+
+#generate CA private key
+openssl genrsa -des3 -out ca.key 2048
+
+#get rid of password
+openssl rsa -in ca.key -out ca.key
+
+
+#sign CA with self
+openssl req -new -x509 -days 3650 -key ca.key -out ca.crt
+
+#generate a privet key for server
+openssl genrsa -des3 -out server.key 2048
+
+#get rid of password
+openssl rsa -in server.key -out server.key
+
+#generate a certificate sign request file
+openssl req -new -key server.key -out certificate.csr
+
+#sign the request file to certificate
+openssl x509 -req -in certificate.csr -out server.crt -CA ca.crt -CAkey ca.key -days 3650 -set_serial 1
+
 #------------------------------------------------------------------------------------------------------
 
 #to add domain and username into system, please refer to sys-admin.pdf and domain-admin.pdf

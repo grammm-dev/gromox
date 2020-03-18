@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#define RELOAD_COMMAND	"tagging_table.svc reload\r\n"
+#define RELOAD_COMMAND	"from_whitelist.svc reload\r\n"
 
 typedef struct _CONSOLE_PORT {
 	SINGLE_LIST_NODE node;

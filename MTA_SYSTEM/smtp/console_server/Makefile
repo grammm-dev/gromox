@@ -9,7 +9,7 @@ INCLUDE_PATHS=../../common/include\
 			  ../resource\
 			  ../service\
 			  ../smtp_parser\
-			  ../anti_spamming\
+			  ../anti_spam\
 			  ../flusher\
 			  ../blocks_allocator# add include paths here
 LIBRARY_PATHS=# add library paths here

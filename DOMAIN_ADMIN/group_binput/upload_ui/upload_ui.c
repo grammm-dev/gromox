@@ -8,7 +8,7 @@
 #include "exmdb_client.h"
 #include "lang_resource.h"
 #include "locker_client.h"
-#include <libxls/xls.h>
+#include <xls.h>
 #include <time.h>
 #include <iconv.h>
 #include <ctype.h>
@@ -1599,17 +1599,18 @@ static BOOL upload_ui_xls_input(const char *domainname,
 	BOOL b_touched;
 	xlsWorkBook *pWB;
 	xlsWorkSheet *pWS;
-	struct st_row_data* row;
 	USER_ITEM *pitem;
 	CLASS_ITEM *pitem1;
+	struct st_row_data* row;
 	DOUBLE_LIST_NODE *pnode;
+	xls_error_t error = LIBXLS_OK;
 	
 	language = getenv("HTTP_ACCEPT_LANGUAGE");
 	if (NULL == language) {
 		language = "en";
 	}
-	pWB = xls_open((char*)path, (char*)lang_resource_get(
-					g_lang_resource, "CHARSET", language));
+	pWB = xls_open_file((char*)path, (char*)lang_resource_get(
+				g_lang_resource, "CHARSET", language), &error);
 	if (NULL == pWB) {
 		*presult = XLS_RESULT_OPENFAIL;
 		return FALSE;
@@ -1617,7 +1618,7 @@ static BOOL upload_ui_xls_input(const char *domainname,
 	
 	if (pWB->sheets.count < 1) {
 		*presult = XLS_RESULT_NOSHEET;
-		xls_close(pWB);
+		xls_close_WB(pWB);
 		return FALSE;
 	}
 	
@@ -1626,13 +1627,13 @@ static BOOL upload_ui_xls_input(const char *domainname,
 	
 	if (pWS->rows.lastrow <= 0) {
 		*presult = XLS_RESULT_NOROWS;
-		xls_close(pWB);
+		xls_close_WB(pWB);
 		return FALSE;
 	}
 
 	if (pWS->rows.lastcol < 4) {
 		*presult = XLS_RESULT_COLERROR;
-		xls_close(pWB);
+		xls_close_WB(pWB);
 		return FALSE;
 	}
 	
@@ -1807,11 +1808,11 @@ static BOOL upload_ui_xls_input(const char *domainname,
 				strcpy(pitem->lang, row->cells.cell[11].str);
 			}
 		}
-		if (0 != strcasecmp(pitem->lang, "en") &&
-			0 != strcasecmp(pitem->lang, "jp") &&
-			0 != strcasecmp(pitem->lang, "zh") &&
-			0 != strcasecmp(pitem->lang, "cn")) {
-			strcpy(pitem->lang, "en");	
+		if (0 != strcasecmp(pitem->lang, "en-us") &&
+			0 != strcasecmp(pitem->lang, "ja-jp") &&
+			0 != strcasecmp(pitem->lang, "zh-cn") &&
+			0 != strcasecmp(pitem->lang, "zh-tw")) {
+			strcpy(pitem->lang, "en-us");
 		}
 		
 		if (NULL == row->cells.cell[3].str) {
@@ -1858,13 +1859,13 @@ static BOOL upload_ui_xls_input(const char *domainname,
 		}
 		double_list_append_as_tail(plist, &pitem->node);
 	}
-
+	xls_close_WS(pWS);
 	if (FALSE == b_touched) {
 		*presult = XLS_RESULT_OK;
 	} else {
 		*presult = XLS_RESULT_TOUCHED;
 	}
-	xls_close(pWB);
+	xls_close_WB(pWB);
 	return TRUE;
 }
 
@@ -1877,8 +1878,9 @@ static BOOL upload_ui_xls_delete(const char *domainname,
 	BOOL b_touched;
 	xlsWorkBook *pWB;
 	xlsWorkSheet *pWS;
-	struct st_row_data* row;
 	USER_ITEM *pitem;
+	struct st_row_data* row;
+	xls_error_t error = LIBXLS_OK;
 	
 	
 	language = getenv("HTTP_ACCEPT_LANGUAGE");
@@ -1886,8 +1888,8 @@ static BOOL upload_ui_xls_delete(const char *domainname,
 		language = "en";
 	}
 	
-	pWB = xls_open((char*)path, (char*)lang_resource_get(
-					g_lang_resource, "CHARSET", language));
+	pWB = xls_open_file((char*)path, (char*)lang_resource_get(
+				g_lang_resource, "CHARSET", language), &error);
 	if (NULL == pWB) {
 		*presult = XLS_RESULT_OPENFAIL;
 		return FALSE;
@@ -1904,13 +1906,13 @@ static BOOL upload_ui_xls_delete(const char *domainname,
 	
 	if (pWS->rows.lastrow <= 0) {
 		*presult = XLS_RESULT_NOROWS;
-		xls_close(pWB);
+		xls_close_WB(pWB);
 		return FALSE;
 	}
 
 	if (pWS->rows.lastcol < 1) {
 		*presult = XLS_RESULT_COLERROR;
-		xls_close(pWB);
+		xls_close_WB(pWB);
 		return FALSE;
 	}
 	
@@ -1967,13 +1969,13 @@ static BOOL upload_ui_xls_delete(const char *domainname,
 		lower_string(pitem->username);
 		double_list_append_as_tail(plist, &pitem->node);
 	}
-	
+	xls_close_WS(pWS);
 	if (TRUE == b_touched) {
 		*presult = XLS_RESULT_TOUCHED;
 	} else {
 		*presult = XLS_RESULT_OK;
 	}
-	xls_close(pWB);
+	xls_close_WB(pWB);
 	return TRUE;
 }
 

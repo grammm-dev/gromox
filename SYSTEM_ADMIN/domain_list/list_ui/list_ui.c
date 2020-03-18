@@ -468,7 +468,7 @@ if (sub_system.checked == true) {\n\
 } else {\n\
 	mask_string += '0';\n\
 }\n\
-if (uncheck_user.checked == true) {\n\
+if (webmeeting.checked == true) {\n\
 	mask_string += '1';\n\
 } else {\n\
 	mask_string += '0';\n\
@@ -488,7 +488,7 @@ return true;\" /></TD></TR></FORM><TR><TD></TD><TD vAlign=center>%s</TD>\n\
 <TD vAlign=center><SPAN><TABLE border=0><TBODY><TR><TD>\n\
 <INPUT type=checkbox name=mail_backup value=\"on\" />%s</TD>\n\
 <TD><INPUT type=checkbox name=mail_monitor value=\"on\" />%s</TD></TR>\n\
-<TR><TD><INPUT type=checkbox name=uncheck_user value=\"on\" />%s</TD>\n\
+<TR><TD><INPUT type=checkbox name=webmeeting value=\"on\" />%s</TD>\n\
 <TD><INPUT type=checkbox name=sub_system value=\"on\" />%s</TD></TR>\n\
 <TR><TD><INPUT type=checkbox name=sms value=\"on\" />%s</TD>\n\
 <TD><INPUT type=checkbox name=extpasswd value=\"on\" />%s</TD></TR>\n\
@@ -543,7 +543,7 @@ if (sub_system.checked == true) {\n\
 } else {\n\
 	mask_string += '0';\n\
 }\n\
-if (uncheck_user.checked == true) {\n\
+if (webmeeting.checked == true) {\n\
 	mask_string += '1';\n\
 } else {\n\
 	mask_string += '0';\n\
@@ -563,7 +563,7 @@ return true;\" /></TD></TR></FORM><TR><TD></TD><TD vAlign=center>%s</TD>\n\
 <TD vAlign=center><SPAN><TABLE border=0><TBODY><TR><TD>\n\
 <INPUT type=checkbox name=mail_backup %s value=\"on\" />%s</TD>\n\
 <TD><INPUT type=checkbox name=mail_monitor %s value=\"on\" />%s</TD></TR>\n\
-<TR><TD><INPUT type=checkbox name=uncheck_user %s value=\"on\" />%s</TD>\n\
+<TR><TD><INPUT type=checkbox name=webmeeting %s value=\"on\" />%s</TD>\n\
 <TD><INPUT type=checkbox name=sub_system %s value=\"on\" />%s</TD></TR>\n\
 <TR><TD><INPUT type=checkbox name=sms %s value=\"on\" />%s</TD>\n\
 <TD><INPUT type=checkbox name=extpasswd %s value=\"on\" />%s</TD></TR>\n\
@@ -1313,7 +1313,7 @@ int list_ui_run()
 				privilege_bits |= DOMAIN_PRIVILEGE_MONITOR;
 			}
 			if ('1' == temp_buff[3]) {
-				privilege_bits |= DOMAIN_PRIVILEGE_UNCHECKUSR;
+				privilege_bits |= DOMAIN_PRIVILEGE_WEBMEETING;
 			}
 			if ('1' == temp_buff[2]) {
 				privilege_bits |= DOMAIN_PRIVILEGE_SUBSYSTEM;
@@ -2196,7 +2196,7 @@ static void list_ui_add_html(const char *session)
 		lang_resource_get(g_lang_resource,"MAIN_PRIVILEGE", language),
 		lang_resource_get(g_lang_resource,"OPTION_BACKUP", language),
 		lang_resource_get(g_lang_resource,"OPTION_MONITOR", language),
-		lang_resource_get(g_lang_resource,"OPTION_UNCHECKUSR", language),
+		lang_resource_get(g_lang_resource,"OPTION_WEBMEETING", language),
 		lang_resource_get(g_lang_resource,"OPTION_SUBSYSTEM", language),
 		lang_resource_get(g_lang_resource,"OPTION_NETDISK", language),
 		lang_resource_get(g_lang_resource,"OPTION_EXTPASSWD", language),
@@ -2292,7 +2292,7 @@ static void list_ui_edit_html(const char *session, const char *domainname)
 	LIST_FILE *pfile;
 	char option_backup[16];
 	char option_monitor[16];
-	char option_uncheckusr[16];
+	char option_webmeeting[16];
 	char option_subsystem[16];
 	char option_sms[16];
 	char option_extpasswd[16];
@@ -2515,10 +2515,10 @@ static void list_ui_edit_html(const char *session, const char *domainname)
 		strcpy(option_monitor, OPTION_UNCHECKED);
 	}
 
-	if (temp_item.privilege_bits & DOMAIN_PRIVILEGE_UNCHECKUSR) {
-		strcpy(option_uncheckusr, OPTION_CHECKED);
+	if (temp_item.privilege_bits & DOMAIN_PRIVILEGE_WEBMEETING) {
+		strcpy(option_webmeeting, OPTION_CHECKED);
 	} else {
-		strcpy(option_uncheckusr, OPTION_UNCHECKED);
+		strcpy(option_webmeeting, OPTION_UNCHECKED);
 	}
 
 	if (temp_item.privilege_bits & DOMAIN_PRIVILEGE_SUBSYSTEM) {
@@ -2549,8 +2549,8 @@ static void list_ui_edit_html(const char *session, const char *domainname)
 		lang_resource_get(g_lang_resource,"MSGERR_ENDDING_DAY", language),
 		lang_resource_get(g_lang_resource,"MAIN_PRIVILEGE", language), option_backup,
 		lang_resource_get(g_lang_resource,"OPTION_BACKUP", language), option_monitor,
-		lang_resource_get(g_lang_resource,"OPTION_MONITOR", language), option_uncheckusr,
-		lang_resource_get(g_lang_resource,"OPTION_UNCHECKUSR", language), option_subsystem,
+		lang_resource_get(g_lang_resource,"OPTION_MONITOR", language), option_webmeeting,
+		lang_resource_get(g_lang_resource,"OPTION_WEBMEETING", language), option_subsystem,
 		lang_resource_get(g_lang_resource,"OPTION_SUBSYSTEM", language), option_sms,
 		lang_resource_get(g_lang_resource,"OPTION_NETDISK", language), option_extpasswd,
 		lang_resource_get(g_lang_resource,"OPTION_EXTPASSWD", language),

@@ -22,12 +22,6 @@ ZEND_END_MODULE_GLOBALS(mapi)
 #define PHP_MAPI_VERSION "steep-1.0"
 #define PHP_MAPI_EXTNAME "mapi"
 
-PHP_MINIT_FUNCTION(mapi);
-PHP_MINFO_FUNCTION(mapi);
-PHP_MSHUTDOWN_FUNCTION(mapi);
-PHP_RINIT_FUNCTION(mapi);
-PHP_RSHUTDOWN_FUNCTION(mapi);
-
 /* All the functions that will be exported (available) must be declared */
 PHP_MINIT_FUNCTION(mapi);
 PHP_MINFO_FUNCTION(mapi);
@@ -169,8 +163,7 @@ ZEND_FUNCTION(mapi_feature);
 ZEND_FUNCTION(kc_session_save);
 ZEND_FUNCTION(kc_session_restore);
 
-ZEND_FUNCTION(nsp_getuserinfo);
-ZEND_FUNCTION(nsp_setuserpasswd);
+ZEND_FUNCTION(mapi_setuserpasswd);
 
 ZEND_FUNCTION(mapi_linkmessage);
 

@@ -66,7 +66,7 @@ name=passive /></TD></TR>\n\
 <TR><TD></TD><TD>%s:</TD><TD><INPUT type=text value=\"\" tabindex=2 \n\
 name=dest /></TD></TR>\n\
 <TR><TD></TD><TD>%s:</TD><TD>\n\
-<SELECT name=lang><OPTION value=\"en\">%s</OPTION>\n\
+<SELECT name=lang><OPTION value=\"en-us\">%s</OPTION>\n\
 <OPTION value=\"zh-cn\" selected>%s</OPTION></SELECT></TD></TR>\n\
 <TR><TD></TD><TD></TD><TD><INPUT type=submit tabindex=3 value=\"%s\" onclick=\n\
 \"with (opeform.dest) {\n\

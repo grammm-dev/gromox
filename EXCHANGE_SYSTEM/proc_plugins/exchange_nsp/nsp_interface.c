@@ -3273,6 +3273,9 @@ int nsp_interface_resolve_names(NSPI_HANDLE handle, uint32_t reserved,
 	int temp_len;
 	
 	for (i=0; i<pstrs->count; i++) {
+		if (NULL == pstrs->ppstrings[i]) {
+			continue;
+		}
 		temp_len = 2*strlen(pstrs->ppstrings[i]) + 1;
 		pstr = ndr_stack_alloc(NDR_STACK_IN, temp_len);
 		if (NULL == pstr) {

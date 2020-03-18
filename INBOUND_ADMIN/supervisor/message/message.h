@@ -28,8 +28,7 @@ enum {
 	MESSAGE_SUPERVISING_POP3
 };
 
-void message_init(const char *background_path, const char *logo_path,
-	const char *logo_link);
+void message_init();
 
 int message_run();
 
@@ -37,7 +36,8 @@ int message_stop();
 
 void message_free();
 
-void message_supervising(char *buff, int message_type, int id);
+void message_supervising(char *buff, int message_type,
+	const char *email_address, int id);
 
 void message_alarm_message(char *buff, int type, const char *command,
 	const char *response, const char *ip, int port, const char *to);

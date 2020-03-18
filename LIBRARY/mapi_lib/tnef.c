@@ -2583,9 +2583,10 @@ static int tnef_push_attribute(EXT_PUSH *pext, const TNEF_ATTRIBUTE *r,
 	DTR tmp_dtr;
 	uint32_t offset;
 	uint32_t offset1;
-	uint16_t tmp_len;
 	time_t unix_time;
 	struct tm tmp_tm;
+	uint16_t tmp_len;
+	uint32_t tmp_len1;
     uint16_t checksum;
 	TRP_HEADER header;
 	static uint8_t empty_bytes[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -2827,15 +2828,15 @@ static int tnef_push_attribute(EXT_PUSH *pext, const TNEF_ATTRIBUTE *r,
 		return EXT_ERR_BAD_SWITCH;
 	}
 	offset1 = pext->offset;
-	tmp_len = offset1 - (offset + sizeof(uint32_t));
+	tmp_len1 = offset1 - (offset + sizeof(uint32_t));
 	pext->offset = offset;
-	status = ext_buffer_push_uint32(pext, tmp_len);
+	status = ext_buffer_push_uint32(pext, tmp_len1);
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
 	pext->offset = offset1;
 	offset += sizeof(uint32_t);
-	checksum = tnef_generate_checksum(pext->data + offset, tmp_len);
+	checksum = tnef_generate_checksum(pext->data + offset, tmp_len1);
 	return ext_buffer_push_uint16(pext, checksum);
 }
 

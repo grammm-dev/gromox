@@ -1387,38 +1387,6 @@ static BOOL rpc_ext_pull_checksession_request(
 	return TRUE;
 }
 
-static BOOL rpc_ext_pull_uinfo_request(
-	EXT_PULL *pext, REQUEST_PAYLOAD *ppayload)
-{
-	if (EXT_ERR_SUCCESS != ext_buffer_pull_string(
-		pext, &ppayload->uinfo.username)) {
-		return FALSE;	
-	}
-	return TRUE;
-}
-
-static BOOL rpc_ext_push_uinfo_response(
-	EXT_PUSH *pext, const RESPONSE_PAYLOAD *ppayload)
-{
-	if (EXT_ERR_SUCCESS != ext_buffer_push_binary(
-		pext, &ppayload->uinfo.entryid)) {
-		return FALSE;
-	}
-	if (EXT_ERR_SUCCESS != ext_buffer_push_string(
-		pext, ppayload->uinfo.pdisplay_name)) {
-		return FALSE;
-	}
-	if (EXT_ERR_SUCCESS != ext_buffer_push_string(
-		pext, ppayload->uinfo.px500dn)) {
-		return FALSE;
-	}
-	if (EXT_ERR_SUCCESS != ext_buffer_push_uint32(
-		pext, ppayload->uinfo.privilege_bits)) {
-		return FALSE;	
-	}
-	return TRUE;
-}
-
 static BOOL rpc_ext_pull_unloadobject_request(
 	EXT_PULL *pext, REQUEST_PAYLOAD *ppayload)
 {
@@ -3707,9 +3675,6 @@ BOOL rpc_ext_pull_request(const BINARY *pbin_in,
 	case CALL_ID_CHECKSESSION:
 		return rpc_ext_pull_checksession_request(
 					&ext_pull, &prequest->payload);
-	case CALL_ID_UINFO:
-		return rpc_ext_pull_uinfo_request(
-			&ext_pull, &prequest->payload);
 	case CALL_ID_UNLOADOBJECT:
 		return rpc_ext_pull_unloadobject_request(
 					&ext_pull, &prequest->payload);
@@ -4005,10 +3970,6 @@ BOOL rpc_ext_push_response(const RPC_RESPONSE *presponse,
 	case CALL_ID_CHECKSESSION:
 		b_result = TRUE;
 		break;
-	case CALL_ID_UINFO:
-		b_result = rpc_ext_push_uinfo_response(
-				&ext_push, &presponse->payload);
-		break;
 	case CALL_ID_UNLOADOBJECT:
 		b_result = TRUE;
 		break;
@@ -4284,7 +4245,8 @@ BOOL rpc_ext_push_response(const RPC_RESPONSE *presponse,
 		b_result = TRUE;
 		break;
 	default:
-		return FALSE;
+		b_result = FALSE;
+		break;
 	}
 	if (FALSE == b_result) {
 		ext_buffer_push_free(&ext_push);

@@ -173,11 +173,11 @@ BOOL bounce_producer_refresh()
 	closedir(dirp);
 
 	pdefault = NULL;
-	/* check "en" language */
+	/* check "en-us" language */
 	for (pnode=single_list_get_head(&resource_list); NULL!=pnode;
 		pnode=single_list_get_after(&resource_list, pnode)) {
 		presource = (RESOURCE_NODE*)pnode->pdata;
-		if (0 == strcasecmp(presource->language, "en")) {
+		if (0 == strcasecmp(presource->language, "en-us")) {
 			pdefault = presource;
 			break;
 		}

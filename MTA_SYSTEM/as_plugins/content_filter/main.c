@@ -4,13 +4,14 @@
 #include "uri_cache.h"
 #include "as_common.h"
 #include "config_file.h"
+#include "url_wildcard.h"
 #include <string.h>
 #include <stdio.h>
 
-#define SPAM_STATISTIC_DOMAIN_FILTER		18
-#define SPAM_STATISTIC_URI_RBL				26
-#define SPAM_STATISTIC_FROM_FILTER			35
-
+#define SPAM_STATISTIC_DOMAIN_FILTER		6
+#define SPAM_STATISTIC_URI_RBL				5
+#define SPAM_STATISTIC_FROM_FILTER			7
+#define SPAM_STATISTIC_URL_FILTER			20
 
 enum {
 	CONTEXT_URI_NONE,
@@ -23,11 +24,10 @@ typedef struct _URI_INFORMATION {
 	char uri[256];
 } URI_INFORMATION;
 
+typedef void (*SPAM_STATISTIC)(int);
 typedef BOOL (*WHITELIST_QUERY)(char*);
 typedef BOOL (*STRING_FILTER_QUERY)(char*);
-typedef void (*SPAM_STATISTIC)(int);
 typedef BOOL (*CHECK_RETRYING)(const char*, const char*, MEM_FILE*);
-typedef BOOL (*CHECK_TAGGING)(const char*, MEM_FILE*);
 
 static int envelop_judge(int context_ID, ENVELOP_INFO *penvelop,
 	CONNECTION *pconnection, char *reason, int length);
@@ -43,17 +43,18 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 
 static void console_talk(int argc, char **argv, char *result, int length);
 
-static const char* extract_uri(const char *in_buff, int length, char *uri);
+static const char* extract_link(const char *in_buff,
+	int length, char *url, char *uri);
 
 DECLARE_API;
 
-static WHITELIST_QUERY ip_whitelist_query;
-static WHITELIST_QUERY domain_whitelist_query;
-static STRING_FILTER_QUERY from_filter_query;
-static STRING_FILTER_QUERY domain_filter_query;
 static SPAM_STATISTIC spam_statistic;
 static CHECK_RETRYING check_retrying;
-static CHECK_TAGGING check_tagging;
+static WHITELIST_QUERY ip_whitelist_query;
+static WHITELIST_QUERY from_whitelist_query;
+static STRING_FILTER_QUERY from_filter_query;
+static WHITELIST_QUERY domain_whitelist_query;
+static STRING_FILTER_QUERY domain_filter_query;
 
 static BOOL g_immediate_reject;
 static char g_config_file[256];
@@ -81,12 +82,6 @@ BOOL AS_LibMain(int reason, void **ppdata)
 					"\"check_retrying\" service\n");
 			return FALSE;
 		}
-		check_tagging = (CHECK_TAGGING)query_service("check_tagging");
-		if (NULL == check_tagging) {
-			printf("[content_filter]: fail to get "
-					"\"check_tagging\" service\n");
-			return FALSE;
-		}
 		ip_whitelist_query = (WHITELIST_QUERY)query_service(
 							"ip_whitelist_query");
 		if (NULL == ip_whitelist_query) {
@@ -99,6 +94,13 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		if (NULL == domain_whitelist_query) {
 			printf("[content_filter]: fail to get "
 				"\"domain_whitelist_query\" service\n");
+			return FALSE;
+		}
+		from_whitelist_query = (WHITELIST_QUERY)
+			query_service("from_whitelist_query");
+		if (NULL == from_whitelist_query) {
+			printf("[content_filter]: fail to get "
+				"\"from_whitelist_query\" service\n");
 			return FALSE;
 		}
 		from_filter_query = (STRING_FILTER_QUERY)
@@ -194,8 +196,11 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		uri_rbl_init(temp_path, surbl_dns, uribl_dns);
 		uri_cache_init(black_size, black_valid);
 		if (0 != uri_rbl_run() || 0 != uri_cache_run()) {
-			free(g_context_list);
-			g_context_list = NULL;
+			return FALSE;
+		}
+		sprintf(temp_path, "%s/url_wildcard.txt", get_data_path());
+		url_wildcard_init(temp_path);
+		if (0 != url_wildcard_run()) {
 			return FALSE;
 		}
 		if (FALSE == register_judge(envelop_judge)) {
@@ -215,6 +220,8 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		register_talk(console_talk);
 		return TRUE;
 	case PLUGIN_FREE:
+		url_wildcard_stop();
+		url_wildcard_free();
 		uri_cache_stop();
 		uri_rbl_stop();
 		uri_cache_free();
@@ -234,13 +241,16 @@ static int envelop_judge(int context_ID, ENVELOP_INFO *penvelop,
 	char *pdomain;
 
 	memset(g_context_list + context_ID, 0 , sizeof(URI_INFORMATION));
-	if (TRUE == penvelop->is_outbound || TRUE == penvelop->is_relay) {
+	if (TRUE == penvelop->is_outbound ||
+		TRUE == penvelop->is_relay ||
+		TRUE == penvelop->is_known) {
 		g_context_list[context_ID].type = CONTEXT_URI_IGNORE;
 		return MESSAGE_ACCEPT;
 	}
 	pdomain = strchr(penvelop->from, '@') + 1;
 	if (TRUE == ip_whitelist_query(pconnection->client_ip) ||
-		TRUE == domain_whitelist_query(pdomain)) {
+		TRUE == domain_whitelist_query(pdomain) ||
+		TRUE == from_whitelist_query(penvelop->from)) {
 		g_context_list[context_ID].type = CONTEXT_URI_IGNORE;
 		return MESSAGE_ACCEPT;
 	}
@@ -251,7 +261,9 @@ static int envelop_judge(int context_ID, ENVELOP_INFO *penvelop,
 static int head_auditor(int context_ID, MAIL_ENTITY *pmail,
 	CONNECTION *pconnection,  char *reason, int length)
 {
+	char *ptoken;
 	char uri[256];
+	char url[256];
 	char buff[1024];
 	int tag_len, val_len;
 	EMAIL_ADDR email_addr;
@@ -277,7 +289,7 @@ static int head_auditor(int context_ID, MAIL_ENTITY *pmail,
 				sprintf(buff, "%s@%s", email_addr.local_part,
 					email_addr.domain);
 				if (TRUE == from_filter_query(buff)) {
-					snprintf(reason, length, "000035 address %s"
+					snprintf(reason, length, "000007 address %s"
 							" in mail header is forbidden", buff);
 					if (NULL!= spam_statistic) {
 						spam_statistic(SPAM_STATISTIC_FROM_FILTER);
@@ -285,7 +297,7 @@ static int head_auditor(int context_ID, MAIL_ENTITY *pmail,
 					return MESSAGE_REJECT;
 				}
 				if (TRUE == domain_filter_query(email_addr.domain)) {
-					snprintf(reason, length, "000018 domain %s in "
+					snprintf(reason, length, "000006 domain %s in "
 						"mail header is forbidden", email_addr.domain);
 					if (NULL!= spam_statistic) {
 						spam_statistic(SPAM_STATISTIC_DOMAIN_FILTER);
@@ -303,11 +315,19 @@ static int head_auditor(int context_ID, MAIL_ENTITY *pmail,
 					return MESSAGE_ACCEPT;
 				}
 				mem_file_read(&pmail->phead->f_others, buff, val_len);
-				if (NULL == extract_uri(buff, val_len, uri)) {
+				if (NULL == extract_link(buff, val_len, url, uri)) {
 					return MESSAGE_ACCEPT;
 				}
+				if (TRUE == url_wildcard_query(url)) {
+					snprintf(reason, length, "000020 url '%s' "
+							"in mail header is forbidden", uri);
+					if (NULL!= spam_statistic) {
+						spam_statistic(SPAM_STATISTIC_URL_FILTER);
+					}
+					return MESSAGE_REJECT;
+				}
 				if (TRUE == domain_filter_query(uri)) {
-					snprintf(reason, length, "000018 domain %s "
+					snprintf(reason, length, "000006 domain %s "
 							"in mail header is forbidden", uri);
 					if (NULL!= spam_statistic) {
 						spam_statistic(SPAM_STATISTIC_DOMAIN_FILTER);
@@ -315,7 +335,7 @@ static int head_auditor(int context_ID, MAIL_ENTITY *pmail,
 					return MESSAGE_REJECT;
 				}
 				if (TRUE == uri_rbl_judge(uri, reason, length)) {
-					return MESSAGE_ACCEPT;
+					continue;
 				}
 				if (FALSE == g_immediate_reject) {
 					if (FALSE == check_retrying(pconnection->client_ip,
@@ -330,6 +350,33 @@ static int head_auditor(int context_ID, MAIL_ENTITY *pmail,
 				} else {
 					if (NULL!= spam_statistic) {
 						spam_statistic(SPAM_STATISTIC_URI_RBL);
+					}
+					return MESSAGE_REJECT;
+				}
+				continue;
+			}
+		} else if (10 == tag_len) {
+			mem_file_read(&pmail->phead->f_others, buff, tag_len);
+			if (0 == strncasecmp("Message-ID", buff, 10)) {
+				mem_file_read(&pmail->phead->f_others,
+					&val_len, sizeof(int));
+				if (val_len >= 1024) {
+					return MESSAGE_ACCEPT;
+				}
+				mem_file_read(&pmail->phead->f_others, buff, val_len);
+				if ('>' == buff[val_len - 1]) {
+					buff[val_len - 1] = '\0';
+				}
+				ptoken = strchr(buff, '@');
+				if (NULL == ptoken) {
+					continue;
+				}
+				ptoken ++;
+				if (TRUE == domain_filter_query(ptoken)) {
+					snprintf(reason, length, "000006 domain %s"
+						" in mail header is forbidden", ptoken);
+					if (NULL!= spam_statistic) {
+						spam_statistic(SPAM_STATISTIC_DOMAIN_FILTER);
 					}
 					return MESSAGE_REJECT;
 				}
@@ -357,6 +404,7 @@ static int paragraph_filter(int action, int context_ID,
 	const char *ptr;
 	const char *ptr1;
 	char tmp_buff[256];
+	char tmp_buff1[256];
 	MAIL_ENTITY mail_entity;
 	CONNECTION *pconnection;
 	
@@ -374,9 +422,17 @@ static int paragraph_filter(int action, int context_ID,
 			ptr = mail_blk->parsed_buff;
 			len = mail_blk->parsed_length;
 		}
-		while (ptr1 = extract_uri(ptr, len, tmp_buff)) {
+		while (ptr1 = extract_link(ptr, len, tmp_buff1, tmp_buff)) {
+			if (TRUE == url_wildcard_query(tmp_buff1)) {
+				snprintf(reason, length, "000020 url '%s' "
+					"in mail content is forbidden", tmp_buff1);
+				if (NULL!= spam_statistic) {
+					spam_statistic(SPAM_STATISTIC_URL_FILTER);
+				}
+				return MESSAGE_REJECT;
+			}
 			if (TRUE == domain_filter_query(tmp_buff)) {
-				snprintf(reason, length, "000018 domain %s "
+				snprintf(reason, length, "000006 domain %s "
 					"in mail content is forbidden", tmp_buff);
 				if (NULL!= spam_statistic) {
 					spam_statistic(SPAM_STATISTIC_DOMAIN_FILTER);
@@ -402,7 +458,7 @@ static int paragraph_filter(int action, int context_ID,
 				memcpy(tmp_buff, paddress, addr_len);
 				tmp_buff[addr_len] = '\0';
 				if (TRUE == from_filter_query(tmp_buff)) {
-					snprintf(reason, length, "000035 address %s "
+					snprintf(reason, length, "000007 address %s "
 						"in mail content is forbidden", tmp_buff);
 					if (NULL!= spam_statistic) {
 						spam_statistic(SPAM_STATISTIC_FROM_FILTER);
@@ -412,7 +468,7 @@ static int paragraph_filter(int action, int context_ID,
 				pdomain = strchr(tmp_buff, '@');
 				if (NULL != pdomain && TRUE ==
 					domain_filter_query(pdomain + 1)) {
-					snprintf(reason, length, "000018 domain %s "
+					snprintf(reason, length, "000006 domain %s "
 						"in mail content is forbidden", pdomain + 1);
 					if (NULL!= spam_statistic) {
 						spam_statistic(SPAM_STATISTIC_DOMAIN_FILTER);
@@ -452,7 +508,7 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 		parse_email_addr(&email_addr, tmp_buff);
 		sprintf(tmp_buff, "%s@%s", email_addr.local_part, email_addr.domain);
 		if (TRUE == from_filter_query(tmp_buff)) {
-			snprintf(reason, length, "000035 address %s "
+			snprintf(reason, length, "000007 address %s "
 				"in mail header is forbidden", tmp_buff);
 			if (NULL!= spam_statistic) {
 				spam_statistic(SPAM_STATISTIC_FROM_FILTER);
@@ -460,7 +516,7 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 			return MESSAGE_REJECT;
 		}
 		if (TRUE == domain_filter_query(email_addr.domain)) {
-			snprintf(reason, length, "000018 domain %s in "
+			snprintf(reason, length, "000006 domain %s in "
 				"mail header is forbidden", email_addr.domain);
 			if (NULL!= spam_statistic) {
 				spam_statistic(SPAM_STATISTIC_DOMAIN_FILTER);
@@ -479,7 +535,7 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 	if (0 != strcasecmp(pdomain, g_context_list[context_ID].uri) &&
 		0 != strcasecmp(email_addr.domain, g_context_list[context_ID].uri)) {
 		if (TRUE == domain_filter_query(g_context_list[context_ID].uri)) {
-			snprintf(reason, length, "000018 domain %s in mail "
+			snprintf(reason, length, "000006 domain %s in mail "
 				"content is forbidden", g_context_list[context_ID].uri);
 			if (NULL!= spam_statistic) {
 				spam_statistic(SPAM_STATISTIC_DOMAIN_FILTER);
@@ -494,27 +550,21 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 	return MESSAGE_ACCEPT;
 	
 SPAM_FOUND:
-	if (TRUE == check_tagging(pmail->penvelop->from,
-		&pmail->penvelop->f_rcpt_to)) {
-		mark_context_spam(context_ID);
-		return MESSAGE_ACCEPT;
-	} else {
-		if (FALSE == g_immediate_reject) {
-			if (FALSE == check_retrying(pconnection->client_ip,
-				pmail->penvelop->from, &pmail->penvelop->f_rcpt_to)) {	
-				if (NULL!= spam_statistic) {
-					spam_statistic(SPAM_STATISTIC_URI_RBL);
-				}
-				return MESSAGE_RETRYING;
-			} else {
-				return MESSAGE_ACCEPT;
-			}
-		} else {
+	if (FALSE == g_immediate_reject) {
+		if (FALSE == check_retrying(pconnection->client_ip,
+			pmail->penvelop->from, &pmail->penvelop->f_rcpt_to)) {	
 			if (NULL!= spam_statistic) {
 				spam_statistic(SPAM_STATISTIC_URI_RBL);
 			}
-			return MESSAGE_REJECT;
+			return MESSAGE_RETRYING;
+		} else {
+			return MESSAGE_ACCEPT;
 		}
+	} else {
+		if (NULL!= spam_statistic) {
+			spam_statistic(SPAM_STATISTIC_URI_RBL);
+		}
+		return MESSAGE_REJECT;
 	}
 }
 
@@ -560,9 +610,10 @@ static int url_decode(char *str, int len)
 	return dest - str;
 }
 
-static const char* extract_uri(const char *in_buff, int length, char *uri)
+static const char* extract_link(const char *in_buff,
+	int length, char *url, char *uri)
 {
-	char url[256];
+	char tmp_url[256];
 	char *d1, *d2, *d3;
 	char *ptr, *presult;
 	char *pinterrogation;
@@ -579,6 +630,8 @@ static const char* extract_uri(const char *in_buff, int length, char *uri)
 		if (url_len > 255) {
 			url_len = 255;
 		}
+		memcpy(url, presult, url_len);
+		url[url_len] = '\0';
 		/* trim the "http://", "https://" or "www." of found url */
 		if (url_len >= 7 && 0 == strncasecmp(presult, "http://", 7)) {
 			presult += 7;
@@ -592,54 +645,54 @@ static const char* extract_uri(const char *in_buff, int length, char *uri)
 			presult += 4;
 			url_len -= 4;
 		}
-		memcpy(url, presult, url_len);
-		url[url_len] = '\0';
-		url_decode(url, url_len);
-		if (0 == strncasecmp(url, "w3.org", 6) ||
-			0 == strncasecmp(url, "w3c.org", 7) ||
-			0 == strncasecmp(url, "internet.e-mail", 15) ||
-			'\0' == url[0]) {
+		memcpy(tmp_url, presult, url_len);
+		tmp_url[url_len] = '\0';
+		url_decode(tmp_url, url_len);
+		if (0 == strncasecmp(tmp_url, "w3.org", 6) ||
+			0 == strncasecmp(tmp_url, "w3c.org", 7) ||
+			0 == strncasecmp(tmp_url, "internet.e-mail", 15) ||
+			'\0' == tmp_url[0]) {
 			ptr = presult + url_len;
 			buff_len = length - (ptr - in_buff);
 			continue;
 		}
 		/* uri such as 192.168.0.1.mail.com will not be considered as ip uri */
-		if (url == extract_ip(url, uri)) {
+		if (tmp_url == extract_ip(tmp_url, uri)) {
 			len = strlen(uri);
-			if ('\0' == url[len] || '/' == url[len] ||
-				':' == url[len] || '?' == url[len]) {
+			if ('\0' == tmp_url[len] || '/' == tmp_url[len] ||
+				':' == tmp_url[len] || '?' == tmp_url[len]) {
 				return presult + url_len;
 			}
 		}
-		pslash = strchr(url, '/');
+		pslash = strchr(tmp_url, '/');
 		if (NULL != pslash) {
 			*pslash = '\0';
-			url_len = pslash - url;
+			url_len = pslash - tmp_url;
 		}
-		pcolon = strchr(url, ':');
+		pcolon = strchr(tmp_url, ':');
 		if (NULL != pcolon) {
 			*pcolon = '\0';
-			url_len = pcolon - url;
+			url_len = pcolon - tmp_url;
 		}
-		pinterrogation = strchr(url, '?');
+		pinterrogation = strchr(tmp_url, '?');
 		if (NULL != pinterrogation) {
 			*pinterrogation = '\0';
-			url_len = pinterrogation - url;
+			url_len = pinterrogation - tmp_url;
 		}
-		d1 = memrchr(url, '.', url_len);
+		d1 = memrchr(tmp_url, '.', url_len);
 		if (NULL == d1) {
 			ptr = presult + url_len;
 			buff_len = length - (ptr - in_buff);
 			continue;
 		}
-		d2 = memrchr(url, '.', d1 - url);
+		d2 = memrchr(tmp_url, '.', d1 - tmp_url);
 		if (NULL == d2) {
-			strncpy(uri, url, 255);
+			strncpy(uri, tmp_url, 255);
 		} else {
 			if (TRUE == uri_rbl_check_cctld(d2 + 1)) {
-				d3 = memrchr(url, '.', d2 - url);
+				d3 = memrchr(tmp_url, '.', d2 - tmp_url);
 				if (NULL == d3) {
-					strncpy(uri, url, 255);
+					strncpy(uri, tmp_url, 255);
 				} else {
 					strncpy(uri, d3 + 1, 255);
 				}
@@ -665,8 +718,10 @@ static void console_talk(int argc, char **argv, char *result, int length)
 						 "\t    --set the valid interval of blacklist uri\r\n"
 						 "\t%s set immediate-reject [TRUE|FALSE]\r\n"
 						 "\t    --set the reject type of spam message\r\n"
-						 "\t%s reload\r\n"
+						 "\t%s reload cctld\r\n"
 						 "\t    --reload the cctld from file\r\n"
+						 "\t%s reload url-list\r\n"
+						 "\t    --reload the url wildcard list from file\r\n"
 						 "\t%s dump blacklist <path>\r\n"
 						 "\t    --dump cache of blacklist uris to file";
 
@@ -675,8 +730,8 @@ static void console_talk(int argc, char **argv, char *result, int length)
 		return;
 				  }
 	if (2 == argc && 0 == strcmp("--help", argv[1])) {
-		snprintf(result, length, help_string, argv[0], argv[0],
-				argv[0], argv[0], argv[0]);
+		snprintf(result, length, help_string, argv[0],
+			argv[0], argv[0], argv[0], argv[0], argv[0]);
 	    result[length - 1] ='\0';
 	    return;
 	}
@@ -772,11 +827,21 @@ static void console_talk(int argc, char **argv, char *result, int length)
 		snprintf(result, length, "550 invalid argument %s", argv[2]);
 		return;
 	}
-	if (2 == argc && 0 == strcmp(argv[1], "reload")) {
+	if (3 == argc && 0 == strcmp(argv[1], "reload")
+		&& 0 == strcmp(argv[2], "cctld")) {
 		if (FALSE == uri_rbl_refresh()) {
 			strncpy(result, "550 cctld file error", length);
 		} else {
 			strncpy(result, "250 cctld list reload OK", length);
+		}
+		return;
+	}
+	if (3 == argc && 0 == strcmp(argv[1], "reload")
+		&& 0 == strcmp(argv[2], "url")) {
+		if (FALSE == url_wildcard_refresh()) {
+			strncpy(result, "550 url wildcard list error", length);
+		} else {
+			strncpy(result, "250 url wildcard list reload OK", length);
 		}
 		return;
 	}

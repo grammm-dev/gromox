@@ -1,11 +1,12 @@
-#include "remote_postman.h"
 #include "files_allocator.h"
-#include "smtp_deliverer.h"
 #include "bounce_producer.h"
+#include "remote_postman.h"
+#include "smtp_deliverer.h"
 #include "sender_routing.h"
 #include "net_failure.h"
 #include "timer_queue.h"
 #include "config_file.h"
+#include "ext_buffer.h"
 #include "mail_func.h"
 #include "util.h"
 #include <time.h>
@@ -15,12 +16,17 @@
 
 typedef BOOL (*SINGLE_RCPT_QUERY)(char*);
 
+typedef BOOL (*FCGI_RPC)(const uint8_t*,
+	uint32_t, uint8_t**, uint32_t*, const char*);
+
+static FCGI_RPC fcgi_rpc;
 static SINGLE_RCPT_QUERY single_rcpt_query;
 
 static int g_max_rcpt;
 static int g_max_thr;
 static int g_concurrent_thr;
 static char g_config_path[256];
+static char g_sender_list_script[256];
 static pthread_mutex_t g_concurrent_mutex;
 
 typedef int (*STOP_FUNC)();
@@ -41,7 +47,8 @@ void remote_postman_init(int max_thr, int files_num,
 	int trying_times, int max_rcpt, const char *resource_path,
 	const char* separator, const char *timer_path, int timer_threads,
 	int scan_interval, int fresh_interval, int retrying_interval,
-	int final_interval, const char *routing_path, const char *config_path)
+	int final_interval, const char *sender_list_script,
+	const char *routing_path, const char *config_path)
 {
 	int i;
 
@@ -51,6 +58,7 @@ void remote_postman_init(int max_thr, int files_num,
 	g_max_thr = max_thr;
 	g_max_rcpt = max_rcpt;
 	g_concurrent_thr = 0;
+	strcpy(g_sender_list_script, sender_list_script);
 	strcpy(g_config_path, config_path);
 	files_allocator_init(files_num);
 	net_failure_init(times, interval, alarm_interval);
@@ -70,6 +78,7 @@ void remote_postman_init(int max_thr, int files_num,
  */
 int remote_postman_run()
 {
+	fcgi_rpc = (FCGI_RPC)query_service("fcgi_rpc");
 	single_rcpt_query = (SINGLE_RCPT_QUERY)query_service("single_rcpt_query");
 	if (NULL == single_rcpt_query) {
 		printf("[remote_postman]: fail to get \"single_rcpt_query\" service\n");
@@ -163,12 +172,15 @@ void remote_postman_free()
  */
 BOOL remote_postman_hook(MESSAGE_CONTEXT *pcontext)
 {
+	uint32_t out_len;
 	MEM_FILE file_tmp;
-	CONTROL_INFO control;
+	EXT_PUSH push_ctx;
+	uint8_t *pbuff_out;
 	time_t current_time;
+	CONTROL_INFO control;
 	MESSAGE_CONTEXT fake_context;
 	MESSAGE_CONTEXT *pbounce_context;
-	char reason_buff[1024], ip_addr[16];
+	char tmp_buff[1024], ip_addr[16];
 	int reason, bounce_type, len, timer_ID;
 	
 	BOOL need_retry, need_bounce, is_untried, can_enter;
@@ -183,8 +195,8 @@ BOOL remote_postman_hook(MESSAGE_CONTEXT *pcontext)
 	strcpy(control.from, pcontext->pcontrol->from);
 	fake_context.pcontrol = &control;
 	fake_context.pmail = pcontext->pmail;
-	if (FALSE == remote_postman_check_address(&pcontext->pcontrol->f_rcpt_to,
-				&control.f_rcpt_to)) {
+	if (FALSE == remote_postman_check_address(
+		&pcontext->pcontrol->f_rcpt_to, &control.f_rcpt_to)) {
 		pbounce_context = get_context();
 		if (NULL == pbounce_context) {
 			smtp_deliverer_log_info(&fake_context, 8,
@@ -202,6 +214,22 @@ BOOL remote_postman_hook(MESSAGE_CONTEXT *pcontext)
 			enqueue_context(pbounce_context);
 			pbounce_context = NULL;
 		}
+	}
+	if ('\0' != g_sender_list_script[0] && NULL != fcgi_rpc &&
+		TRUE == ext_buffer_push_init(&push_ctx, NULL, 0, 0)) {
+		ext_buffer_push_string(&push_ctx, control.from);
+		mem_file_seek(&pcontext->pcontrol->f_rcpt_to,
+			MEM_FILE_READ_PTR, 0, MEM_FILE_SEEK_BEGIN);
+		while (MEM_END_OF_FILE != mem_file_readline(
+			&pcontext->pcontrol->f_rcpt_to, tmp_buff, 256)) {
+			ext_buffer_push_string(&push_ctx, tmp_buff);
+		}
+		ext_buffer_push_string(&push_ctx, "");
+		if (TRUE == fcgi_rpc(push_ctx.data, push_ctx.offset,
+			&pbuff_out, &out_len, g_sender_list_script)) {
+			free(pbuff_out);	
+		}
+		ext_buffer_push_free(&push_ctx);
 	}
 	pthread_mutex_lock(&g_concurrent_mutex);
 	if (g_concurrent_thr >= g_max_thr) {
@@ -230,7 +258,7 @@ BOOL remote_postman_hook(MESSAGE_CONTEXT *pcontext)
 		&control.f_rcpt_to)) {
 		is_untried = FALSE;
 		switch (smtp_deliverer_process(&fake_context,
-			ip_addr, reason_buff, 1024)) {
+			ip_addr, tmp_buff, 1024)) {
 		case SMTP_DELIVERER_OK:
 			need_retry = FALSE;
 			need_bounce = FALSE;
@@ -299,8 +327,8 @@ BOOL remote_postman_hook(MESSAGE_CONTEXT *pcontext)
 				smtp_deliverer_log_info(&fake_context, 8,
 					"fail to get one context for bounce mail");
 			} else {
-				bounce_producer_make(&fake_context, current_time, bounce_type,
-					ip_addr, reason_buff, pbounce_context->pmail);
+				bounce_producer_make(&fake_context, current_time,
+					bounce_type, ip_addr, tmp_buff, pbounce_context->pmail);
 				pbounce_context->pcontrol->need_bounce = FALSE;
 				sprintf(pbounce_context->pcontrol->from,
 					"postmaster@%s", get_default_domain());

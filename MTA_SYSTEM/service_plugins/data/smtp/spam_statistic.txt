@@ -1,98 +1,131 @@
 return\ OK
-special\ protected
-remote\ MTA\ sends\ too\ many\ mails
-illegal\ multipart
-virus\ mail
-system\ user\ sends\ too\ many\ mails
-need\ authentification
-illegal\ xmailer
-boundary\ string\ filtered
-trojan\ detector
-forbidden\ rcpt
-subject\ audited
-dynamic\ domain\ filtered
-from\ audited
-property-1
-property-2
-porperty-3
-attachment\ file\ audited
-forbidden\ domain
-nick\ name\ filtered
-scamming\ content\ filtered
-enumerating\ user\ accounts
-domain\ after\ "helo"\ filtered
-famous\ site\ protection
-"from\ address"\ format\ illegal
-too\ many\ dots\ in\ subject
-uri\ rbl\ filtered
-special\ out-going\ limitation
-property-4
-property-5
-property-6
-property-7
-property-8
-property-9
-header\ field\ filtered
-forbidden\ mail\ from
-rcpt\ too\ many
-dns\ rbl\ filtered
-attachment\ intercepted
-property-10
-property-11
-property-12
-property-13
-property-14
-property-15
-property-16
-property-17
-base64\ encoding\ error
-attachment\ name\ wildcard
-property-18
-property-19
-property-20
-keyword\ mail\ subject
-keyword\ head\ from
-keyword\ head\ to
-keyword\ head\ cc
-keyword\ mail\ content
-keyword\ attachment\ name
-property-21
-property-22
-property-23
-property-24
-property-25
-property-26
-property-27
-property-28
-property-29
-property-30
-property-31
-property-32
-property-33
-property-34
-property-35
-property-36
-property-37
-property-38
-property-39
-property-40
-property-41
-property-42
-property-43
-property-44
-property-45
-property-46
-property-47
-property-48
-property-49
-property-50
-property-51
-property-52
-property-53
-property-54
-property-55
-property-56
-property-57
-property-58
-property-59
-property-60
+attachment\ filename\ extension\ filter
+attachment\ filename\ wildcard\ filter
+authentication\ needed
+dns\ rbl\ filter
+uri\ rbl\ filter
+domain\ filter
+from\ filter
+ddns\ filter
+from\ auditor
+from\ validator(same\ domainname)
+header\ filter
+inbound\ mail\ frequency
+keyword\ filter
+outbound\ mail\ frequency
+rcpt\ filter
+rcpt\ number\ limit
+site\ protection
+X-Mailer\ filter
+SPF\ filter
+url\ filter
+reserved
+reserved
+reserved
+reserved
+reserved
+reserved
+reserved
+reserved
+reserved
+reserved
+php-spec1
+php-spec2
+php-spec3
+php-spec4
+php-spec5
+php-spec6
+php-spec7
+php-spec8
+php-spec9
+php-spec10
+php-spec11
+php-spec12
+php-spec13
+php-spec14
+php-spec15
+php-spec16
+php-spec17
+php-spec18
+php-spec19
+php-spec20
+php-spec21
+php-spec22
+php-spec23
+php-spec24
+php-spec25
+php-spec26
+php-spec27
+php-spec28
+php-spec29
+php-spec30
+php-spec31
+php-spec32
+php-spec33
+php-spec34
+php-spec35
+php-spec36
+php-spec37
+php-spec38
+php-spec39
+php-spec40
+php-spec41
+php-spec42
+php-spec43
+php-spec44
+php-spec45
+php-spec46
+php-spec47
+php-spec48
+php-spec49
+php-spec50
+php-spec51
+php-spec52
+php-spec53
+php-spec54
+php-spec55
+php-spec56
+php-spec57
+php-spec58
+php-spec59
+php-spec60
+php-spec61
+php-spec62
+php-spec63
+php-spec64
+php-spec65
+php-spec66
+php-spec67
+php-spec68
+php-spec69
+php-spec70
+php-spec71
+php-spec72
+php-spec73
+php-spec74
+php-spec75
+php-spec76
+php-spec77
+php-spec78
+php-spec79
+php-spec80
+php-spec81
+php-spec82
+php-spec83
+php-spec84
+php-spec85
+php-spec86
+php-spec87
+php-spec88
+php-spec89
+php-spec90
+php-spec91
+php-spec92
+php-spec93
+php-spec94
+php-spec95
+php-spec96
+php-spec97
+php-spec98
+php-spec99
+php-spec100

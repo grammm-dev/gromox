@@ -1,15 +1,17 @@
 /* collection of functions for handling the smtp command
- */ 
-
-#include "smtp_cmd_handler.h"
-#include "system_services.h"
-#include "anti_spamming.h"
-#include "resource.h"
-#include "blocks_allocator.h"
+ */
 #include "util.h"
+#include "resource.h"
+#include "anti_spam.h"
 #include "mail_func.h"
+#include "ext_buffer.h"
+#include "system_services.h"
+#include "smtp_cmd_handler.h"
+#include "blocks_allocator.h"
 #include <string.h>
 #include <stdio.h>
+
+#define LOGIN_CHECK_INTERVAL					3600
 
 static BOOL smtp_cmd_handler_check_onlycmd(const char *cmd_line,
     int line_length, SMTP_CONTEXT *pcontext);
@@ -404,10 +406,14 @@ int smtp_cmd_handler_mail(const char* cmd_line, int line_length,
 int smtp_cmd_handler_rcpt(const char* cmd_line, int line_length,
     SMTP_CONTEXT *pcontext)
 {
+	char *pdomain;
+	char path[256];
+	char buff[1024];
+	char reason[1024];
     int string_length;
-    const char*smtp_reply_str, *smtp_reply_str2;
-    char buff[1024], reason[1024], path[256];
-    EMAIL_ADDR email_addr;
+	EMAIL_ADDR email_addr;
+    const char *smtp_reply_str;
+	const char *smtp_reply_str2;
     
     if (line_length <= 8 || 0 != strncasecmp(cmd_line + 4, " TO:", 4)) {
         /* sytax error or arguments error*/
@@ -500,7 +506,8 @@ int smtp_cmd_handler_rcpt(const char* cmd_line, int line_length,
 						pcontext->mail.envelop.from, buff);
                 return DISPATCH_CONTINUE;		
             }
-            if ('\0' != path[0] && NULL != system_services_check_full &&
+            if ('\0' != path[0] &&
+				NULL != system_services_check_full &&
 				FALSE == system_services_check_full(path)) {
 				/* 550 Mailbox <email_addr> is full */
                 smtp_reply_str = resource_get_smtp_code(SMTP_CODE_2175017, 1,
@@ -520,6 +527,21 @@ int smtp_cmd_handler_rcpt(const char* cmd_line, int line_length,
 						pcontext->mail.envelop.from, buff);
 				return DISPATCH_CONTINUE;		
             }
+            if ('\0' != path[0] &&
+				FALSE == pcontext->mail.envelop.is_known &&
+				NULL != system_services_check_sender) {
+				pcontext->mail.envelop.is_known =
+					system_services_check_sender(
+					path, pcontext->mail.envelop.from);
+				if (FALSE == pcontext->mail.envelop.is_known) {
+					pdomain = strchr(pcontext->mail.envelop.from, '@');
+					if (NULL != pdomain) {
+						pcontext->mail.envelop.is_known =
+							system_services_check_sender(
+							path, pdomain + 1);
+					}
+				}
+			}
 		}
         pcontext->last_cmd = T_RCPT_CMD;
         /* everything is OK */
@@ -578,8 +600,8 @@ int smtp_cmd_handler_data(const char* cmd_line, int line_length,
 		return DISPATCH_CONTINUE;
 	}
 
-    /* pass the envelop information in anti-spamming judge */
-	judge_result = anti_spamming_pass_judges(pcontext, buff, 1024);
+    /* pass the envelop information in anti-spam judge */
+	judge_result = anti_spam_pass_judges(pcontext, buff, 1024);
 	if (MESSAGE_REJECT == judge_result) {
         /* 550 ... */
         string_length = sprintf(reply_buf, "550 %s\r\n", buff);
@@ -589,7 +611,7 @@ int smtp_cmd_handler_data(const char* cmd_line, int line_length,
 			write(pcontext->connection.sockd, reply_buf, string_length);
 		}
         smtp_parser_log_info(pcontext, 0,
-			"illegal mail is cut! reason: %s", buff);
+			"spam mail is rejected because: %s", buff);
         return DISPATCH_SHOULD_CLOSE;
 	} else if (MESSAGE_RETRYING == judge_result) {
         /* 450 ... */
@@ -600,7 +622,7 @@ int smtp_cmd_handler_data(const char* cmd_line, int line_length,
 			write(pcontext->connection.sockd, reply_buf, string_length);
 		}
         smtp_parser_log_info(pcontext, 0,
-			"dubious mail is cut! reason: %s", buff);
+			"mail is grey-listed because: %s", buff);
         return DISPATCH_SHOULD_CLOSE;
 	}
     /* 354 Start mail input; end with <CRLF>.<CRLF> */
@@ -905,10 +927,15 @@ static BOOL smtp_cmd_handler_check_onlycmd(const char *cmd_line,
 static int smtp_cmd_handler_auth_service_interact(const char *cmd_line,
 	int line_length, SMTP_CONTEXT *pcontext)
 {
+	uint32_t out_len;
+	EXT_PUSH push_ctx;
+	uint8_t *pbuff_out;
+	BOOL b_has_username;
+	char temp_buff[1024];
 	char reply_string[1024];
+	const char *script_path;
 	const char *smtp_reply_str;
 	int interaction_result, string_length;
-	BOOL b_has_username;
 	
 	interaction_result = system_services_auth_process(pcontext - 
 		smtp_parser_get_contexts_list(), cmd_line, line_length, 
@@ -917,10 +944,10 @@ static int smtp_cmd_handler_auth_service_interact(const char *cmd_line,
 	/* append \r\n at the end of reply string */
 	strcat(reply_string, "\r\n");
 	string_length = strlen(reply_string);
-	b_has_username = system_services_auth_retrieve(pcontext -
-			smtp_parser_get_contexts_list(),
-			pcontext->mail.envelop.username,
-			sizeof(pcontext->mail.envelop.username));
+	b_has_username = system_services_auth_retrieve(
+		pcontext - smtp_parser_get_contexts_list(),
+		pcontext->mail.envelop.username,
+		sizeof(pcontext->mail.envelop.username));
 	
 	switch (interaction_result) {
 	case SERVICE_AUTH_ERROR:
@@ -980,19 +1007,40 @@ static int smtp_cmd_handler_auth_service_interact(const char *cmd_line,
 		if (FALSE == system_services_judge_user(
 			pcontext->mail.envelop.username)) {
 			/* 554 Temporary authentication failure */
-			smtp_reply_str = resource_get_smtp_code(SMTP_CODE_2175035, 1,
-					             &string_length);
+			smtp_reply_str = resource_get_smtp_code(
+				SMTP_CODE_2175035, 1, &string_length);
 			if (NULL != pcontext->connection.ssl) {
 				SSL_write(pcontext->connection.ssl, smtp_reply_str, string_length);
 			} else {
 				write(pcontext->connection.sockd, smtp_reply_str,string_length);
 			}
-			smtp_parser_log_info(pcontext, 8, "user %s is denied by user "
-					"filter", pcontext->mail.envelop.username);
+			smtp_parser_log_info(pcontext, 8, "user %s is denied "
+				"by user filter", pcontext->mail.envelop.username);
 			return DISPATCH_SHOULD_CLOSE;
 		}
+		script_path = resource_get_string(RES_LOGIN_SCRIPT_PATH);
+		if (NULL != script_path) {
+			snprintf(temp_buff, 512, "%s:%s",
+				pcontext->connection.client_ip,
+				pcontext->mail.envelop.username);
+			lower_string(temp_buff);
+			if (TRUE == system_services_login_check_judge(temp_buff)) {
+				system_services_login_check_add(
+					temp_buff, LOGIN_CHECK_INTERVAL);
+				ext_buffer_push_init(&push_ctx, temp_buff, sizeof(temp_buff), 0);
+				ext_buffer_push_string(&push_ctx,
+					pcontext->mail.envelop.username);
+				ext_buffer_push_string(&push_ctx,
+					pcontext->connection.client_ip);
+				ext_buffer_push_string(&push_ctx, "SMTP");
+				if (TRUE == system_services_fcgi_rpc(push_ctx.data,
+					push_ctx.offset, &pbuff_out, &out_len, script_path)) {
+					free(pbuff_out);
+				}
+			}
+		}
 		pcontext->mail.envelop.is_login = TRUE;
-		pcontext->last_cmd              = T_LOGGED_CMD;
+		pcontext->last_cmd = T_LOGGED_CMD;
 		if (NULL != pcontext->connection.ssl) {
 			SSL_write(pcontext->connection.ssl, reply_string, string_length);
 		} else {
@@ -1001,4 +1049,3 @@ static int smtp_cmd_handler_auth_service_interact(const char *cmd_line,
 		return DISPATCH_CONTINUE;
 	}
 }
-

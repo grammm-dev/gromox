@@ -4486,6 +4486,80 @@ static BOOL oxcmail_try_assign_propval(TPROPVAL_ARRAY *pproplist,
 	return tpropval_array_set_propval(pproplist, &propval);
 }
 
+static void oxcmail_try_fix_body(
+	MESSAGE_CONTENT *pmsg,
+	EXT_BUFFER_ALLOC alloc)
+{
+	void *pvalue;
+	int32_t tmp_int32;
+	BINARY *phtml_bin;
+	const char *encoding;
+	TAGGED_PROPVAL propval;
+	
+	if (NULL == tpropval_array_get_propval(
+		&pmsg->proplist, PROP_TAG_BODY) &&
+		NULL == tpropval_array_get_propval(
+		&pmsg->proplist, PROP_TAG_BODY_STRING8)) {
+		phtml_bin = tpropval_array_get_propval(
+				&pmsg->proplist, PROP_TAG_HTML);
+		if (NULL != phtml_bin) {
+			pvalue = tpropval_array_get_propval(
+				&pmsg->proplist,  PROP_TAG_INTERNETCODEPAGE);
+			if (NULL == pvalue) {
+				tmp_int32 = 65001;
+			} else {
+				tmp_int32 = *(uint32_t*)pvalue;
+			}
+			pvalue = alloc(3*phtml_bin->cb + 3);
+			if (NULL == pvalue) {
+				return;
+			}
+			propval.proptag = PROP_TAG_BODY;
+			propval.pvalue = pvalue + phtml_bin->cb + 1;
+			memcpy(pvalue, phtml_bin->pb, phtml_bin->cb);
+			((char*)pvalue)[phtml_bin->cb] = '\0';
+			html_to_plain(pvalue, phtml_bin->cb + 1);
+			encoding = oxcmail_cpid_to_charset(tmp_int32);
+			if (NULL == encoding) {
+				encoding = "windows-1252";
+			}
+			if (TRUE == string_to_utf8(encoding, pvalue,
+				propval.pvalue) && TRUE == utf8_check(
+				propval.pvalue)) {
+				tpropval_array_set_propval(
+					&pmsg->proplist, &propval);
+			}
+		}
+	}
+	if (NULL == tpropval_array_get_propval(
+		&pmsg->proplist, PROP_TAG_HTML)) {
+		pvalue = tpropval_array_get_propval(
+			&pmsg->proplist, PROP_TAG_BODY);
+		if (NULL != pvalue) {
+			phtml_bin = alloc(sizeof(BINARY));
+			if (NULL == phtml_bin) {
+				return;
+			}
+			tmp_int32 = strlen(pvalue) + 1024;
+			phtml_bin->pb = alloc(tmp_int32);
+			if (NULL == phtml_bin->pb) {
+				return;
+			}
+			strcpy(phtml_bin->pb, pvalue);
+			phtml_bin->cb = plain_to_html(phtml_bin->pb, tmp_int32);
+			propval.proptag = PROP_TAG_HTML;
+			propval.pvalue = phtml_bin;
+			tpropval_array_set_propval(
+				&pmsg->proplist, &propval);
+			propval.proptag = PROP_TAG_INTERNETCODEPAGE;
+			propval.pvalue = &tmp_int32;
+			tmp_int32 = 65001;
+			tpropval_array_set_propval(
+				&pmsg->proplist, &propval);
+		}
+	}
+}
+
 MESSAGE_CONTENT* oxcmail_import(const char *charset,
 	const char *str_zone, MAIL *pmail,
 	EXT_BUFFER_ALLOC alloc, GET_PROPIDS get_propids)
@@ -4507,7 +4581,6 @@ MESSAGE_CONTENT* oxcmail_import(const char *charset,
 	char tmp_buff[256];
 	BOOL b_alternative;
 	PROPID_ARRAY propids;
-	const char *encoding;
 	char mime_charset[64];
 	INT_HASH_TABLE *phash;
 	MESSAGE_CONTENT *pmsg;
@@ -4728,6 +4801,7 @@ MESSAGE_CONTENT* oxcmail_import(const char *charset,
 				oxcmail_remove_flag_propties(
 				pmsg1, get_propids);
 			}
+			oxcmail_try_fix_body(pmsg1, alloc);
 			return pmsg1;
 #ifdef VERIFY_TNEF_CORRELATOR
 		}
@@ -4798,6 +4872,7 @@ MESSAGE_CONTENT* oxcmail_import(const char *charset,
 					oxcmail_remove_flag_propties(
 					pmsg1, get_propids);
 				}
+				oxcmail_try_fix_body(pmsg1, alloc);
 				return pmsg1;
 #ifdef VERIFY_TNEF_CORRELATOR
 			}
@@ -4985,7 +5060,7 @@ MESSAGE_CONTENT* oxcmail_import(const char *charset,
 		}
 		free(pcontent);
 	}
-	
+	oxcmail_try_fix_body(pmsg, alloc);
 	pattachments = attachment_list_init();
 	if (NULL == pattachments) {
 		int_hash_free(phash);
@@ -5080,71 +5155,6 @@ MESSAGE_CONTENT* oxcmail_import(const char *charset,
 			}
 		}
 	}
-	if (NULL == tpropval_array_get_propval(
-		&pmsg->proplist, PROP_TAG_BODY) &&
-		NULL == tpropval_array_get_propval(
-		&pmsg->proplist, PROP_TAG_BODY_STRING8)) {
-		phtml_bin = tpropval_array_get_propval(
-				&pmsg->proplist, PROP_TAG_HTML);
-		if (NULL != phtml_bin) {
-			pvalue = tpropval_array_get_propval(
-				&pmsg->proplist,  PROP_TAG_INTERNETCODEPAGE);
-			if (NULL == pvalue) {
-				tmp_int32 = 65001;
-			} else {
-				tmp_int32 = *(uint32_t*)pvalue;
-			}
-			pvalue = alloc(3*phtml_bin->cb + 3);
-			if (NULL == pvalue) {
-				message_content_free(pmsg);
-				return NULL;
-			}
-			propval.proptag = PROP_TAG_BODY;
-			propval.pvalue = pvalue + phtml_bin->cb + 1;
-			memcpy(pvalue, phtml_bin->pb, phtml_bin->cb);
-			((char*)pvalue)[phtml_bin->cb] = '\0';
-			html_to_plain(pvalue, phtml_bin->cb + 1);
-			encoding = oxcmail_cpid_to_charset(tmp_int32);
-			if (NULL == encoding) {
-				encoding = "windows-1252";
-			}
-			if (TRUE == string_to_utf8(encoding, pvalue,
-				propval.pvalue) && TRUE == utf8_check(
-				propval.pvalue)) {
-				tpropval_array_set_propval(
-					&pmsg->proplist, &propval);
-			}
-		}
-	}
-	if (NULL == tpropval_array_get_propval(
-		&pmsg->proplist, PROP_TAG_HTML)) {
-		pvalue = tpropval_array_get_propval(
-			&pmsg->proplist, PROP_TAG_BODY);
-		if (NULL != pvalue) {
-			phtml_bin = alloc(sizeof(BINARY));
-			if (NULL == phtml_bin) {
-				message_content_free(pmsg);
-				return NULL;
-			}
-			tmp_int32 = strlen(pvalue) + 1024;
-			phtml_bin->pb = alloc(tmp_int32);
-			if (NULL == phtml_bin->pb) {
-				message_content_free(pmsg);
-				return NULL;
-			}
-			strcpy(phtml_bin->pb, pvalue);
-			phtml_bin->cb = plain_to_html(phtml_bin->pb, tmp_int32);
-			propval.proptag = PROP_TAG_HTML;
-			propval.pvalue = phtml_bin;
-			tpropval_array_set_propval(
-				&pmsg->proplist, &propval);
-			propval.proptag = PROP_TAG_INTERNETCODEPAGE;
-			propval.pvalue = &tmp_int32;
-			tmp_int32 = 65001;
-			tpropval_array_set_propval(
-				&pmsg->proplist, &propval);
-		}
-	}
 	if (NULL != pmsg->children.pattachments &&
 		0 != pmsg->children.pattachments->count) {
 		pattachments = pmsg->children.pattachments;
@@ -5177,7 +5187,7 @@ MESSAGE_CONTENT* oxcmail_import(const char *charset,
 			propnames.ppropname = &propname;
 			if (FALSE == get_propids(&propnames, &propids)) {
 				message_content_free(pmsg);
-				return FALSE;
+				return NULL;
 			}
 			propval.proptag = propids.ppropid[0];
 			propval.proptag <<= 16;
@@ -5187,7 +5197,7 @@ MESSAGE_CONTENT* oxcmail_import(const char *charset,
 			if (FALSE == tpropval_array_set_propval(
 				&pmsg->proplist, &propval)) {
 				message_content_free(pmsg);
-				return FALSE;	
+				return NULL;	
 			}
 		}
 	}
@@ -5547,16 +5557,23 @@ static int oxcmail_get_mail_type(const char *pmessage_class)
 	return MAIL_TYPE_TNEF;
 }
 
-static BOOL oxcmail_load_mime_skeleton(
-	MESSAGE_CONTENT *pmsg, const char *pcharset,
-	BOOL b_tnef, int body_type, MIME_SKELETON *pskeleton)
+static BOOL oxcmail_load_mime_skeleton(MESSAGE_CONTENT *pmsg,
+	const char *pcharset, BOOL b_tnef, int body_type,
+	MIME_SKELETON *pskeleton, GET_PROPIDS get_propids)
 {
 	int i;
 	char *pbuff;
 	BINARY *prtf;
+	uint32_t lid;
 	size_t rtf_len;
 	size_t tmp_len;
+	uint16_t propid;
+	uint32_t proptag;
 	uint32_t *pvalue;
+	PROPID_ARRAY propids;
+	PROPERTY_NAME propname;
+	PROPERTY_NAME *ppropname;
+	PROPNAME_ARRAY propnames;
 	ATTACHMENT_CONTENT *pattachment;
 	memset(pskeleton, 0, sizeof(MIME_SKELETON));
 	pskeleton->charset = pcharset;
@@ -5570,6 +5587,24 @@ static BOOL oxcmail_load_mime_skeleton(
 	if (NULL == pskeleton->pmessage_class) {
 		debug_info("[oxcmail]: missing message class for exporting");
 		return FALSE;
+	}
+	if (FALSE == b_tnef) {
+		/* PidLidUseTnef */
+		propname.kind = KIND_LID;
+		rop_util_get_common_pset(PSETID_COMMON, &propname.guid);
+		propname.plid = &lid;
+		lid = 0x00008582;
+		propnames.count = 1;
+		propnames.ppropname = &propname;
+		if (FALSE == get_propids(&propnames, &propids)) {
+			return FALSE;
+		}
+		propid = propids.ppropid[0];
+		proptag = ((uint32_t)propid) << 16 | PROPVAL_TYPE_BYTE;
+		pvalue = tpropval_array_get_propval(&pmsg->proplist, proptag);
+		if (NULL != pvalue && 0 != *(uint8_t*)pvalue) {
+			b_tnef = TRUE;
+		}
 	}
 	pskeleton->mail_type = oxcmail_get_mail_type(
 						pskeleton->pmessage_class);
@@ -7292,7 +7327,7 @@ BOOL oxcmail_export(const MESSAGE_CONTENT *pmsg,
 	}
 	if (FALSE == oxcmail_load_mime_skeleton(
 		(MESSAGE_CONTENT*)pmsg, pcharset, b_tnef,
-		body_type, &mime_skeleton)) {
+		body_type, &mime_skeleton, get_propids)) {
 		mail_free(pmail);
 		return FALSE;
 	}

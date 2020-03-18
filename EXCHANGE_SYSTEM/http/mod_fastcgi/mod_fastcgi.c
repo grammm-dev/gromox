@@ -22,7 +22,7 @@
 
 #define SOCKET_TIMEOUT							180
 
-#define SERVER_SOFTWARE							"medusa/1.0"
+#define SERVER_SOFTWARE							"grid/1.0"
 
 #define POLL_MILLISECONDS_FOR_CHECK				50
 
@@ -250,6 +250,7 @@ int mod_fastcgi_stop()
 		free(g_context_list);
 		g_context_list = NULL;
 	}
+	return 0;
 }
 
 void mod_fastcgi_free()
@@ -474,8 +475,6 @@ static int mod_fastcgi_pull_record_header(
 	NDR_PULL *pndr, RECORD_HEADER *pheader)
 {
 	int status;
-	uint8_t tmp_byte;
-	uint16_t tmp_short;
 	
 	status = ndr_pull_uint8(pndr, &pheader->version);
 	if (NDR_ERR_SUCCESS != status) {
@@ -550,7 +549,7 @@ static int mod_fastcgi_connect_backend(const char *path)
 	return sockd;
 }
 
-BOOL mod_fastcgi_get_context(HTTP_CONTEXT *phttp)
+BOOL mod_fastcgi_get_context(struct _HTTP_CONTEXT *phttp)
 {
 	int tmp_len;
 	BOOL b_index;
@@ -704,17 +703,17 @@ BOOL mod_fastcgi_get_context(HTTP_CONTEXT *phttp)
 	return TRUE;
 }
 
-BOOL mod_fastcgi_check_end_of_read(HTTP_CONTEXT *phttp)
+BOOL mod_fastcgi_check_end_of_read(struct _HTTP_CONTEXT *phttp)
 {
 	return phttp->pfast_context->b_end;
 }
 
-BOOL mod_fastcgi_check_responded(HTTP_CONTEXT *phttp)
+BOOL mod_fastcgi_check_responded(struct _HTTP_CONTEXT *phttp)
 {
 	return phttp->pfast_context->b_header;
 }
 
-static BOOL mod_fastcgi_build_params(HTTP_CONTEXT *phttp,
+static BOOL mod_fastcgi_build_params(struct _HTTP_CONTEXT *phttp,
 	uint8_t *pbuff, int *plength)
 {
 	int status;
@@ -1115,7 +1114,7 @@ static BOOL mod_fastcgi_build_params(HTTP_CONTEXT *phttp,
 	return TRUE;
 }
 
-BOOL mod_fastcgi_relay_content(HTTP_CONTEXT *phttp)
+BOOL mod_fastcgi_relay_content(struct _HTTP_CONTEXT *phttp)
 {
 	int tmp_len;
 	char *pbuff;
@@ -1262,7 +1261,7 @@ END_OF_STDIN:
 	return TRUE;
 }
 
-void mod_fastcgi_put_context(HTTP_CONTEXT *phttp)
+void mod_fastcgi_put_context(struct _HTTP_CONTEXT *phttp)
 {
 	int context_id;
 	char tmp_path[256];
@@ -1279,7 +1278,7 @@ void mod_fastcgi_put_context(HTTP_CONTEXT *phttp)
 	phttp->pfast_context = NULL;
 }
 
-BOOL mod_fastcgi_write_request(HTTP_CONTEXT *phttp)
+BOOL mod_fastcgi_write_request(struct _HTTP_CONTEXT *phttp)
 {
 	int size;
 	int tmp_len;
@@ -1441,7 +1440,7 @@ static BOOL mod_fastcgi_safe_read(FASTCGI_CONTEXT *pfast_context,
 	}
 }
 
-int mod_fastcgi_check_response(HTTP_CONTEXT *phttp)
+int mod_fastcgi_check_response(struct _HTTP_CONTEXT *phttp)
 {
 	int tv_msec;
 	int context_num;
@@ -1467,7 +1466,7 @@ int mod_fastcgi_check_response(HTTP_CONTEXT *phttp)
 	return RESPONSE_WAITING;
 }
 
-BOOL mod_fastcgi_read_response(HTTP_CONTEXT *phttp)
+BOOL mod_fastcgi_read_response(struct _HTTP_CONTEXT *phttp)
 {
 	char *pbuff;
 	int tmp_len;

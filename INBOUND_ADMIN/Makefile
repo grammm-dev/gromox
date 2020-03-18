@@ -6,24 +6,20 @@ admin_log \
 admin_main \
 athena \
 backend_table \
-boundary_blacklist \
+cdner \
 daemon \
 daily_statistic \
 daily_status \
 dns_table \
-domain_blacklist \
 domain_mailbox \
 domain_whitelist \
-dynamic_dnslist \
 forward_table \
-from_blacklist \
 from_replace\
 ip_blacklist \
 ip_whitelist \
 ipdomain_table \
 keyword_group \
 keyword_statistic \
-keyword_upload \
 local_setup\
 mensual_statistic \
 message_sign \
@@ -44,7 +40,6 @@ system_password \
 system_setup \
 system_users \
 tagging_whitelist \
-xmailer_blacklist\
 web_adaptor
 
 SCRIPTS_PATH=./scripts

@@ -8,6 +8,7 @@ MAPI_DIR='mapi_lib'
 MAKE_DIR='make_include'
 HTTP_DIR='http'
 MIDB_DIR='midb'
+DAC_DIR='dac'
 ZCORE_DIR='zcore'
 PROC_DIR='proc_plugins'
 HPM_DIR='hpm_plugins'
@@ -27,6 +28,7 @@ WEBKIT_LIB='webkit_lib.so'
 SCHEDULER_LIB='epoll_scheduler.so'
 HTTP_NAME='http'
 MIDB_NAME='midb'
+DAC_NAME='dac'
 ZCORE_NAME='zcore'
 
 rm -rf $RELEASE_HOME
@@ -38,6 +40,7 @@ mkdir $RELEASE_HOME/$PHP_DIR
 mkdir $RELEASE_HOME/$SERVICE_DIR
 mkdir $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR
 mkdir $RELEASE_HOME/$SERVICE_DIR/$MIDB_DIR
+mkdir $RELEASE_HOME/$SERVICE_DIR/$DAC_DIR
 mkdir $RELEASE_HOME/$SERVICE_DIR/$ZCORE_DIR
 mkdir $RELEASE_HOME/$LOGS_INFO
 mkdir $RELEASE_HOME/$LOGS_INFO/$HTTP_DIR
@@ -45,12 +48,14 @@ mkdir $RELEASE_HOME/$LOGS_INFO/$ZCORE_DIR
 mkdir $RELEASE_HOME/$CONFIGS_DIR
 mkdir $RELEASE_HOME/$CONFIGS_DIR/$HTTP_DIR
 mkdir $RELEASE_HOME/$CONFIGS_DIR/$MIDB_DIR
+mkdir $RELEASE_HOME/$CONFIGS_DIR/$DAC_DIR
 mkdir $RELEASE_HOME/$CONFIGS_DIR/$ZCORE_DIR
 mkdir $RELEASE_HOME/$DATA_DIR
 mkdir $RELEASE_HOME/$LIB_DIR
 mkdir $RELEASE_HOME/$TOKEN_DIR
 mkdir $RELEASE_HOME/$DATA_DIR/$HTTP_DIR
 mkdir $RELEASE_HOME/$DATA_DIR/$MIDB_DIR
+mkdir $RELEASE_HOME/$DATA_DIR/$DAC_DIR
 mkdir $RELEASE_HOME/$DATA_DIR/$ZCORE_DIR
 mkdir $RELEASE_HOME/$SDK_DIR
 mkdir $RELEASE_HOME/$SDK_DIR/$COMMON_DIR
@@ -64,9 +69,9 @@ mkdir $RELEASE_HOME/$SDK_DIR/$SERVICE_DIR
 mkdir $RELEASE_HOME/$SDK_DIR/$SERVICE_DIR/include
 mkdir $RELEASE_HOME/$SDK_DIR/$SERVICE_DIR/sample
 cp scripts/install* $RELEASE_HOME
-cp medusa/medusa.bin $RELEASE_HOME/$BIN_DIR
-cp scripts/medusa.sh $RELEASE_HOME/$BIN_DIR
-cp scripts/medusa.service $RELEASE_HOME/$BIN_DIR
+cp core/core.bin $RELEASE_HOME/$BIN_DIR
+cp scripts/grid-core.sh $RELEASE_HOME/$BIN_DIR
+cp scripts/grid-core.service $RELEASE_HOME/$BIN_DIR
 cp -R php/* $RELEASE_HOME/$PHP_DIR
 cp http/$HTTP_NAME $RELEASE_HOME/$BIN_DIR
 cp http/$CONFIGS_DIR/http.cfg $RELEASE_HOME/$CONFIGS_DIR/http.cfg
@@ -74,6 +79,9 @@ cp http/$DATA_DIR/* $RELEASE_HOME/$DATA_DIR/$HTTP_DIR
 cp midb/$MIDB_NAME $RELEASE_HOME/$BIN_DIR
 cp midb/$CONFIGS_DIR/midb.cfg $RELEASE_HOME/$CONFIGS_DIR/midb.cfg
 cp midb/$DATA_DIR/* $RELEASE_HOME/$DATA_DIR/$MIDB_DIR
+cp dac/$DAC_NAME $RELEASE_HOME/$BIN_DIR
+cp dac/$CONFIGS_DIR/dac.cfg $RELEASE_HOME/$CONFIGS_DIR/dac.cfg
+cp dac/$DATA_DIR/* $RELEASE_HOME/$DATA_DIR/$DAC_DIR
 cp zcore/$ZCORE_NAME $RELEASE_HOME/$BIN_DIR
 cp zcore/$CONFIGS_DIR/zcore.cfg $RELEASE_HOME/$CONFIGS_DIR/zcore.cfg
 cp -R zcore/$DATA_DIR/* $RELEASE_HOME/$DATA_DIR/$ZCORE_DIR
@@ -94,10 +102,12 @@ cp -R $PROC_DIR/exchange_emsmdb/data $RELEASE_HOME/$DATA_DIR/$HTTP_DIR/exchange_
 cp $SERVICE_DIR/ip_container/*.svc $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR/ip_container.svc
 cp $SERVICE_DIR/ip_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR/ip_filter.svc
 cp $SERVICE_DIR/str_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR/user_filter.svc
+cp $SERVICE_DIR/str_filter/*.svc $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR/login_check_audit.svc
 cp $SERVICE_DIR/log_plugin/*.svc $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR/log_plugin.svc
 cp $SERVICE_DIR/exmdb_provider/*.svc $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR/exmdb_provider.svc
 cp $SERVICE_DIR/exmdb_provider/config/exmdb_provider.cfg $RELEASE_HOME/$CONFIGS_DIR/$HTTP_DIR
 cp $SERVICE_DIR/mysql_adaptor/*.svc $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR/mysql_adaptor.svc
+cp $SERVICE_DIR/fcgi_rpc/*.svc $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR/fcgi_rpc.svc
 cp $SERVICE_DIR/lang_charset/*.svc $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR/lang_charset.svc
 cp $SERVICE_DIR/codepage_lang/*.svc $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR/codepage_lang.svc
 cp $SERVICE_DIR/mime_extension/*.svc $RELEASE_HOME/$SERVICE_DIR/$HTTP_DIR/mime_extension.svc
@@ -112,6 +122,10 @@ cp $SERVICE_DIR/ms_locale/*.svc $RELEASE_HOME/$SERVICE_DIR/$MIDB_DIR/ms_locale.s
 cp $SERVICE_DIR/mysql_adaptor/*.svc $RELEASE_HOME/$SERVICE_DIR/$MIDB_DIR/mysql_adaptor.svc
 cp $SERVICE_DIR/$CONFIGS_DIR/$MIDB_DIR/*.cfg $RELEASE_HOME/$CONFIGS_DIR/$MIDB_DIR
 cp -R $SERVICE_DIR/$DATA_DIR/$MIDB_DIR/* $RELEASE_HOME/$DATA_DIR/$MIDB_DIR
+cp $SERVICE_DIR/fcgi_rpc/*.svc $RELEASE_HOME/$SERVICE_DIR/$DAC_DIR/fcgi_rpc.svc
+cp $SERVICE_DIR/$CONFIGS_DIR/$DAC_DIR/*.cfg $RELEASE_HOME/$CONFIGS_DIR/$DAC_DIR
+cp -R $SERVICE_DIR/$DATA_DIR/$DAC_DIR/* $RELEASE_HOME/$DATA_DIR/$DAC_DIR
+cp $SERVICE_DIR/fcgi_rpc/*.svc $RELEASE_HOME/$SERVICE_DIR/$ZCORE_DIR/fcgi_rpc.svc
 cp $SERVICE_DIR/log_plugin/*.svc $RELEASE_HOME/$SERVICE_DIR/$ZCORE_DIR/log_plugin.svc
 cp $SERVICE_DIR/mysql_adaptor/*.svc $RELEASE_HOME/$SERVICE_DIR/$ZCORE_DIR/mysql_adaptor.svc
 cp $SERVICE_DIR/lang_charset/*.svc $RELEASE_HOME/$SERVICE_DIR/$ZCORE_DIR/lang_charset.svc

@@ -232,18 +232,18 @@ int ab_tree_run()
 	
 	g_base_hash = int_hash_init(g_base_size, sizeof(AB_BASE*), NULL);
 	if (NULL == g_base_hash) {
-		printf("[exchange_nsp]: fail to init base hash table\n");
+		printf("[ab_tree]: fail to init base hash table\n");
 		return -1;
 	}
 	g_file_allocator = lib_buffer_init(
 		FILE_ALLOC_SIZE, g_file_blocks, TRUE);
 	if (NULL == g_file_allocator) {
-		printf("[exchange_nsp]: fail to allocate file blocks\n");
+		printf("[ab_tree]: fail to allocate file blocks\n");
 		return -2;
 	}
 	g_notify_stop = FALSE;
 	if (0 != pthread_create(&g_scan_id, NULL, scan_work_func, NULL)) {
-		printf("[exchange_nsp]: fail to create scanning thread\n");
+		printf("[ab_tree]: fail to create scanning thread\n");
 		g_notify_stop = TRUE;
 		return -3;
 	}
@@ -1323,6 +1323,7 @@ BOOL ab_tree_node_to_dn(SIMPLE_TREE_NODE *pnode, char *pbuff, int length)
 	BOOL b_remote;
 	AB_BASE *pbase;
 	AB_NODE *pabnode;
+	MEM_FILE fake_file;
 	char username[256];
 	char hex_string[32];
 	char hex_string1[32];
@@ -1387,10 +1388,10 @@ BOOL ab_tree_node_to_dn(SIMPLE_TREE_NODE *pnode, char *pbuff, int length)
 		break;
 	case NODE_TYPE_MLIST:
 		id = pabnode->id;
-		mem_file_seek(&pabnode->f_info,
-			MEM_FILE_READ_PTR, 0, MEM_FILE_SEEK_BEGIN);
-		mem_file_read(&pabnode->f_info, &temp_len, sizeof(int));
-		mem_file_read(&pabnode->f_info, username, temp_len);
+		memcpy(&fake_file, &pabnode->f_info, sizeof(MEM_FILE));
+		mem_file_seek(&fake_file, MEM_FILE_READ_PTR, 0, MEM_FILE_SEEK_BEGIN);
+		mem_file_read(&fake_file, &temp_len, sizeof(int));
+		mem_file_read(&fake_file, username, temp_len);
 		username[temp_len] = '\0';
 		ptoken = strchr(username, '@');
 		if (NULL != ptoken) {

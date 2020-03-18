@@ -820,8 +820,8 @@ RETRYING:
 	
 	mysql_free_result(pmyres);
 	
-	sprintf(sql_string, "SELECT username, maildir, password, address_type "
-		"FROM users WHERE domain_id=%d", domain_id);
+	sprintf(sql_string, "SELECT username, maildir, password, address_type,"
+		" lang FROM users WHERE domain_id=%d", domain_id);
 	
 	if (0 != mysql_query(pmysql, sql_string) ||
 		NULL == (pmyres = mysql_store_result(pmysql))) {
@@ -854,6 +854,10 @@ RETRYING:
 		strcpy(pitem->username, myrow[0]);
 		strcpy(pitem->maildir, myrow[1]);
 		strcpy(pitem->password, myrow[2]);
+		strcpy(pitem->lang, myrow[4]);
+		if ('\0' == pitem->lang[0]) {
+			strcpy(pitem->lang, "en-us");
+		}
 		double_list_append_as_tail(&pcollect->list, pnode);
 	}
 	

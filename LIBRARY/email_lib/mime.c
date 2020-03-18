@@ -1550,11 +1550,16 @@ BOOL mime_read_content(MIME *pmime, char *out_buff, size_t *plength)
 	}
 	
 	size = 0;
-	/* \r\n before boundary string or end of mail should not be inclued */
 	if (pmime->content_length < 2) {
 		tmp_len = 1;
 	} else {
-		tmp_len = pmime->content_length - 2;
+		/* \r\n before boundary string or end of mail should not be inclued */
+		if ('\r' == pmime->content_begin[pmime->content_length - 2] &&
+			'\n' == pmime->content_begin[pmime->content_length - 1]) {
+			tmp_len = pmime->content_length - 2;
+		} else {
+			tmp_len = pmime->content_length;
+		}
 	}
 	for (i=0; i<tmp_len; i++) {
 		if ('.' == pmime->content_begin[i]) {

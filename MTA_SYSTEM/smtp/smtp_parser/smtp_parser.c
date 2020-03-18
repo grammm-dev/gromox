@@ -1,25 +1,25 @@
 /* smtp parser is a module, which first read data from socket, parses the smtp 
  * commands and then do the corresponding action. 
- */ 
-
-#include "smtp_parser.h"
-#include "smtp_cmd_handler.h"
-#include "files_allocator.h"
-#include "blocks_allocator.h"
-#include "bndstack_allocator.h"
-#include "threads_pool.h"
-#include "system_services.h"
-#include "anti_spamming.h"
+ */
+#include "util.h"
 #include "flusher.h"
 #include "resource.h"
-#include "lib_buffer.h"
-#include "util.h"
 #include "mail_func.h"
+#include "anti_spam.h"
+#include "lib_buffer.h"
+#include "smtp_parser.h"
+#include "threads_pool.h"
+#include "system_services.h"
+#include "files_allocator.h"
+#include "smtp_cmd_handler.h"
+#include "blocks_allocator.h"
+#include "bndstack_allocator.h"
+#include <openssl/err.h>
 #include <pthread.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <openssl/err.h>
+
 
 #define READ_BUFFER_SIZE    4096
 #define MAX_LINE_LENGTH     64*1024
@@ -238,7 +238,7 @@ int smtp_parser_run()
 	g_as_allocator = lib_buffer_init(TLS_BUFFER_BUS_ALLIN(g_flushing_size *
 		TLS_BUFFER_RATIO), g_threads_num * 2, TRUE); 
 	if (NULL == g_as_allocator) {
-		printf("[smtp_parser]: fail to allocate anti-spamming memory\n");
+		printf("[smtp_parser]: fail to allocate anti-spam memory\n");
 		return -6;
 	}
 	g_context_list = malloc(sizeof(SMTP_CONTEXT)*g_context_num);
@@ -338,7 +338,7 @@ int smtp_parser_threads_event_proc(int action)
 	   
 	switch (action) {
 	case THREAD_CREATE:
-		anti_spamming_threads_event_proc(PLUGIN_THREAD_CREATE);
+		anti_spam_threads_event_proc(PLUGIN_THREAD_CREATE);
 		pbuff = lib_buffer_get(g_as_allocator);
 		if (NULL == pbuff) {
 			debug_info("[smtp_parser]: fatal error! fail to get memory from as"
@@ -348,7 +348,7 @@ int smtp_parser_threads_event_proc(int action)
 		pthread_setspecific(g_as_buff_key, (const void*) pbuff);    
 		break;
 	case THREAD_DESTROY:
-		anti_spamming_threads_event_proc(PLUGIN_THREAD_DESTROY);
+		anti_spam_threads_event_proc(PLUGIN_THREAD_DESTROY);
 		pbuff = (void*) pthread_getspecific(g_as_buff_key);
 		if (NULL != pbuff) {
 			lib_buffer_put(g_as_allocator, pbuff);
@@ -544,7 +544,7 @@ int smtp_parser_process(SMTP_CONTEXT *pcontext)
 			flusher_cancel(pcontext);
 		}
 		if (0 != pcontext->block_info.last_block_ID) {
-			anti_spamming_inform_filters(pcontext->block_info.block_type,
+			anti_spam_inform_filters(pcontext->block_info.block_type,
 				pcontext, ACTION_BLOCK_FREE,pcontext->block_info.last_block_ID);
 		}
 		if (NULL != pcontext->connection.ssl) {
@@ -570,7 +570,7 @@ LOST_READ:
 			flusher_cancel(pcontext);
 		}
 		if (0 != pcontext->block_info.last_block_ID) {
-			anti_spamming_inform_filters(pcontext->block_info.block_type,
+			anti_spam_inform_filters(pcontext->block_info.block_type,
 				pcontext, ACTION_BLOCK_FREE, 
 				pcontext->block_info.last_block_ID);
 		}
@@ -607,7 +607,7 @@ LOST_READ:
 				flusher_cancel(pcontext);
 			}
 			if (0 != pcontext->block_info.last_block_ID) {
-				anti_spamming_inform_filters(pcontext->block_info.block_type,
+				anti_spam_inform_filters(pcontext->block_info.block_type,
 					pcontext, ACTION_BLOCK_FREE, 
 					pcontext->block_info.last_block_ID);
 			}
@@ -795,7 +795,7 @@ static int smtp_parser_try_flush_mail(SMTP_CONTEXT *pcontext, BOOL is_whole)
 	} else {
 		pcontext->flusher.flush_action = FLUSH_PART_MAIL;
 	}
-	/* a mail is recieved pass it in anti-spamming auditor&filter&statistic */
+	/* a mail is recieved pass it in anti-spam auditor&filter&statistic */
 	if (FALSE == smtp_parser_pass_auditor_filter(pcontext,is_whole,buff,1024)
 	   ||(TRUE == is_whole && 
 		 FALSE == smtp_parser_pass_statistic(pcontext, buff,1024))) {
@@ -903,16 +903,16 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 		}
 		
 		/* pass mime in mime head auditor */
-		audit_result = anti_spamming_pass_auditors(pcontext, tmp_reason, 1024);
+		audit_result = anti_spam_pass_auditors(pcontext, tmp_reason, 1024);
 		if (MESSAGE_REJECT == audit_result) {
 			snprintf(reason, length, "550 %s\r\n", tmp_reason);
 			smtp_parser_log_info(pcontext, 8, 
-							"illegal mail is cut! reason: %s", tmp_reason);
+				"spam mail is rejected because: %s", tmp_reason);
 			return FALSE;
 		} else if (MESSAGE_RETRYING == audit_result) {
 			snprintf(reason, length, "450 %s\r\n", tmp_reason);
 			smtp_parser_log_info(pcontext, 8, 
-							"dubious mail is cut! reason: %s", tmp_reason);
+				"mail is grey-listed because: %s", tmp_reason);
 			return FALSE;
 		}
 		/* 
@@ -941,8 +941,8 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 	ptls_buf = pthread_getspecific(g_as_buff_key);
 	/* prevent fatal error when system is too busy */
 	if (NULL == ptls_buf) {
-		printf("[smtp_parser]: fatal error when to get TLS buffer for "
-				"anti-spamming\n");
+		printf("[smtp_parser]: fatal error when "
+			"to get TLS buffer for anti-spam\n");
 		return TRUE;
 	}
 	memset(ptls_buf, 0, g_flushing_size);    /* zero partially */
@@ -985,7 +985,7 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 				pcontext->block_info.last_block_ID = smtp_parser_get_block_ID();
 				pcontext->block_info.remains_len   = 0;
 				pcontext->block_info.block_body_len= 0;
-				anti_spamming_inform_filters(pcontext->block_info.block_type,
+				anti_spam_inform_filters(pcontext->block_info.block_type,
 											pcontext, ACTION_BLOCK_NEW, 
 											pcontext->block_info.last_block_ID);
 			}
@@ -1019,7 +1019,7 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 			pass_mail_block.original_buff= ptls_buf;
 			pass_mail_block.parsed_buff  = parsed_buf;
 			pass_mail_block.parsed_length= parsed_len;
-			filter_result = anti_spamming_pass_filters(
+			filter_result = anti_spam_pass_filters(
 							pcontext->block_info.block_type,
 							pcontext,
 							&pass_mail_block,
@@ -1027,13 +1027,13 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 							sizeof(tmp_reason));
 			if (MESSAGE_REJECT == filter_result ||
 				MESSAGE_RETRYING == filter_result) {
-				anti_spamming_inform_filters(pcontext->block_info.block_type,
+				anti_spam_inform_filters(pcontext->block_info.block_type,
 										 pcontext, ACTION_BLOCK_FREE, 
 										 pcontext->block_info.last_block_ID);
 				goto REJECT_SPAM;
 			}
 			if (TRUE == is_whole) {
-				anti_spamming_inform_filters(pcontext->block_info.block_type,
+				anti_spam_inform_filters(pcontext->block_info.block_type,
 										 pcontext, ACTION_BLOCK_FREE, 
 										 pcontext->block_info.last_block_ID);
 				type_len = strlen(pcontext->block_info.block_type);
@@ -1051,7 +1051,7 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 		} else {
 			/* go directly to the MIME_ERROR sub-procedure! */
 			if (0 != pcontext->block_info.last_block_ID) {
-				anti_spamming_inform_filters(pcontext->block_info.block_type,
+				anti_spam_inform_filters(pcontext->block_info.block_type,
 										 pcontext, ACTION_BLOCK_FREE, 
 										 pcontext->block_info.last_block_ID);
 			}
@@ -1112,7 +1112,7 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 				if (TRUE == is_whole &&
 					pcontext->block_info.state != PARSING_END) {
 					if (0 != pcontext->block_info.last_block_ID) {
-						anti_spamming_inform_filters(
+						anti_spam_inform_filters(
 							pcontext->block_info.block_type,
 							pcontext, ACTION_BLOCK_FREE,
 							pcontext->block_info.last_block_ID);
@@ -1145,7 +1145,7 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 								pcontext->block_info.last_block_ID = 
 									smtp_parser_get_block_ID();
 								pcontext->block_info.block_body_len= 0;
-								anti_spamming_inform_filters(
+								anti_spam_inform_filters(
 									pcontext->block_info.block_type,
 									pcontext, ACTION_BLOCK_NEW, 
 									pcontext->block_info.last_block_ID);
@@ -1188,12 +1188,12 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 							pass_mail_block.parsed_buff      = parsed_buf;
 							pass_mail_block.parsed_length    = parsed_len;
 
-							filter_result =anti_spamming_pass_filters(
+							filter_result =anti_spam_pass_filters(
 										   pcontext->block_info.block_type,
 										   pcontext,
 										   &pass_mail_block,
 										   tmp_reason, sizeof(tmp_reason));
-							anti_spamming_inform_filters(
+							anti_spam_inform_filters(
 										pcontext->block_info.block_type,
 										pcontext, ACTION_BLOCK_FREE, 
 										pcontext->block_info.last_block_ID);
@@ -1264,7 +1264,7 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 			 prevent memory leaks in these plugins
 			 */
 					if (TRUE == is_whole) {
-						anti_spamming_inform_filters(
+						anti_spam_inform_filters(
 								pcontext->block_info.block_type,
 								pcontext, ACTION_BLOCK_FREE,
 								pcontext->block_info.last_block_ID);
@@ -1285,7 +1285,7 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 						pcontext->block_info.last_block_ID =
 							smtp_parser_get_block_ID();
 						pcontext->block_info.block_body_len= 0;
-						anti_spamming_inform_filters(
+						anti_spam_inform_filters(
 							pcontext->block_info.block_type,
 							pcontext, ACTION_BLOCK_NEW,
 							pcontext->block_info.last_block_ID);
@@ -1335,7 +1335,7 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 					pass_mail_block.parsed_buff     = parsed_buf;
 					pass_mail_block.parsed_length   = parsed_len;
 
-					filter_result = anti_spamming_pass_filters(
+					filter_result = anti_spam_pass_filters(
 						pcontext->block_info.block_type,
 						pcontext,
 						&pass_mail_block,
@@ -1344,7 +1344,7 @@ static BOOL smtp_parser_pass_auditor_filter(SMTP_CONTEXT *pcontext,
 					if (MESSAGE_REJECT == filter_result ||
 						MESSAGE_RETRYING == filter_result) {
 						if (0 != pcontext->block_info.last_block_ID) {
-							anti_spamming_inform_filters(
+							anti_spam_inform_filters(
 								pcontext->block_info.block_type,
 								pcontext, ACTION_BLOCK_FREE,
 								pcontext->block_info.last_block_ID);
@@ -1436,12 +1436,14 @@ MIME_ERROR:
 REJECT_SPAM:
 	/* write reason from parsed buffer to user */
 	if (MESSAGE_REJECT == filter_result) {
-		smtp_parser_log_info(pcontext, 8, "illegal mail is cut! reason: %s", 
-						 tmp_reason);
+		smtp_parser_log_info(pcontext, 8,
+			"spam mail is rejected because: %s", 
+			tmp_reason);
 		snprintf(reason, length, "550 %s\r\n", tmp_reason);
 	} else {
-		smtp_parser_log_info(pcontext, 8, "dubious mail is cut! reason: %s", 
-						 tmp_reason);
+		smtp_parser_log_info(pcontext, 8,
+			"mail is grey-listed because: %s", 
+			tmp_reason);
 		snprintf(reason, length, "450 %s\r\n", tmp_reason);
 	}
 	return FALSE;
@@ -1461,17 +1463,19 @@ static BOOL smtp_parser_pass_statistic(SMTP_CONTEXT *pcontext, char *reason,
 	char tmp_reason[1024];
 
 	pcontext->mail.body.mail_length = pcontext->total_length;
-	statistic_result = anti_spamming_pass_statistics(pcontext, tmp_reason,1024);
+	statistic_result = anti_spam_pass_statistics(pcontext, tmp_reason,1024);
 	if (MESSAGE_REJECT == statistic_result) {
 		/* write reason from parsed buffer to user */
-		smtp_parser_log_info(pcontext, 8, "illegal mail is cut! reason: %s", 
-							 tmp_reason);
+		smtp_parser_log_info(pcontext, 8,
+			"spam mail is rejected because: %s", 
+			tmp_reason);
 		snprintf(reason, length, "550 %s\r\n", tmp_reason);
 		return FALSE;
 	} else if (MESSAGE_RETRYING == statistic_result) {
 		/* write reason from parsed buffer to user */
-		smtp_parser_log_info(pcontext, 8, "dubious mail is cut! reason: %s", 
-							 tmp_reason);
+		smtp_parser_log_info(pcontext, 8,
+			"mail is grey-listed because: %s", 
+			tmp_reason);
 		snprintf(reason, length, "450 %s\r\n", tmp_reason);
 		return FALSE;
 	}
@@ -1767,6 +1771,7 @@ static void smtp_parser_context_clear(SMTP_CONTEXT *pcontext)
 	}
 	pcontext->mail.envelop.is_login = FALSE;
 	pcontext->mail.envelop.is_relay = FALSE;
+	pcontext->mail.envelop.is_known = FALSE;
 	memset(&pcontext->mail.envelop.username, 0, 256);
 	smtp_parser_reset_context_session(pcontext);    
 }

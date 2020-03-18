@@ -25,7 +25,7 @@
 
 #define ALOCK_VERSION      "2.0"
 
-#define CS_PATH     "/var/pandora/token/alock"
+#define CS_PATH     "/var/grid-agent/token/alock"
 
 
 enum {

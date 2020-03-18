@@ -6,12 +6,7 @@
 #include <pthread.h>
 #include <stdio.h>
 
-#define SPAM_STATISTIC_SUBJECT_KEYWORD			52
-#define SPAM_STATISTIC_FROM_KEYWORD				53
-#define SPAM_STATISTIC_TO_KEYWORD				54
-#define SPAM_STATISTIC_CC_KEYWORD				55
-#define SPAM_STATISTIC_CONTENT_KEYWORD			56
-#define SPAM_STATISTIC_ATTACHMENT_KEYWORD		57
+#define SPAM_STATISTIC_KEYWORD_FILTER			13
 
 typedef void (*SPAM_STATISTIC)(int);
 
@@ -96,8 +91,8 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		str_value = config_file_get_value(pconfig_file,
 						"SUBJECT_RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_subject_return, "000052 mail subject contains illegal "
-				"keyword [%s]");
+			strcpy(g_subject_return, "000013 mail "
+				"subject contains illegal keyword [%s]");
 		} else {
 			strcpy(g_subject_return, str_value);
 		}
@@ -105,32 +100,32 @@ BOOL AS_LibMain(int reason, void **ppdata)
 			g_subject_return);
 		str_value = config_file_get_value(pconfig_file, "FROM_RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_from_return, "000053 mail head \"From\" contains illegal "
-				"keyword [%s]");
+			strcpy(g_from_return, "000013 mail head "
+				"\"From\" contains illegal keyword [%s]");
 		} else {
 			strcpy(g_from_return, str_value);
 		}
 		printf("[keyword_filter]: from return string is %s\n", g_from_return);
 		str_value = config_file_get_value(pconfig_file, "TO_RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_to_return, "000054 mail head \"To\" contains illegal "
-				"keyword [%s]");
+			strcpy(g_to_return, "000013 mail head "
+				"\"To\" contains illegal keyword [%s]");
 		} else {
 			strcpy(g_to_return, str_value);
 		}
 		printf("[keyword_filter]: to return string is %s\n", g_to_return);
 		str_value = config_file_get_value(pconfig_file, "CC_RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_cc_return, "000055 mail head \"Cc\" contains illegal "
-				"keyword [%s]");
+			strcpy(g_cc_return, "000013 mail head "
+				"\"Cc\" contains illegal keyword [%s]");
 		} else {
 			strcpy(g_cc_return, str_value);
 		}
 		str_value = config_file_get_value(pconfig_file,
 					"CONTENT_RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_content_return, "000056 mail content contains illegal "
-				"keyword [%s]");
+			strcpy(g_content_return, "000013 mail"
+				"content contains illegal keyword [%s]");
 		} else {
 			strcpy(g_content_return, str_value);
 		}
@@ -139,8 +134,8 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		str_value = config_file_get_value(pconfig_file,
 			"ATTACHMENT_RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_attachment_return, "000057 attachment file name contains "
-				"illegal keyword [%s]");
+			strcpy(g_attachment_return, "000013 attachment"
+				" file name contains illegal keyword [%s]");
 		} else {
 			strcpy(g_attachment_return, str_value);
 		}
@@ -267,8 +262,9 @@ static int mime_auditor(int context_ID, MAIL_ENTITY *pmail,
 	const char *presult;
 	ENCODE_STRING encode_string;
 
-	if (TRUE == pmail->penvelop->is_relay ||
-		TRUE == pmail->penvelop->is_outbound) {
+	if (TRUE == pmail->penvelop->is_outbound ||
+		TRUE == pmail->penvelop->is_relay ||
+		TRUE == pmail->penvelop->is_known) {
 		return MESSAGE_ACCEPT;
 	}
 	buff_len = mem_file_get_total_length(&pmail->phead->f_subject);
@@ -283,7 +279,7 @@ static int mime_auditor(int context_ID, MAIL_ENTITY *pmail,
 			sprintf(reason, g_subject_return, presult);
 			pthread_rwlock_unlock(&g_subject_lock);
 			if (NULL != spam_statistic) {
-				spam_statistic(SPAM_STATISTIC_SUBJECT_KEYWORD);
+				spam_statistic(SPAM_STATISTIC_KEYWORD_FILTER);
 			}
 			return MESSAGE_REJECT;
 		}
@@ -301,7 +297,7 @@ static int mime_auditor(int context_ID, MAIL_ENTITY *pmail,
 			sprintf(reason, g_from_return, presult);
 			pthread_rwlock_unlock(&g_from_lock);
 			if (NULL != spam_statistic) {
-				spam_statistic(SPAM_STATISTIC_FROM_KEYWORD);
+				spam_statistic(SPAM_STATISTIC_KEYWORD_FILTER);
 			}
 			return MESSAGE_REJECT;
 		}
@@ -319,7 +315,7 @@ static int mime_auditor(int context_ID, MAIL_ENTITY *pmail,
 			sprintf(reason, g_to_return, presult);
 			pthread_rwlock_unlock(&g_to_lock);
 			if (NULL != spam_statistic) {
-				spam_statistic(SPAM_STATISTIC_TO_KEYWORD);
+				spam_statistic(SPAM_STATISTIC_KEYWORD_FILTER);
 			}
 			return MESSAGE_REJECT;
 		}
@@ -337,7 +333,7 @@ static int mime_auditor(int context_ID, MAIL_ENTITY *pmail,
 			sprintf(reason, g_cc_return, presult);
 			pthread_rwlock_unlock(&g_cc_lock);
 			if (NULL != spam_statistic) {
-				spam_statistic(SPAM_STATISTIC_CC_KEYWORD);
+				spam_statistic(SPAM_STATISTIC_KEYWORD_FILTER);
 			}
 			return MESSAGE_REJECT;
 		}
@@ -363,8 +359,9 @@ static int text_filter(int action, int context_ID, MAIL_BLOCK *pblock,
         return MESSAGE_ACCEPT;
     case ACTION_BLOCK_PROCESSING:
 		mail_entity = get_mail_entity(context_ID);
-		if (TRUE == mail_entity.penvelop->is_relay ||
-			TRUE == mail_entity.penvelop->is_outbound) {
+		if (TRUE == mail_entity.penvelop->is_outbound||
+			TRUE == mail_entity.penvelop->is_relay ||
+			TRUE == mail_entity.penvelop->is_known) {
 			return MESSAGE_ACCEPT;
 		}
 		charset[0] = '\0';
@@ -418,7 +415,7 @@ static int text_filter(int action, int context_ID, MAIL_BLOCK *pblock,
 			sprintf(reason, g_content_return, presult);
 			pthread_rwlock_unlock(&g_content_lock);
 			if (NULL != spam_statistic) {
-				spam_statistic(SPAM_STATISTIC_CONTENT_KEYWORD);
+				spam_statistic(SPAM_STATISTIC_KEYWORD_FILTER);
 			}
 			return MESSAGE_REJECT;
 		}
@@ -447,8 +444,9 @@ static int paragraph_filter(int action, int context_ID, MAIL_BLOCK *pblock,
         return MESSAGE_ACCEPT;
     case ACTION_BLOCK_PROCESSING:
 		mail_entity = get_mail_entity(context_ID);
-		if (TRUE == mail_entity.penvelop->is_relay ||
-			TRUE == mail_entity.penvelop->is_outbound) {
+		if (TRUE == mail_entity.penvelop->is_outbound ||
+			TRUE == mail_entity.penvelop->is_relay ||
+			TRUE == mail_entity.penvelop->is_known) {
 			return MESSAGE_ACCEPT;
 		}
 		if (FALSE == extract_attachment_name(pblock->fp_mime_info,
@@ -465,7 +463,7 @@ static int paragraph_filter(int action, int context_ID, MAIL_BLOCK *pblock,
 			sprintf(reason, g_attachment_return, presult);
 			pthread_rwlock_unlock(&g_attachment_lock);
 			if (NULL != spam_statistic) {
-				spam_statistic(SPAM_STATISTIC_ATTACHMENT_KEYWORD);
+				spam_statistic(SPAM_STATISTIC_KEYWORD_FILTER);
 			}
 			return MESSAGE_REJECT;
 		}
@@ -716,5 +714,3 @@ static void console_talk(int argc, char **argv, char *result, int length)
 	snprintf(result, length, "550 invalid argument %s", argv[1]);
 	return;
 }
-
-

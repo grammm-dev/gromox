@@ -66,22 +66,25 @@ void message_free()
 	/* do nothing */
 }
 
-void message_supervising(char *buff, int message_type, int id)
+void message_supervising(char *buff, int message_type,
+	const char *email_address, int id)
 {
 	if (MESSAGE_SUPERVISING_SMTP == message_type) {
 		sprintf(buff,
 				"From: \"System supervisor\"<supervise-alarm@system.mail>\r\n"
-				"To: \"Supervise mailbox\"\r\n"
+				"To: \"Supervise mailbox\"<%s>\r\n"
 				"X-SMTP-ID: <%d>\r\n"
+				"X-Mailer: Gridware Supervisor\r\n"
 				"Subject: This is supervising messge, please don't delete me\r\n"
-				"\r\nMail system supervising message body!\r\n", id);
+				"\r\nMail system supervising message body!\r\n", email_address, id);
 	} else if (MESSAGE_SUPERVISING_POP3 == message_type) {
 		sprintf(buff,
 				"From: \"System supervisor\"<supervise-alarm@system.mail>\r\n"
-				"To: \"Supervise mailbox\"\r\n"
+				"To: \"Supervise mailbox\"<%s>\r\n"
 				"X-POP3-ID: <%d>\r\n"
+				"X-Mailer: Gridware Supervisor\r\n"
 				"Subject: This is supervising messge, please don't delete me\r\n"
-				"\r\nMail system supervising message body!\r\n", id);
+				"\r\nMail system supervising message body!\r\n", email_address, id);
 	}
 }
 

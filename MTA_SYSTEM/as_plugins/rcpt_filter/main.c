@@ -2,7 +2,7 @@
 #include "config_file.h"
 #include <stdio.h>
 
-#define SPAM_STATISTIC_RCPT_FILTER			10
+#define SPAM_STATISTIC_RCPT_FILTER			15
 
 typedef BOOL (*FORBIDDEN_RCPT_QUERY)(char*);
 typedef void (*SPAM_STATISTIC)(int);
@@ -48,7 +48,7 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		}
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_return_reason, "000010 remote mail address %s "
+			strcpy(g_return_reason, "000015 remote mail address %s "
 				"is forbidden");
 		} else {
 			strcpy(g_return_reason, str_value);

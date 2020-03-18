@@ -8,21 +8,23 @@
 #include <stdio.h>
 
 
-#define SPAM_STATISTIC_SPF_FILTER			23
+#define SPAM_STATISTIC_SPF_FILTER			19
 
-typedef BOOL (*WHITELIST_QUERY)(char*);
 typedef void (*SPAM_STATISTIC)(int);
+typedef BOOL (*WHITELIST_QUERY)(char*);
+typedef BOOL (*CHECK_RETRYING)(const char*, const char*, MEM_FILE*);
 
 static int spf_statistic(int context_ID, MAIL_WHOLE *pmail,
     CONNECTION *pconnection, char *reason, int length);
 
 DECLARE_API;
 
-static SPAM_STATISTIC spam_statistic;
-static WHITELIST_QUERY ip_whitelist_query;
-static WHITELIST_QUERY domain_whitelist_query;
 static char g_return_string[1024];
 static SPF_server_t *g_spf_server;
+static SPAM_STATISTIC spam_statistic;
+static CHECK_RETRYING check_retrying;
+static WHITELIST_QUERY ip_whitelist_query;
+static WHITELIST_QUERY domain_whitelist_query;
 
 BOOL AS_LibMain(int reason, void **ppdata)
 {
@@ -50,6 +52,11 @@ BOOL AS_LibMain(int reason, void **ppdata)
 				"\"domain_whitelist_query\" service\n");
 			return FALSE;
 		}
+		check_retrying = (CHECK_RETRYING)query_service("check_retrying");
+		if (NULL == check_retrying) {
+			printf("[spf_filter]: fail to get \"check_retrying\" service\n");
+			return FALSE;
+		}
 		spam_statistic = (SPAM_STATISTIC)query_service("spam_statistic");
 		strcpy(file_name, get_plugin_name());
 		psearch = strrchr(file_name, '.');
@@ -64,7 +71,7 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		}
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_return_string, "000023 client IP doesn't"
+			strcpy(g_return_string, "000019 client IP doesn't"
 						" match the SPF record of your domain");
 		} else {
 			strcpy(g_return_string, str_value);
@@ -177,7 +184,7 @@ static int spf_statistic(int context_ID, MAIL_WHOLE *pmail,
 		SPF_response_free(spf_response);
 		SPF_request_free(spf_request);
 	}
-	if (SPF_RESULT_FAIL != result) {
+	if (SPF_RESULT_FAIL != result && SPF_RESULT_SOFTFAIL != result) {
 		return MESSAGE_ACCEPT;
 	}
 	while (MEM_END_OF_FILE != mem_file_read(
@@ -188,7 +195,7 @@ static int spf_statistic(int context_ID, MAIL_WHOLE *pmail,
 				mem_file_read(&pmail->phead->f_others,
 					&val_len, sizeof(int));
 				if (val_len > 1023) {
-					return MESSAGE_REJECT;
+					return MESSAGE_ACCEPT;
 				}
 				mem_file_read(&pmail->phead->f_others, temp_buff, val_len);
 				temp_buff[val_len] = '\0';
@@ -233,7 +240,8 @@ static int spf_statistic(int context_ID, MAIL_WHOLE *pmail,
 					SPF_response_free(spf_response);
 					SPF_request_free(spf_request);
 				}
-				if (SPF_RESULT_FAIL != result) {
+				if (SPF_RESULT_FAIL != result &&
+					SPF_RESULT_SOFTFAIL != result) {
 					return MESSAGE_ACCEPT;
 				} else {
 					continue;
@@ -252,5 +260,14 @@ static int spf_statistic(int context_ID, MAIL_WHOLE *pmail,
 		spam_statistic(SPAM_STATISTIC_SPF_FILTER);
 	}
 	strncpy(reason, g_return_string, length);
-	return MESSAGE_REJECT;
+	if (SPF_RESULT_SOFTFAIL == result) {
+		if (FALSE == check_retrying(pconnection->client_ip,
+			pmail->penvelop->from, &pmail->penvelop->f_rcpt_to)) {
+			return MESSAGE_RETRYING;
+		} else {
+			return MESSAGE_ACCEPT;
+		}
+	} else {
+		return MESSAGE_REJECT;
+	}
 }

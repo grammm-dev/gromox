@@ -58,7 +58,6 @@ int main(int argc, char **argv)
 	char exmdb_path[256];
 	CONFIG_FILE *pconfig;
 	char config_path[256];
-	char langmap_path[256];
 	char service_path[256];
 	char resource_path[256];
 	char grouping_path[256];
@@ -152,7 +151,6 @@ int main(int argc, char **argv)
 	printf("[system]: exmdb file path is %s\n", exmdb_path);
 	sprintf(resource_path, "%s/notify_bounce", data_path);
 	sprintf(grouping_path, "%s/msgchg_grouping", data_path);
-	sprintf(langmap_path, "%s/langmap.txt", data_path);
 	sprintf(folderlang_path, "%s/folder_lang.txt", data_path);
 	
 	msgchg_grouping_init(grouping_path);
@@ -310,21 +308,21 @@ int main(int argc, char **argv)
 	
 	str_value = config_file_get_value(pconfig, "FREEBUSY_TOOL_PATH");
 	if (NULL == str_value) {
-		str_value = "/var/pandora/tools/freebusy";
+		str_value = "/var/grid-agent/tools/freebusy";
 	}
-	common_util_init(org_name, host_name, charset, timezone, mime_num,
-		max_rcpt, max_mail, max_length, max_rule_len, smtp_ip, smtp_port,
-		str_value, langmap_path, folderlang_path, submit_command);
+	common_util_init(org_name, host_name, charset, timezone,
+		mime_num, max_rcpt, max_mail, max_length, max_rule_len,
+		smtp_ip, smtp_port, str_value, folderlang_path, submit_command);
 	
 	str_value = config_file_get_value(pconfig, "RPC_PROXY_CONNECTION_NUM");
 	if (NULL == str_value) {
-		proxy_num = 10;
-		config_file_set_value(pconfig, "RPC_PROXY_CONNECTION_NUM", "10");
+		proxy_num = 100;
+		config_file_set_value(pconfig, "RPC_PROXY_CONNECTION_NUM", "100");
 	} else {
 		proxy_num = atoi(str_value);
-		if (proxy_num <= 0 || proxy_num > 100) {
-			config_file_set_value(pconfig, "RPC_PROXY_CONNECTION_NUM", "10");
-			proxy_num = 10;
+		if (proxy_num <= 0 || proxy_num > 1000) {
+			config_file_set_value(pconfig, "RPC_PROXY_CONNECTION_NUM", "100");
+			proxy_num = 100;
 		}
 	}
 	printf("[system]: exmdb proxy connection number is %d\n", proxy_num);

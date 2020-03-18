@@ -25,7 +25,7 @@
 
 #define ASENSOR_VERSION        "1.0"
 
-#define CS_PATH                 "/var/pandora/token/asensor"
+#define CS_PATH                 "/var/grid-agent/token/asensor"
 
 #define SOCKET_TIMEOUT          60
 

@@ -18,8 +18,9 @@
 #include <stdio.h>
 #include <fcntl.h>
 
+#define LOGIN_CHECK_INTERVAL					3600
 
-#define MAX_DIGLEN		256*1024
+#define MAX_DIGLEN								256*1024
 
 typedef struct _SQUENCE_NODE {
 	DOUBLE_LIST_NODE node;
@@ -1432,7 +1433,7 @@ int imap_cmd_parser_id(int argc, char **argv, IMAP_CONTEXT *pcontext)
 	/* IMAP_CODE_2170029: OK ID completed */
 	imap_reply_str = resource_get_imap_code(
 		IMAP_CODE_2170029, 1, &string_length);
-	string_length = snprintf(buff, 1024, "* ID (\"name\" \"apollo imap\""
+	string_length = snprintf(buff, 1024, "* ID (\"name\" \"grid imap\""
 				" \"vendor\" \"gridware\" \"version\" \"3.0\")\r\n%s %s",
 				argv[0], imap_reply_str);
 	imap_parser_safe_write(pcontext, buff, string_length);
@@ -1588,11 +1589,16 @@ int imap_cmd_parser_username(int argc, char **argv, IMAP_CONTEXT *pcontext)
 
 int imap_cmd_parser_password(int argc, char **argv, IMAP_CONTEXT *pcontext)
 {
+	int offset;
+	int tmp_len;
 	size_t temp_len;
+	uint32_t out_len;
 	char reason[256];
 	int string_length;
 	int string_length1;
 	char buff[64*1024];
+	uint8_t *pbuff_out;
+	const char *script_path;
 	char temp_password[256];
 	const char *imap_reply_str;
 	const char* imap_reply_str1;
@@ -1636,6 +1642,28 @@ int imap_cmd_parser_password(int argc, char **argv, IMAP_CONTEXT *pcontext)
 			strcpy(pcontext->lang, resource_get_string(RES_DEFAULT_LANG));
 		}
 		pcontext->proto_stat = PROTO_STAT_AUTH;
+		script_path = resource_get_string(RES_LOGIN_SCRIPT_PATH);
+		if (NULL != script_path) {
+			snprintf(buff, 512, "%s:%s",
+				pcontext->connection.client_ip,
+				pcontext->username);
+			lower_string(buff);
+			if (TRUE == system_services_login_check_judge(buff)) {
+				system_services_login_check_add(buff, LOGIN_CHECK_INTERVAL);
+				tmp_len = strlen(pcontext->username) + 1;
+				memcpy(buff, pcontext->username, tmp_len);
+				offset = tmp_len;
+				tmp_len = strlen(pcontext->connection.client_ip) + 1;
+				memcpy(buff + offset, pcontext->connection.client_ip, tmp_len);
+				offset += tmp_len;
+				memcpy(buff + offset, "IMAP", 5);
+				offset += 5;
+				if (TRUE == system_services_fcgi_rpc(buff,
+					offset, &pbuff_out, &out_len, script_path)) {
+					free(pbuff_out);
+				}
+			}
+		}
 		imap_parser_log_info(pcontext, 8, "login success");
 		/* IMAP_CODE_2170005: OK logged in */
 		imap_reply_str = resource_get_imap_code(
@@ -1673,10 +1701,15 @@ int imap_cmd_parser_password(int argc, char **argv, IMAP_CONTEXT *pcontext)
 
 int imap_cmd_parser_login(int argc, char **argv, IMAP_CONTEXT *pcontext)
 {
+	int offset;
+	int tmp_len;
+	uint32_t out_len;
 	char reason[256];
 	int string_length;
 	int string_length1;
 	char buff[64*1024];
+	uint8_t *pbuff_out;
+	const char *script_path;
 	char temp_password[256];
     const char* imap_reply_str;
 	const char* imap_reply_str1;
@@ -1740,6 +1773,28 @@ int imap_cmd_parser_login(int argc, char **argv, IMAP_CONTEXT *pcontext)
 			strcpy(pcontext->lang, resource_get_string(RES_DEFAULT_LANG));
 		}
 		pcontext->proto_stat = PROTO_STAT_AUTH;
+		script_path = resource_get_string(RES_LOGIN_SCRIPT_PATH);
+		if (NULL != script_path) {
+			snprintf(buff, 512, "%s:%s",
+				pcontext->connection.client_ip,
+				pcontext->username);
+			lower_string(buff);
+			if (TRUE == system_services_login_check_judge(buff)) {
+				system_services_login_check_add(buff, LOGIN_CHECK_INTERVAL);
+				tmp_len = strlen(pcontext->username) + 1;
+				memcpy(buff, pcontext->username, tmp_len);
+				offset = tmp_len;
+				tmp_len = strlen(pcontext->connection.client_ip) + 1;
+				memcpy(buff + offset, pcontext->connection.client_ip, tmp_len);
+				offset += tmp_len;
+				memcpy(buff + offset, "IMAP", 5);
+				offset += 5;
+				if (TRUE == system_services_fcgi_rpc(buff,
+					offset, &pbuff_out, &out_len, script_path)) {
+					free(pbuff_out);
+				}
+			}
+		}
 		imap_parser_log_info(pcontext, 8, "login success");
 		/* IMAP_CODE_2170005: OK logged in */
 		imap_reply_str = resource_get_imap_code(

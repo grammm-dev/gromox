@@ -2,7 +2,7 @@
 #include "config_file.h"
 #include <stdio.h>
 
-#define SPAM_STATISTIC_RCPT_LIMIT			36
+#define SPAM_STATISTIC_RCPT_LIMIT			16
 
 typedef BOOL (*WHITELIST_QUERY)(char*);
 typedef void (*SPAM_STATISTIC)(int);
@@ -89,7 +89,7 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		printf("[rcpt_limit]: block interval is %s\n", temp_buff);
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_return_reason, "000036 too many rcpt addresses");
+			strcpy(g_return_reason, "000016 too many rcpt addresses");
 		} else {
 			strcpy(g_return_reason, str_value);
 		}

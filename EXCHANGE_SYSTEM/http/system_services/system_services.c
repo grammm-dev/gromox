@@ -10,6 +10,11 @@ int (*system_services_add_user_into_temp_list)(const char*, int);
 BOOL (*system_services_auth_login)(const char*, const char*, char*, char*, char*, int);
 const char* (*system_services_extension_to_mime)(const char*);
 void (*system_services_log_info)(int, char*, ...);
+BOOL (*system_services_login_check_judge)(const char*);
+int (*system_services_login_check_add)(const char*, int);
+BOOL (*system_services_fcgi_rpc)(const uint8_t *pbuff_in,
+	uint32_t in_len, uint8_t **ppbuff_out, uint32_t *pout_len,
+	const char *script_path);
 
 /*
  *	module's construct function
@@ -70,6 +75,25 @@ int system_services_run()
 	if (NULL == system_services_extension_to_mime) {
 		printf("[system_services]: fail to get \"extension_to_mime\" service\n");
 		return -8;
+	}
+	system_services_login_check_judge = service_query(
+						"login_check_judge", "system");
+	if (NULL == system_services_login_check_judge) {
+		printf("[system_services]: fail to get"
+			" \"login_check_judge\" service\n");
+		return -9;
+	}
+	system_services_login_check_add = service_query(
+						"login_check_add", "system");
+	if (NULL == system_services_login_check_add) {
+		printf("[system_services]: fail to get"
+			" \"login_check_add\" service\n");
+		return -10;
+	}
+	system_services_fcgi_rpc = service_query("fcgi_rpc", "system");
+	if (NULL == system_services_fcgi_rpc) {
+		printf("[system_services]: fail to get \"fcgi_rpc\" service\n");
+		return -11;
 	}
 	return 0;
 }

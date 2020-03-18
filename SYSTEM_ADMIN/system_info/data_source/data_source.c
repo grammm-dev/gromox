@@ -27,7 +27,7 @@
 
 #define DOMAIN_PRIVILEGE_MONITOR            0x2
 
-#define DOMAIN_PRIVILEGE_UNCHECKUSR         0x4
+#define DOMAIN_PRIVILEGE_WEBMEETING         0x4
 
 #define DOMAIN_PRIVILEGE_SUBSYSTEM          0x8
 
@@ -77,7 +77,7 @@ void data_source_free()
 }
 
 BOOL data_source_system_info(int *preal_domains, int *pbackup, int *pmonitor,
-	int *punchkusr, int *psubsys, int *psms, int *pextpasswd, int *palias_domains,
+	int *pwebmeeting, int *psubsys, int *psms, int *pextpasswd, int *palias_domains,
 	int *poutofdate, int *pdeleted, int *psuspend, int *pgroups,
 	int *palloc_addresses, int *preal_addresses, int *palias_address,
 	int *pmlists, long *ptotal_space)
@@ -102,7 +102,7 @@ RETRYING:
 	*preal_domains = 0;
 	*pbackup = 0;
 	*pmonitor = 0;
-	*punchkusr = 0;
+	*pwebmeeting = 0;
 	*psubsys = 0;
 	*psms = 0;
 	*pextpasswd = 0;
@@ -158,8 +158,8 @@ RETRYING:
 				if (temp_privileges & DOMAIN_PRIVILEGE_MONITOR) {
 					*pmonitor += 1;
 				}
-				if (temp_privileges & DOMAIN_PRIVILEGE_UNCHECKUSR) {
-					*punchkusr += 1;
+				if (temp_privileges & DOMAIN_PRIVILEGE_WEBMEETING) {
+					*pwebmeeting += 1;
 				}
 				if (temp_privileges & DOMAIN_PRIVILEGE_SUBSYSTEM) {
 					*psubsys += 1;

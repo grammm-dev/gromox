@@ -22,6 +22,7 @@
 #define CTRL_RESTART_SUPERVISOR		2
 #define CTRL_RESTART_WEBADAPTOR		3
 #define CTRL_RESTART_SYNCHRONIZER	4
+#define CTRL_RESTART_CDNER			5
 #define SHARE_MEMORY_SIZE			1024*(32+sizeof(time_t)+16+256)
 
 static char PID_LOCK_FILE[256];
@@ -31,11 +32,12 @@ static char SESSION_TOKEN_FILE[256];
 
 static int g_token_fd;
 static int g_notify_stop;
+static pid_t g_cdner_pid;
 static pid_t g_process_id;
 static pid_t g_monitor_pid;
+static pid_t g_adaptor_pid;
 static pid_t g_supervisor_pid;
 static pid_t g_synchronizer_pid;
-static pid_t g_adaptor_pid;
 static pid_t g_supervised_process;
 
 
@@ -85,6 +87,9 @@ void daemon_sigstop(int sig)
 	}
 	if (g_synchronizer_pid > 0) {
 		kill(g_synchronizer_pid, SIGTERM);
+	}
+	if (g_cdner_pid > 0) {
+		kill(g_cdner_pid, SIGTERM);
 	}
 }
 
@@ -273,6 +278,44 @@ void start_synchronizer()
 }
 
 /*
+ *  start cdner service
+ */
+void start_cdner()
+{
+	int status;
+	struct stat node_stat;
+	char temp_path[256];
+	char *args[] = {"./cdner", "../config/athena.cfg", NULL};
+
+	sprintf(temp_path, "%s/cdner", ATHENA_MAIN_DIR);
+	if (0 != stat(temp_path, &node_stat)) {
+		g_cdner_pid = -1;
+		return;
+	}
+	g_cdner_pid = fork();
+	if (g_cdner_pid < 0) {
+		return;
+	} else if (0 == g_cdner_pid) {
+		g_notify_stop = 0;
+		signal(SIGTERM, supervisor_sigstop);
+		signal(SIGALRM, supervisor_sigrestart);
+		while (0 == g_notify_stop) {
+			g_supervised_process = fork();
+			if (0 == g_supervised_process) {
+				chdir(ATHENA_MAIN_DIR);
+				if (execve("./cdner", args, NULL) == -1) {
+					exit(EXIT_FAILURE);
+				}
+			} else if (g_supervised_process > 0) {
+				waitpid(g_supervised_process, &status, 0);
+			}
+			sleep(1);
+		}
+		exit(EXIT_SUCCESS);
+	}
+}
+
+/*
  *	start smtp and delivery services
  */
 void start_service()
@@ -346,6 +389,7 @@ void start_service()
 	start_supervisor();
 	start_adaptor();
 	start_synchronizer();
+	start_cdner();
 	
 	k_shm = ftok(SESSION_TOKEN_FILE, TOKEN_SESSION);
 	if (-1 != k_shm) {
@@ -393,6 +437,12 @@ void start_service()
 				if (g_synchronizer_pid > 0) {
 					kill(g_synchronizer_pid, SIGALRM);
 				}
+				break;
+			case CTRL_RESTART_CDNER:
+				if (g_cdner_pid > 0) {
+					kill(g_cdner_pid, SIGALRM);
+				}
+				break;
 			}
 		}
 		time(&now_time);

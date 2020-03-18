@@ -20,6 +20,6 @@ GROUP_NUM				departments
 MLIST_NUM				mail\ lists
 MAIL_BACKUP				mail\ backup
 MAIL_MONITOR			mail\ monitor
-MAIL_UNCHKUSR			unavailable\ user\ collecting
+MAIL_WEBMEETING			web\ meeting
 MAIL_SUBSYSTEM			mail\ sub-system
 USER_EXTPASSWD			extended\ user\ cryptosecurity

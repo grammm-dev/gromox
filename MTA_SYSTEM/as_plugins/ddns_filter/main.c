@@ -4,18 +4,17 @@
 #include "list_file.h"
 #include <pthread.h>
 
-#define SPAM_STATISTIC_DDNS_FILTER			12
+#define SPAM_STATISTIC_DDNS_FILTER			8
 
 typedef void (*SPAM_STATISTIC)(int);
 typedef BOOL (*WHITELIST_QUERY)(char*);
 typedef BOOL (*CHECK_RETRYING)(const char*, const char*, MEM_FILE*);
-typedef BOOL (*CHECK_TAGGING)(const char*, MEM_FILE*);
 
 static SPAM_STATISTIC spam_statistic;
-static WHITELIST_QUERY ip_whitelist_query;
-static WHITELIST_QUERY domain_whitelist_query;
 static CHECK_RETRYING check_retrying;
-static CHECK_TAGGING  check_tagging;
+static WHITELIST_QUERY ip_whitelist_query;
+static WHITELIST_QUERY from_whitelist_query;
+static WHITELIST_QUERY domain_whitelist_query;
 
 DECLARE_API;
 
@@ -42,26 +41,29 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		pthread_rwlock_init(&g_reload_lock, NULL);
 		check_retrying = (CHECK_RETRYING)query_service("check_retrying");
 		if (NULL == check_retrying) {
-			printf("[ddns_filter]: fail to get \"check_retrying\" service\n");
+			printf("[ddns_filter]: fail to get "
+				"\"check_retrying\" service\n");
 			return FALSE;
 		}
-		check_tagging = (CHECK_TAGGING)query_service("check_tagging");
-		if (NULL == check_tagging) {
-			printf("[ddns_filter]: fail to get \"check_tagging\" service\n");
-			return FALSE;
-		}
-		domain_whitelist_query = (WHITELIST_QUERY)query_service(
-									"domain_whitelist_query");
+		domain_whitelist_query = (WHITELIST_QUERY)
+			query_service("domain_whitelist_query");
 		if (NULL == domain_whitelist_query) {
-			printf("[ddns_filter]: fail to get \"domain_whitelist_query\" "
-				"service\n");
+			printf("[ddns_filter]: fail to get "
+				"\"domain_whitelist_query\" service\n");
 			return FALSE;
 		}
-		ip_whitelist_query = (WHITELIST_QUERY)query_service(
-								"ip_whitelist_query");
+		from_whitelist_query = (WHITELIST_QUERY)
+			query_service("from_whitelist_query");
+		if (NULL == from_whitelist_query) {
+			printf("[ddns_filter]: fail to get "
+				"\"from_whitelist_query\" service\n");
+			return FALSE;
+		}
+		ip_whitelist_query = (WHITELIST_QUERY)
+			query_service("ip_whitelist_query");
 		if (NULL == ip_whitelist_query) {
-			printf("[ddns_filter]: fail to get \"ip_whitelist_query\" "
-				"service\n");
+			printf("[ddns_filter]: fail to get "
+				"\"ip_whitelist_query\" service\n");
 			return FALSE;
 		}
 		spam_statistic = (SPAM_STATISTIC)query_service("spam_statistic");
@@ -78,7 +80,7 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		}
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_return_reason, "000012 domain name %s is dynamic, please"
+			strcpy(g_return_reason, "000008 domain name %s is dynamic, please"
 				"retry your mail in 10 minutes");
 		} else {
 			strcpy(g_return_reason, str_value);
@@ -119,7 +121,8 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 	int domain_len;
 	
 	if (TRUE == pmail->penvelop->is_outbound ||
-		TRUE == pmail->penvelop->is_relay) {
+		TRUE == pmail->penvelop->is_relay ||
+		TRUE == pmail->penvelop->is_known) {
 		return MESSAGE_ACCEPT;
 	}
 	if (TRUE == ip_whitelist_query(pconnection->client_ip)) {
@@ -129,7 +132,9 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 	if (TRUE == domain_whitelist_query(pdomain)) {
 		return MESSAGE_ACCEPT;
 	}
-
+	if (TRUE == from_whitelist_query(pmail->penvelop->from)) {
+		return MESSAGE_ACCEPT;
+	}
 	domain_len = strlen(pdomain);
 	b_hint = FALSE;
 	pthread_rwlock_rdlock(&g_reload_lock);
@@ -149,22 +154,17 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 	if (FALSE == b_hint) {
 		return MESSAGE_ACCEPT;
 	}
-	if (TRUE == check_tagging(pmail->penvelop->from,
-		&pmail->penvelop->f_rcpt_to)) {
-		mark_context_spam(context_ID);
-		return MESSAGE_ACCEPT;
-	} else {
-		if (FALSE == check_retrying(pconnection->client_ip,
-			pmail->penvelop->from, &pmail->penvelop->f_rcpt_to)) {
-			snprintf(reason, length, g_return_reason, pdomain);
-			if (NULL != spam_statistic) {
-				spam_statistic(SPAM_STATISTIC_DDNS_FILTER);
-			}
-			return MESSAGE_RETRYING;
-		} else {
-			return MESSAGE_ACCEPT;
+	if (FALSE == check_retrying(pconnection->client_ip,
+		pmail->penvelop->from, &pmail->penvelop->f_rcpt_to)) {
+		snprintf(reason, length, g_return_reason, pdomain);
+		if (NULL != spam_statistic) {
+			spam_statistic(SPAM_STATISTIC_DDNS_FILTER);
 		}
+		return MESSAGE_RETRYING;
+	} else {
+		return MESSAGE_ACCEPT;
 	}
+	
 }
 
 static void console_talk(int argc, char **argv, char *result, int length)

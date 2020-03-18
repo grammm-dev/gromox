@@ -1,15 +1,15 @@
 #!/bin/sh
 
 
-mkdir /var/apollo
-cp -R * /var/apollo
+mkdir /var/grid-mra
+cp -R * /var/grid-mra
 groupadd -g 800 herculiz
-useradd herculiz -u 800 -g herculiz -d /var/herculiz -s /bin/nologin
-chown -R herculiz:herculiz /var/apollo
-chmod -R a+rw /var/apollo
-mv /var/apollo/bin/apollo.bin /usr/bin/apollo
-mv /var/apollo/bin/apollo.sh /etc/rc.d/init.d/apollo
-rm -f /var/apollo/bin/apollo.service
-chkconfig --add apollo
-echo "APOLLO MRA is installed OK"
+useradd herculiz -u 800 -g herculiz -d /tmp -s /bin/nologin
+chown -R herculiz:herculiz /var/grid-mra
+chmod -R a+rw /var/grid-mra
+mv /var/grid-mra/bin/mra.bin /usr/bin/mra
+mv /var/grid-mra/bin/grid-mra.sh /etc/rc.d/init.d/grid-mra
+rm -f /var/grid-mra/bin/grid-mra.service
+chkconfig --add grid-mra
+echo "grid MRA is installed OK"
 echo

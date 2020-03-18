@@ -253,8 +253,6 @@ width=195 align=right border=0></A></TD></TR></TBODY></TABLE><BR><BR>\n\
 #define OPTION_ENABLED				""
 #define OPTION_DISABLED				"disabled"
 
-#define DOMAIN_PRIVILEGE_UNCHECKUSR         0x4
-
 #define DOMAIN_PRIVILEGE_SUBSYSTEM			0x8
 
 #define DOMAIN_PRIVILEGE_EXTPASSWD			0x20
@@ -270,8 +268,6 @@ static void setup_ui_set_mailbox(const char *domain, const char *session,
 
 static void setup_ui_set_keyword(const char *domain, int type,
 	const char *mailbox, const char *lang);
-
-static void setup_ui_set_collector(const char *domain, const char *mailbox);
 
 static void setup_ui_set_subsystem(const char *domain, const char *address);
 
@@ -516,18 +512,6 @@ int setup_ui_run()
 				value[query + len - ptr1] = '\0';
 				num = atoi(value);
 				setup_ui_set_extpass_type(domain, num);
-				return 0;
-			} else if (0 == strcasecmp(action, "collector-mailbox")) {
-				if (0 != strncasecmp(ptr2, "&value=", 7)) {
-					goto GET_ERROR;
-				}
-				ptr1 = ptr2 + 7;
-				if (query + len - ptr1 > 255) {
-					goto GET_ERROR;
-				}
-				memcpy(value, ptr1, query + len - ptr1);
-				value[query + len - ptr1] = '\0';
-				setup_ui_set_collector(domain, value);
 				return 0;
 			} else if (0 == strcasecmp(action, "sub-system")) {
 				if (0 != strncasecmp(ptr2, "&value=", 7)) {
@@ -961,22 +945,6 @@ static void setup_ui_main_html(const char *domain, const char *session)
 
 	b_privilege = data_source_info_domain(domain, &privilege_bits);
 	
-	if (TRUE == b_privilege && (privilege_bits&DOMAIN_PRIVILEGE_UNCHECKUSR)) { 
-		str_value = config_file_get_value(pconfig, "COLLECTOR_MAILBOX");
-		if (NULL == str_value) {
-			str_value = "N/A";
-		}
-		strcpy(str_option, OPTION_ENABLED);
-	} else {
-		str_value = "N/A";
-		strcpy(str_option, OPTION_DISABLED);
-	}
-
-	printf(HTML_MAIN_11, lang_resource_get(g_lang_resource,"TIP_COLLECTOR", language),
-		lang_resource_get(g_lang_resource,"MAIN_COLLECTOR", language), str_value, str_submit,
-		str_option, lang_resource_get(g_lang_resource,"MSGERR_MAILBOXFORMATERR", language),
-		url_buff, domain, session);
-	
 	
 	if (TRUE == b_privilege && (privilege_bits&DOMAIN_PRIVILEGE_SUBSYSTEM)) {
 		str_value = config_file_get_value(pconfig, "SUBSYSTEM_ADDRESS");
@@ -1090,19 +1058,19 @@ static void setup_ui_main_html(const char *domain, const char *session)
 
 	str_value = config_file_get_value(pconfig, "KBOUNCE_LANGUAGE");
 	if (NULL == str_value) {
-		str_value = "en";
+		str_value = "en-us";
 	}
 
-	if (0 != strcmp(str_value, "en") &&
+	if (0 != strcmp(str_value, "en-us") &&
 		0 != strcmp(str_value, "zh-cn")) {
-		str_value = "en";
+		str_value = "en-us";
 	}
 
-	if (0 == strcmp(str_value, "en")) {
-		printf(OPTION_SELECT, "en", lang_resource_get(g_lang_resource,"LANGUAGE_ENGLISH", language));
+	if (0 == strcmp(str_value, "en-us")) {
+		printf(OPTION_SELECT, "en-us", lang_resource_get(g_lang_resource,"LANGUAGE_ENGLISH", language));
 		printf(OPTION_NORMAL, "zh-cn", lang_resource_get(g_lang_resource,"LANGUAGE_CHINESE", language));
 	} else {
-		printf(OPTION_NORMAL, "en", lang_resource_get(g_lang_resource,"LANGUAGE_ENGLISH", language));
+		printf(OPTION_NORMAL, "en-us", lang_resource_get(g_lang_resource,"LANGUAGE_ENGLISH", language));
 		printf(OPTION_SELECT, "zh-cn", lang_resource_get(g_lang_resource,"LANGUAGE_CHINESE", language));
 	}
 
@@ -1159,7 +1127,7 @@ static void setup_ui_set_keyword(const char *domain, int type,
 	if ('\0' != mailbox[0]) {
 		config_file_set_value(pconfig, "KBOUNCE_MAILBOX", (char*)mailbox);
 	}
-	if (0 == strcmp(lang, "en") || 0 == strcmp(lang, "zh-cn")) {
+	if (0 == strcmp(lang, "en-us") || 0 == strcmp(lang, "zh-cn")) {
 		config_file_set_value(pconfig, "KBOUNCE_LANGUAGE", (char*)lang);
 	}
 
@@ -1352,49 +1320,6 @@ static void setup_ui_set_extpass_type(const char *domain, int type)
 	printf(HTML_ACTIVE_OK, charset,
 		lang_resource_get(g_lang_resource,"MSGERR_SAVED", language));
 	
-}
-
-static void setup_ui_set_collector(const char *domain, const char *mailbox)
-{
-	int privilege_bits;
-	char *language;
-	const char *charset;
-	char temp_path[256];
-	char domain_path[256];
-	CONFIG_FILE *pconfig;
-
-	language = getenv("HTTP_ACCEPT_LANGUAGE");
-	charset = lang_resource_get(g_lang_resource,"CHARSET", language);
-
-	if (FALSE == data_source_info_domain(domain, &privilege_bits) ||
-		(privilege_bits & DOMAIN_PRIVILEGE_UNCHECKUSR) == 0 ||
-		FALSE == data_source_get_homedir(domain, domain_path) ||
-		'\0' == domain_path[0]) {
-		printf("Content-Type:text/html;charset=%s\n\n", charset);
-		printf(HTML_ACTIVE_FAIL, charset,
-			lang_resource_get(g_lang_resource,"MSGERR_UNSAVED", language));
-		return;
-	}
-	snprintf(temp_path, 256, "%s/domain.cfg", domain_path);
-	pconfig = config_file_init(temp_path);
-	if (NULL == pconfig) {
-		printf("Content-Type:text/html;charset=%s\n\n", charset);
-		printf(HTML_ACTIVE_FAIL, charset,
-			lang_resource_get(g_lang_resource,"MSGERR_UNSAVED", language));
-		return;
-	}
-	config_file_set_value(pconfig, "COLLECTOR_MAILBOX", (char*)mailbox);
-	if (FALSE == config_file_save(pconfig)) {
-		config_file_free(pconfig);
-		printf("Content-Type:text/html;charset=%s\n\n", charset);
-		printf(HTML_ACTIVE_FAIL, charset,
-			lang_resource_get(g_lang_resource,"MSGERR_UNSAVED", language));
-		return;
-	}
-	config_file_free(pconfig);
-	printf("Content-Type:text/html;charset=%s\n\n", charset);
-	printf(HTML_ACTIVE_OK, charset,
-		lang_resource_get(g_lang_resource,"MSGERR_SAVED", language));
 }
 
 static void setup_ui_set_subsystem(const char *domain, const char *address)

@@ -3,7 +3,7 @@
 #include "config_file.h"
 #include "mail_func.h"
 
-#define SPAM_STATISTIC_FROM_FILTER		35
+#define SPAM_STATISTIC_FROM_FILTER		7
 
 typedef BOOL (*FROM_FILTER_QUERY)(char*);
 typedef void (*SPAM_STATISTIC)(int);
@@ -49,7 +49,7 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		}
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_return_reason, "000035 from address <%s> is forbidden");
+			strcpy(g_return_reason, "000007 from address <%s> is forbidden");
 		} else {
 			strcpy(g_return_reason, str_value);
 		}
@@ -70,18 +70,10 @@ BOOL AS_LibMain(int reason, void **ppdata)
 static int envelop_judge(int context_ID, ENVELOP_INFO *penvelop,
 	CONNECTION *pconnection, char *reason, int length)
 {
-	if (TRUE == penvelop->is_relay) {
+	if (TRUE == penvelop->is_outbound ||
+		TRUE == penvelop->is_relay ||
+		TRUE == penvelop->is_known) {
 		return MESSAGE_ACCEPT;
-	}
-
-	if (TRUE == penvelop->is_outbound) {
-		if (TRUE ==  from_filter_query(penvelop->username)) {
-			if (NULL != spam_statistic) {
-				spam_statistic(SPAM_STATISTIC_FROM_FILTER);
-			}
-			snprintf(reason, length, g_return_reason, penvelop->from);
-			return MESSAGE_REJECT;
-		}
 	}
 	
 	if (TRUE == from_filter_query(penvelop->from)) {

@@ -449,83 +449,71 @@ static void ui_main_left_html(const char *session, BOOL b_ext)
 			lang_resource_get(g_lang_resource,"MENU_RELAY_ALLOW", language), session);
 		printf("p.add(10,-1,'%s','','header','../data/picture/anti-spam.jpg');\n",
 			lang_resource_get(g_lang_resource,"MENU_ANTI_SPAM", language));
-		printf("p.add(11,10,'%s','boundary_blacklist?session=%s','','','','','','','basefrm');\n",
-			lang_resource_get(g_lang_resource,"MENU_BOUNDARY_BLACKLIST", language), session);
-		printf("p.add(12,10,'%s','domain_blacklist?session=%s','','','','','','','basefrm');\n",
-			lang_resource_get(g_lang_resource,"MENU_DOMAIN_BLACKLIST", language), session);
-		printf("p.add(13,10,'%s','domain_whitelist?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(11,10,'%s','domain_whitelist?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_DOMAIN_WHITELIST", language), session);
-		printf("p.add(14,10,'%s','dynamic_dnslist?session=%s','','','','','','','basefrm');\n",
-			lang_resource_get(g_lang_resource,"MENU_DYNAMIC_DNSLIST", language), session);
-		printf("p.add(15,10,'%s','ip_blacklist?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(12,10,'%s','ip_blacklist?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_IP_BLACKLIST", language), session);
-		printf("p.add(16,10,'%s','ip_whitelist?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(13,10,'%s','ip_whitelist?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_IP_WHITELIST", language), session);
-		printf("p.add(17,10,'%s','ipdomain_table?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(14,10,'%s','ipdomain_table?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_IPDOMAIN_TABLE", language), session);
-		printf("p.add(18,10,'%s','keyword_group?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(15,10,'%s','keyword_group?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_KEYWORD_GROUP", language), session);
-		printf("p.add(19,10,'%s','keyword_upload?session=%s','','','','','','','basefrm');\n",
-			lang_resource_get(g_lang_resource,"MENU_KEYWORD_UPLOAD", language), session);
-		printf("p.add(20,10,'%s','from_blacklist?session=%s','','','','','','','basefrm');\n",
-			lang_resource_get(g_lang_resource,"MENU_FROM_BLACKLIST", language), session);
-		printf("p.add(21,10,'%s','rcpt_blacklist?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(16,10,'%s','rcpt_blacklist?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_RCPT_BLACKLIST", language), session);
-		printf("p.add(22,10,'%s','tagging_whitelist?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(17,10,'%s','tagging_whitelist?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_TAGGING_WHITELIST", language), session);
-		printf("p.add(23,10,'%s','xmailer_blacklist?session=%s','','','','','','','basefrm');\n",
-			lang_resource_get(g_lang_resource,"MENU_XMAILER_BLACKLIST", language), session);
-		printf("p.add(24,-1,'%s','','header','../data/picture/misc.jpg');\n",
+		printf("p.add(18,-1,'%s','','header','../data/picture/misc.jpg');\n",
 			lang_resource_get(g_lang_resource,"MENU_MISC", language));
-		printf("p.add(25,24,'%s','domain_list?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(19,18,'%s','domain_list?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_DOMAIN_LIST", language), session);
-		printf("p.add(26,24,'%s','org_list?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(20,18,'%s','org_list?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_ORG_LIST", language), session);
-		printf("p.add(27,24,'%s','dns_table?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(21,18,'%s','dns_table?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_DNS_TABLE", language), session);
-		printf("p.add(28,24,'%s','forward_table?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(22,18,'%s','forward_table?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_FORWARD_TABLE", language), session);
-		printf("p.add(29,24,'%s','domain_mailbox?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(23,18,'%s','domain_mailbox?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_DOMAIN_MAILBOX", language), session);
-		printf("p.add(30,24,'%s','from_replace?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(24,18,'%s','from_replace?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_FROM_REPLACE", language), session);
-		printf("p.add(31,24,'%s','relay_domains?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(25,18,'%s','relay_domains?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_RELAY_DOMAINS", language), session);
-		printf("p.add(32,24,'%s','single_rcpt?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(26,18,'%s','single_rcpt?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_SINGLE_RCPT", language), session);
-		printf("p.add(33,24,'%s','message_sign?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(27,18,'%s','message_sign?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_MESSAGE_SIGN", language), session);
-		printf("p.add(34,24,'%s','supervising_list?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(28,18,'%s','supervising_list?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_SUPERVISING_LIST", language), session);
-		printf("p.add(35,-1,'%s','','header','../data/picture/status.jpg');\n",
+		printf("p.add(29,-1,'%s','','header','../data/picture/status.jpg');\n",
 			lang_resource_get(g_lang_resource,"MENU_STATUS", language));
-		printf("p.add(36,35,'%s','daily_statistic?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(30,29,'%s','daily_statistic?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_DAILY_STATISTIC", language), session);
-		printf("p.add(37,35,'%s','daily_status?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(31,29,'%s','daily_status?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_DAILY_STATUS", language), session);
-		printf("p.add(38,35,'%s','system_info?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(32,29,'%s','system_info?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_SYSTEM_INFO", language), session);
-		printf("p.add(39,35,'%s','keyword_statistic?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(33,29,'%s','keyword_statistic?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_KEYWORD_STATISTIC", language), session);
-		printf("p.add(40,35,'%s','mensual_statistic?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(34,29,'%s','mensual_statistic?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_MENSUAL_STATISTIC", language), session);
-		printf("p.add(41,35,'%s','supervising_statistic?session=%s','','','','','','','basefrm');\n",
+		printf("p.add(35,29,'%s','supervising_statistic?session=%s','','','','','','','basefrm');\n",
 			lang_resource_get(g_lang_resource,"MENU_SUPERVISING_STATISTIC", language), session);
-		printf("p.add(42,-1,'%s','','header','../data/picture/other.jpg');\n",
+		printf("p.add(36,-1,'%s','','header','../data/picture/other.jpg');\n",
 			lang_resource_get(g_lang_resource,"MENU_OTHER", language));
 		if (0 == strcasecmp(username, "administrator")) {
-			printf("p.add(43,42,'%s','system_backup?session=%s','','','','','','','basefrm');\n",
+			printf("p.add(37,36,'%s','system_backup?session=%s','','','','','','','basefrm');\n",
 				lang_resource_get(g_lang_resource,"MENU_SYSTEM_BACKUP", language), session);
-			printf("p.add(44,42,'%s','system_users?session=%s','','','','','','','basefrm');\n",
+			printf("p.add(38,36,'%s','system_users?session=%s','','','','','','','basefrm');\n",
 				lang_resource_get(g_lang_resource,"MENU_SYSTEM_USERS", language), session);
-			printf("p.add(45,42,'%s','system_password?session=%s','','','','','','','basefrm');\n",
+			printf("p.add(39,36,'%s','system_password?session=%s','','','','','','','basefrm');\n",
 				lang_resource_get(g_lang_resource,"MENU_SYSTEM_PASSWORD", language), session);
-			printf("p.add(46,-1,'%s','admin_main?exit=%s','header','../data/picture/exit.jpg','','','','','_parent');\n",
+			printf("p.add(40,-1,'%s','admin_main?exit=%s','header','../data/picture/exit.jpg','','','','','_parent');\n",
 				lang_resource_get(g_lang_resource,"MENU_EXIT", language), session);
 		} else {
-			printf("p.add(43,42,'%s','system_password?session=%s','','','','','','','basefrm');\n",
+			printf("p.add(37,36,'%s','system_password?session=%s','','','','','','','basefrm');\n",
 				lang_resource_get(g_lang_resource,"MENU_SYSTEM_PASSWORD", language), session);
-			printf("p.add(44,-1,'%s','admin_main?exit=%s','header','../data/picture/exit.jpg','','','','','_parent');\n",
+			printf("p.add(38,-1,'%s','admin_main?exit=%s','header','../data/picture/exit.jpg','','','','','_parent');\n",
 				lang_resource_get(g_lang_resource,"MENU_EXIT", language), session);
 		}
 		printf(HTML_LEFT_END_EXT);
@@ -553,14 +541,8 @@ static void ui_main_left_html(const char *session, BOOL b_ext)
 			lang_resource_get(g_lang_resource,"MENU_RELAY_ALLOW", language));
 		printf(HTML_LEFT_ITEM_NODE, "anti-spam.jpg",
 			lang_resource_get(g_lang_resource,"MENU_ANTI_SPAM", language));
-		printf(HTML_LEFT_ITEM_SUB, "boundary_blacklist", session,
-			lang_resource_get(g_lang_resource,"MENU_BOUNDARY_BLACKLIST", language));
-		printf(HTML_LEFT_ITEM_SUB, "domain_blacklist", session,
-			lang_resource_get(g_lang_resource,"MENU_DOMAIN_BLACKLIST", language));
 		printf(HTML_LEFT_ITEM_SUB, "domain_whitelist", session,
 			lang_resource_get(g_lang_resource,"MENU_DOMAIN_WHITELIST", language));
-		printf(HTML_LEFT_ITEM_SUB, "dynamic_dnslist", session,
-			lang_resource_get(g_lang_resource,"MENU_DYNAMIC_DNSLIST", language));
 		printf(HTML_LEFT_ITEM_SUB, "ip_blacklist", session,
 			lang_resource_get(g_lang_resource,"MENU_IP_BLACKLIST", language));
 		printf(HTML_LEFT_ITEM_SUB, "ip_whitelist", session,
@@ -569,16 +551,10 @@ static void ui_main_left_html(const char *session, BOOL b_ext)
 			lang_resource_get(g_lang_resource,"MENU_IPDOMAIN_TABLE", language));
 		printf(HTML_LEFT_ITEM_SUB, "keyword_group", session,
 			lang_resource_get(g_lang_resource,"MENU_KEYWORD_GROUP", language));
-		printf(HTML_LEFT_ITEM_SUB, "keyword_upload", session,
-			lang_resource_get(g_lang_resource,"MENU_KEYWORD_UPLOAD", language));
-		printf(HTML_LEFT_ITEM_SUB, "from_blacklist", session,
-			lang_resource_get(g_lang_resource,"MENU_FROM_BLACKLIST", language));
 		printf(HTML_LEFT_ITEM_SUB, "rcpt_blacklist", session,
 			lang_resource_get(g_lang_resource,"MENU_RCPT_BLACKLIST", language));
 		printf(HTML_LEFT_ITEM_SUB, "tagging_whitelist", session,
 			lang_resource_get(g_lang_resource,"MENU_TAGGING_WHITELIST", language));
-		printf(HTML_LEFT_ITEM_SUB, "xmailer_blacklist", session,
-			lang_resource_get(g_lang_resource,"MENU_XMAILER_BLACKLIST", language));
 		printf(HTML_LEFT_ITEM_NODE, "misc.jpg",
 			lang_resource_get(g_lang_resource,"MENU_MISC", language));
 		printf(HTML_LEFT_ITEM_SUB, "domain_list", session,

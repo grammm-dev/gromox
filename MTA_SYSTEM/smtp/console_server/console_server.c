@@ -530,8 +530,8 @@ void console_server_notify_main_stop()
 static void console_server_install_command()
 {
 	/* register your cmd here, move to console server.c*/
-	console_server_register_command("anti-spamming",
-					cmd_handler_anti_spamming_control);
+	console_server_register_command("anti-spam",
+					cmd_handler_anti_spam_control);
 	console_server_register_command("return-code",
 					cmd_handler_smtp_error_code_control);
 	console_server_register_command("service",

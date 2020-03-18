@@ -6,7 +6,8 @@ C_SOURCE_FILES=$(wildcard *.c)
 CPP_SOURCE_FILES=$(wildcard *.cxx *.cpp *.C)
 INCLUDE_PATHS=../include\
 			  ../../common/include\
-			  ../../email_lib/include#add include paths here
+			  ../../email_lib/include\
+			  ../../mapi_lib/include#add include paths here
 LIBRARY_PATHS=# add library paths here
 LIBRARY_FILES=ssl# add library files here
 COMPILING_FLAGS=-D_GNU_SOURCE#add here c or c++ flags for compiling

@@ -1,15 +1,16 @@
 #!/bin/sh
 
 
-mkdir /var/pandora
-cp -R * /var/pandora
+mkdir /var/grid-agent
+cp -R * /var/grid-agent
+rm -f /var/grid-agent/install*
 groupadd -g 800 herculiz
-useradd herculiz -u 800 -g herculiz -d /var/herculiz -s /bin/nologin
-chown -R herculiz:herculiz /var/pandora
-chmod -R a+wr /var/pandora
-mv /var/pandora/bin/pandora.bin /usr/bin/pandora
-mv /var/pandora/bin/pandora.service /usr/lib/systemd/system/pandora.service
-rm -f /var/pandora/bin/pandora.sh
-systemctl enable pandora.service
-echo "PANDORA webmail agent service is installed OK"
+useradd herculiz -u 800 -g herculiz -d /tmp -s /bin/nologin
+chown -R herculiz:herculiz /var/grid-agent
+chmod -R a+wr /var/grid-agent
+mv /var/grid-agent/bin/agent.bin /usr/bin/agent
+mv /var/grid-agent/bin/grid-agent.service /usr/lib/systemd/system/grid-agent.service
+rm -f /var/grid-agent/bin/grid-agent.sh
+systemctl enable grid-agent.service
+echo "grid AGENT service is installed OK"
 echo

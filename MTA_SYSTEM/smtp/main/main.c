@@ -1,26 +1,25 @@
-#include "listener.h" 
-#include "resource.h" 
-#include "flusher.h" 
-#include "smtp_parser.h" 
-#include "bndstack_allocator.h" 
-#include "files_allocator.h" 
-#include "blocks_allocator.h" 
-#include "threads_pool.h" 
-#include "console_server.h" 
-#include "contexts_pool.h" 
-#include "anti_spamming.h"
-#include "service.h" 
-#include "system_services.h"
 #include "vstack.h"
+#include "service.h"
+#include "flusher.h"
+#include "listener.h" 
+#include "resource.h"
+#include "anti_spam.h"
 #include "lib_buffer.h"
+#include "smtp_parser.h"
+#include "threads_pool.h"
+#include "contexts_pool.h"
+#include "console_server.h"
+#include "system_services.h"
+#include "files_allocator.h"
+#include "blocks_allocator.h"
+#include "bndstack_allocator.h"
 #include <pwd.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
-#include <sys/types.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <sys/resource.h>
-#include <unistd.h>
 
 /* the only global variable in system to indicate the program to exit */
 BOOL g_notify_stop = FALSE;
@@ -408,7 +407,7 @@ int main(int argc, char* argv[])
 		anti_spam_path = "../as_plugins";
 		resource_set_string(RES_ANTI_SPAMMING_INIT_PATH, "../as_plugins");
 	}
-	printf("[anti_spamming]: anti-spamming plugin path %s\n", anti_spam_path);
+	printf("[anti_spam]: anti-spam plugin path %s\n", anti_spam_path);
  
 	if (NULL == (service_plugin_path = resource_get_string(
 		RES_SERVICE_PLUGIN_PATH))) {
@@ -650,24 +649,24 @@ int main(int argc, char* argv[])
 	func_ptr	= (STOP_FUNC)console_server_stop;
 	vstack_push(&stop_stack, (void*)&func_ptr);
 
-	anti_spamming_init(anti_spam_path); 
+	anti_spam_init(anti_spam_path); 
 
-	printf("------------------------ anti-spamming plugins begin"
+	printf("------------------------ anti-spam plugins begin"
 		   "------------------------\n");
-	if (0 != anti_spamming_run()) { 
-		printf("------------------------- anti-spamming plugins end"
+	if (0 != anti_spam_run()) { 
+		printf("------------------------- anti-spam plugins end"
 		   "-------------------------\n");
-		printf("[system]: fail to run anti-spamming \n"); 
+		printf("[system]: fail to run anti-spam \n"); 
 		goto EXIT_PROGRAM; 
 	} else {
-		printf("------------------------- anti-spamming plugins end"
+		printf("------------------------- anti-spam plugins end"
 		   "-------------------------\n");
-		printf("[system]: run anti-spamming OK\n");
+		printf("[system]: run anti-spam OK\n");
 	}
 
-	func_ptr	= (STOP_FUNC)anti_spamming_free;
+	func_ptr	= (STOP_FUNC)anti_spam_free;
 	vstack_push(&stop_stack, (void*)&func_ptr);
-	func_ptr	= (STOP_FUNC)anti_spamming_stop;
+	func_ptr	= (STOP_FUNC)anti_spam_stop;
 	vstack_push(&stop_stack, (void*)&func_ptr);
 
 	threads_pool_init(thread_init_num, (void*)smtp_parser_process);

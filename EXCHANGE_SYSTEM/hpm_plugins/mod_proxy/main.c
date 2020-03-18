@@ -31,7 +31,7 @@ typedef struct _PROXY_CONTEXT {
 	PROXY_NODE *pxnode;
 	int sockd;
 	time_t last_time;
-	BOOL b_upgrated;
+	BOOL b_upgraded;
 	char *pmore_buff;
 	int buff_offset;
 	int buff_length;
@@ -463,7 +463,7 @@ static BOOL proxy_proc(int context_id,
 		pcontext->sockd = -1;
 		return FALSE;
 	}
-	pcontext->b_upgrated = FALSE;
+	pcontext->b_upgraded = FALSE;
 	pcontext->pmore_buff = NULL;
 	pcontext->buff_length = 0;
 	pcontext->buff_offset = 0;
@@ -613,8 +613,8 @@ static BOOL proxy_proc(int context_id,
 		mem_file_read(&prequest->f_others, tmp_buff + offset, val_len);
 		if (0 == strcasecmp("Connection", tmp_tag)) {
 			b_connection = TRUE;
-			if (7 != val_len || 0 != strncasecmp(
-				"Upgrade", tmp_buff + offset, 7)) {
+			if (val_len < 7 || NULL == search_string(
+				tmp_buff + offset, "Upgrade", val_len)) {
 				memcpy(tmp_buff + offset, "Close\r\n", 7);
 				offset += 7;
 				continue;
@@ -662,7 +662,7 @@ static BOOL proxy_proc(int context_id,
 	}
 	ptoken ++;
 	if (0 == strncmp(ptoken, "101", 3)) {
-		pcontext->b_upgrated = TRUE;
+		pcontext->b_upgraded = TRUE;
 		ptoken = memmem(tmp_buff, offset, "\r\n\r\n", 4);
 		if (offset > ptoken + 4 - tmp_buff) {
 			tmp_len = tmp_buff + offset - (ptoken + 4);
@@ -717,7 +717,7 @@ static int proxy_retr(int context_id)
 	if (-1 == pcontext->sockd) {
 		return HPM_RETRIEVE_DONE;
 	}
-	if (TRUE == pcontext->b_upgrated) {
+	if (TRUE == pcontext->b_upgraded) {
 		tmp_ev.events = EPOLLIN;
 		tmp_ev.data.ptr = pcontext;
 		if (-1 == epoll_ctl(g_epoll_fd, EPOLL_CTL_ADD,
@@ -766,6 +766,8 @@ static BOOL proxy_send(int context_id, const void *pbuff, int length)
 static int proxy_receive(int context_id, void *pbuff, int max_length)
 {
 	int tmp_len;
+	int tv_msec;
+	struct pollfd pfd_read;
 	PROXY_CONTEXT *pcontext;
 	
 	pcontext = &g_context_list[context_id];
@@ -784,6 +786,11 @@ static int proxy_receive(int context_id, void *pbuff, int max_length)
 		}
 		return tmp_len;
 	}
+	pfd_read.fd = pcontext->sockd;
+	pfd_read.events = POLLIN|POLLPRI;
+	if (1 != poll(&pfd_read, 1, 0)) {
+		return -1;
+	}
 	tmp_len = read(pcontext->sockd, pbuff, max_length);
 	if (0 == tmp_len) {
 		epoll_ctl(g_epoll_fd, EPOLL_CTL_DEL, pcontext->sockd, NULL);
@@ -799,7 +806,7 @@ static void proxy_term(int context_id)
 	
 	pcontext = &g_context_list[context_id];
 	if (-1 != pcontext->sockd) {
-		if (TRUE == pcontext->b_upgrated) {
+		if (TRUE == pcontext->b_upgraded) {
 			epoll_ctl(g_epoll_fd, EPOLL_CTL_DEL, pcontext->sockd, NULL);
 		}
 		close(pcontext->sockd);

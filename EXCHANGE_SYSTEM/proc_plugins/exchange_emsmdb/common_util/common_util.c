@@ -2,6 +2,7 @@
 #include "util.h"
 #include "oxcmail.h"
 #include "rop_util.h"
+#include "mail_func.h"
 #include "ext_buffer.h"
 #include "proc_common.h"
 #include "common_util.h"
@@ -2249,7 +2250,7 @@ BOOL common_util_send_mail(MAIL *pmail,
 		pnode=double_list_get_after(prcpt_list, pnode)) {
 		if (NULL == strchr(pnode->pdata, '@')) {
 			command_len = sprintf(last_command,
-				"rcpt to:<%s@none>\r\n", pnode->pdata);
+				"rcpt to:<illegal@emsmdb>\r\n");
 		} else {
 			command_len = sprintf(last_command,
 				"rcpt to:<%s>\r\n", pnode->pdata);
@@ -2398,6 +2399,7 @@ BOOL common_util_send_message(LOGON_OBJECT *plogon,
 	uint64_t parent_id;
 	uint64_t folder_id;
 	TARRAY_SET *prcpts;
+	EMAIL_ADDR email_addr;
 	DOUBLE_LIST temp_list;
 	uint32_t message_flags;
 	DOUBLE_LIST_NODE *pnode;
@@ -2490,8 +2492,12 @@ BOOL common_util_send_message(LOGON_OBJECT *plogon,
 		pnode->pdata = common_util_get_propvals(
 			prcpts->pparray[i], PROP_TAG_SMTPADDRESS);
 		if (NULL != pnode->pdata && '\0' != ((char*)pnode->pdata)[0]) {
-			double_list_append_as_tail(&temp_list, pnode);
-			continue;
+			parse_email_addr(&email_addr, pnode->pdata);
+			if ('\0' != email_addr.local_part[0]
+				&& '\0' != email_addr.domain[0]) {
+				double_list_append_as_tail(&temp_list, pnode);
+				continue;
+			}
 		}
 		pvalue = common_util_get_propvals(
 			prcpts->pparray[i], PROP_TAG_ADDRESSTYPE);

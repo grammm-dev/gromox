@@ -7,8 +7,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON email.* TO posidon@localhost IDENTIFIED 
 
 GRANT SELECT, UPDATE ON email.* TO herculiz@localhost IDENTIFIED BY 'herculiz';
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON email.* TO pandora@localhost IDENTIFIED BY 'pandora';
-
 FLUSH PRIVILEGES;
 
 

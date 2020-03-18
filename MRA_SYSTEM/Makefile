@@ -2,13 +2,15 @@
 PARTS_LIST=pop3\
 		   imap\
 		   service_plugins\
-		   apollo
+		   mra
 
 SCRIPTS_PATH=./scripts
 #object files under "lib" directory, used for linking
 REMOTE_LINKS=../common/common.so \
 			 ../epoll_scheduler/epoll_scheduler.so \
-			 ../email_lib/email_lib.so
+			 ../email_lib/email_lib.so \
+			 ../rpc_lib/rpc_lib.so \
+			 ../mapi_lib/mapi_lib.so
 
 .PHONY : normal
 .PHONY : debug

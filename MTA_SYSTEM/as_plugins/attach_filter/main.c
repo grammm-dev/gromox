@@ -6,17 +6,16 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-#define SPAM_STATISTIC_ATTACH_FILTER		17
+#define SPAM_STATISTIC_ATTACH_FILTER		1
 
 #define CENTRALFILEHEADERSIGNATURE			0x02014b50
 
 typedef void (*SPAM_STATISTIC)(int);
 typedef BOOL (*WHITELIST_QUERY)(char*);
-typedef BOOL (*CHECK_TAGGING)(const char*, MEM_FILE*);
 
-static SPAM_STATISTIC    spam_statistic;
-static WHITELIST_QUERY   ip_whitelist_query;
-static CHECK_TAGGING     check_tagging;
+static SPAM_STATISTIC spam_statistic;
+static WHITELIST_QUERY ip_whitelist_query;
+static WHITELIST_QUERY from_whitelist_query;
 
 DECLARE_API;
 
@@ -34,7 +33,6 @@ static char **g_attachment_list;
 static char g_return_reason[1024];
 
 
-
 int AS_LibMain(int reason, void **ppdata, char *path)
 {
 	int len;
@@ -48,16 +46,18 @@ int AS_LibMain(int reason, void **ppdata, char *path)
     switch (reason) {
     case PLUGIN_INIT:
 		LINK_API(ppdata);
-        ip_whitelist_query = (WHITELIST_QUERY)query_service(
-				             "ip_whitelist_query");
+        ip_whitelist_query = (WHITELIST_QUERY)
+			query_service("ip_whitelist_query");
 		if (NULL == ip_whitelist_query) {
 			printf("[attach_filter]: fail to get "
-					"\"ip_whitelist_query\" service\n");
+				"\"ip_whitelist_query\" service\n");
 			return FALSE;
 		}
-		check_tagging = (CHECK_TAGGING)query_service("check_tagging");
-		if (NULL == check_tagging) {
-			printf("[attach_filter]: fail to get \"check_tagging\" service\n");
+		from_whitelist_query = (WHITELIST_QUERY)
+			query_service("from_whitelist_query");
+		if (NULL == from_whitelist_query) {
+			printf("[attach_filter]: fail to get "
+				"\"from_whitelist_query\" service\n");
 			return FALSE;
 		}
 		spam_statistic = (SPAM_STATISTIC)query_service("spam_statistic");
@@ -75,7 +75,7 @@ int AS_LibMain(int reason, void **ppdata, char *path)
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING");
 		if (NULL == str_value) {
 			strcpy(g_return_reason,
-				"000017 %s file is not allowed as attachment");
+				"000001 %s file is not allowed as attachment");
 		} else {
 			strcpy(g_return_reason, str_value);
 		}
@@ -162,11 +162,13 @@ static int attach_name_filter(int action, int context_ID, MAIL_BLOCK* mail_blk,
         	return MESSAGE_ACCEPT;
 		}
 		mail_entity = get_mail_entity(context_ID);
-		if (TRUE == mail_entity.penvelop->is_relay) {
+		if (TRUE == mail_entity.penvelop->is_relay ||
+			TRUE == mail_entity.penvelop->is_known) {
 			return MESSAGE_ACCEPT;
 		}
 		pconnection = get_connection(context_ID);
-		if (TRUE == ip_whitelist_query(pconnection->client_ip)) {
+		if (TRUE == ip_whitelist_query(pconnection->client_ip) ||
+			TRUE == from_whitelist_query(mail_entity.penvelop->from)) {
 			g_context_list[context_ID] = TRUE;
 			return MESSAGE_ACCEPT;
 		}
@@ -186,18 +188,12 @@ static int attach_name_filter(int action, int context_ID, MAIL_BLOCK* mail_blk,
 		
 		for (i=0; i<g_attachment_num; i++) {
 			if (0 == strcasecmp(pdot + 1, g_attachment_list[i])) {
-				if (TRUE == check_tagging(mail_entity.penvelop->from,
-					&mail_entity.penvelop->f_rcpt_to)) {
-					mark_context_spam(context_ID);
-					g_context_list[context_ID] = TRUE;
-					return MESSAGE_ACCEPT;
-				} else {
-					if (NULL!= spam_statistic) {
-						spam_statistic(SPAM_STATISTIC_ATTACH_FILTER);
-					}
-					snprintf(reason, length, g_return_reason, g_attachment_list[i]);
-					return MESSAGE_REJECT;
+				if (NULL!= spam_statistic) {
+					spam_statistic(SPAM_STATISTIC_ATTACH_FILTER);
 				}
+				snprintf(reason, length, g_return_reason,
+									g_attachment_list[i]);
+				return MESSAGE_REJECT;
 			}
 		}
 		if (0 == strcasecmp(pdot + 1, "zip")) {
@@ -221,20 +217,12 @@ static int attach_name_filter(int action, int context_ID, MAIL_BLOCK* mail_blk,
 						for (i=0; i<g_attachment_num; i++) {
 							if (0 == strcasecmp(pdot + 1,
 								g_attachment_list[i])) {
-								if (TRUE == check_tagging(
-									mail_entity.penvelop->from,
-									&mail_entity.penvelop->f_rcpt_to)) {
-									mark_context_spam(context_ID);
-									g_context_list[context_ID] = TRUE;
-									return MESSAGE_ACCEPT;
-								} else {
-									if (NULL!= spam_statistic) {
-										spam_statistic(SPAM_STATISTIC_ATTACH_FILTER);
-									}
-									snprintf(reason, length,
-										g_return_reason, g_attachment_list[i]);
-									return MESSAGE_REJECT;
+								if (NULL!= spam_statistic) {
+									spam_statistic(SPAM_STATISTIC_ATTACH_FILTER);
 								}
+								snprintf(reason, length,
+									g_return_reason, g_attachment_list[i]);
+								return MESSAGE_REJECT;
 							}
 						}
 					}
@@ -289,20 +277,12 @@ static int attach_name_filter(int action, int context_ID, MAIL_BLOCK* mail_blk,
 					if (0 == strcasecmp(pdot + 1,
 						g_attachment_list[i])) {
 						archive_read_free(a);
-						if (TRUE == check_tagging(
-							mail_entity.penvelop->from,
-								&mail_entity.penvelop->f_rcpt_to)) {
-							mark_context_spam(context_ID);
-							g_context_list[context_ID] = TRUE;
-							return MESSAGE_ACCEPT;
-						} else {
-							if (NULL!= spam_statistic) {
-								spam_statistic(SPAM_STATISTIC_ATTACH_FILTER);
-							}
-							snprintf(reason, length, g_return_reason,
-												g_attachment_list[i]);
-							return MESSAGE_REJECT;
+						if (NULL!= spam_statistic) {
+							spam_statistic(SPAM_STATISTIC_ATTACH_FILTER);
 						}
+						snprintf(reason, length, g_return_reason,
+											g_attachment_list[i]);
+						return MESSAGE_REJECT;
 					}
 				}
 				archive_read_data_skip(a);

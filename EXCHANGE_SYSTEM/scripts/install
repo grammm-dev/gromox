@@ -1,15 +1,15 @@
 #!/bin/sh
 
 
-mkdir /var/medusa
-cp -R * /var/medusa
+mkdir /var/grid-core
+cp -R * /var/grid-core
 groupadd -g 800 herculiz
-useradd herculiz -u 800 -g herculiz -d /var/herculiz -s /bin/nologin
-chown -R herculiz:herculiz /var/medusa
-chmod -R a+rw /var/medusa
-mv /var/medusa/bin/medusa.bin /usr/bin/medusa
-mv /var/medusa/bin/medusa.sh /etc/rc.d/init.d/medusa
-rm -f /var/medusa/bin/medusa.service
-chkconfig --add medusa
-echo "MEDUSA SERVICE is installed OK"
+useradd herculiz -u 800 -g herculiz -d /tmp -s /bin/nologin
+chown -R herculiz:herculiz /var/grid-core
+chmod -R a+rw /var/grid-core
+mv /var/grid-core/bin/core.bin /usr/bin/core
+mv /var/grid-core/bin/grid-core.sh /etc/rc.d/init.d/grid-core
+rm -f /var/grid-core/bin/grid-core.service
+chkconfig --add grid-core
+echo "grid CORE is installed OK"
 echo

@@ -24,29 +24,30 @@
 
 
 typedef struct _ENVELOP_INFO{
-	char		parsed_domain[256];/* parsed domain according connection*/
-	char		hello_domain[256]; /* domain name after helo */
-	char		from[256];         /* envelop's from message */
-	char		username[256];     /* user name for login */
-	MEM_FILE	f_rcpt_to;         /* envelop's rcpt to message */
-	BOOL		is_login;          /* user is logged in */
-	BOOL		is_outbound;       /* in-bound or out-bound */
-	BOOL		is_relay;          /* indicate whether this mail is relaying */
+	char		parsed_domain[256];	/* parsed domain according connection*/
+	char		hello_domain[256];	/* domain name after helo */
+	char		from[256];			/* envelop's from message */
+	char		username[256];		/* user name for login */
+	MEM_FILE	f_rcpt_to;			/* envelop's rcpt to message */
+	BOOL		is_login;			/* user is logged in */
+	BOOL		is_outbound;		/* in-bound or out-bound */
+	BOOL		is_relay;			/* indicate whether this mail is relaying */
+	BOOL		is_known;			/* is sender in rcpts' sender list */ 
 } ENVELOP_INFO;
 
 typedef struct _MAIL_HEAD{
-	MEM_FILE	f_mime_from;      /* from message in mime including nick name */
-	MEM_FILE	f_mime_to;        /* to message in mime */
-	MEM_FILE	f_mime_cc;        /* cc message in mime */
-	MEM_FILE	f_mime_delivered_to;    /* deliver to  message in mime */
-	MEM_FILE	f_xmailer;        /* x mailer information in mime */
-	MEM_FILE	f_subject;        /* subject information in mime */
-	MEM_FILE	f_content_type;   /* content type in mime */
-	MEM_FILE	f_others;         /* other mail header field */ 
-	char		x_priority;       /* x priority */
-	char		x_original_ip[16];   /* oringinal ip information in mime */
-	char		compose_time[64];    /* compose time in mime */
-	int			mail_part;           /* single part mail or multi-parts */
+	MEM_FILE	f_mime_from;		/* from message in mime including nick name */
+	MEM_FILE	f_mime_to;			/* to message in mime */
+	MEM_FILE	f_mime_cc;			/* cc message in mime */
+	MEM_FILE	f_mime_delivered_to;/* deliver to  message in mime */
+	MEM_FILE	f_xmailer;			/* x mailer information in mime */
+	MEM_FILE	f_subject;			/* subject information in mime */
+	MEM_FILE	f_content_type;		/* content type in mime */
+	MEM_FILE	f_others;			/* other mail header field */ 
+	char		x_priority;			/* x priority */
+	char		x_original_ip[16];	/* oringinal ip information in mime */
+	char		compose_time[64];	/* compose time in mime */
+	int			mail_part;			/* single part mail or multi-parts */
 } MAIL_HEAD;
 
 typedef struct _MAIL_BODY{
@@ -67,11 +68,11 @@ typedef struct _MAIL_WHOLE{
 } MAIL_WHOLE;
 
 typedef struct _CONNECTION{
-	char		client_ip[16];      /* client ip address string */
-	int			client_port;        /* value of client port */
-	char		server_ip[16];      /* server ip address */
-	int			server_port;        /* value of server port */
-	int			sockd;              /* context's socket file description */
+	char		client_ip[16];		/* client ip address string */
+	int			client_port;		/* value of client port */
+	char		server_ip[16];		/* server ip address */
+	int			server_port;		/* value of server port */
+	int			sockd;				/* context's socket file description */
 	void		*ssl;
 } CONNECTION;
 

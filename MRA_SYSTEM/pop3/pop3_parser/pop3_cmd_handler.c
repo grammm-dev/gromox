@@ -1,31 +1,29 @@
 /* 
  * collection of functions for handling the pop3 command
- */ 
-
-#include "pop3_cmd_handler.h"
-#include "system_services.h"
-#include "resource.h"
-#include "blocks_allocator.h"
-#include "units_allocator.h"
+ */
 #include "util.h"
 #include "array.h"
+#include "resource.h"
 #include "mail_func.h"
-#include <string.h>
+#include "units_allocator.h"
+#include "system_services.h"
+#include "pop3_cmd_handler.h"
+#include "blocks_allocator.h"
 #include <stdio.h>
 #include <fcntl.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#define LOGIN_CHECK_INTERVAL					3600
 
-#define MIDB_RESULT_OK          0
+#define MIDB_RESULT_OK         					0
 
-#define MIDB_NO_SERVER          1
+#define MIDB_NO_SERVER          				1
 
-#define MIDB_RDWR_ERROR         2
+#define MIDB_RDWR_ERROR         				2
 
-#define MIDB_RESULT_ERROR       3
-
-#define DEF_MODE                S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH
+#define MIDB_RESULT_ERROR       				3
 
 
 int pop3_cmd_handler_capa(const char* cmd_line, int line_length,
@@ -42,7 +40,7 @@ int pop3_cmd_handler_capa(const char* cmd_line, int line_length,
 			"PIPELINING\r\n"
 			"UIDL\r\n"
 			"TOP\r\n"
-			"IMPLEMENTATION apollo-pop3-svr\r\n.\r\n");
+			"IMPLEMENTATION grid-pop3-svr\r\n.\r\n");
 
 	if (NULL != pcontext->connection.ssl) {
 		SSL_write(pcontext->connection.ssl, buff, string_length);
@@ -169,14 +167,20 @@ int pop3_cmd_handler_user(const char* cmd_line, int line_length,
 int pop3_cmd_handler_pass(const char* cmd_line, int line_length,
     POP3_CONTEXT *pcontext)
 {
-	int i, count;
+	int i;
+	int count;
+	int offset;
+	int tmp_len;
 	MSG_UNIT *punit;
+	char reason[256];
+	uint32_t out_len;
 	BOOL b_cdn_create;
     int string_length;
-	char reason[256];
+	uint8_t *pbuff_out;
 	char temp_size[32];
 	char temp_buff[1024];
 	char temp_password[256];
+	const char *script_path;
     const char* pop3_reply_str;
     
 	if (line_length <= 5 || line_length > 255 + 1 + 4) {
@@ -256,6 +260,30 @@ int pop3_cmd_handler_pass(const char* cmd_line, int line_length,
 		}
 		pcontext->total_mail = count;
 		pcontext->is_login = TRUE;
+		script_path = resource_get_string(RES_LOGIN_SCRIPT_PATH);
+		if (NULL != script_path) {
+			snprintf(temp_buff, 512, "%s:%s",
+				pcontext->connection.client_ip,
+				pcontext->username);
+			lower_string(temp_buff);
+			if (TRUE == system_services_login_check_judge(temp_buff)) {
+				system_services_login_check_add(
+					temp_buff, LOGIN_CHECK_INTERVAL);
+				tmp_len = strlen(pcontext->username) + 1;
+				memcpy(temp_buff, pcontext->username, tmp_len);
+				offset = tmp_len;
+				tmp_len = strlen(pcontext->connection.client_ip) + 1;
+				memcpy(temp_buff + offset,
+					pcontext->connection.client_ip, tmp_len);
+				offset += tmp_len;
+				memcpy(temp_buff + offset, "POP3", 5);
+				offset += 5;
+				if (TRUE == system_services_fcgi_rpc(temp_buff,
+					offset, &pbuff_out, &out_len, script_path)) {
+					free(pbuff_out);
+				}
+			}
+		}
 		pop3_parser_log_info(pcontext, 8, "login success");
 		pop3_reply_str = resource_get_pop3_code(
 			POP3_CODE_2170000, 1, &string_length);
@@ -320,6 +348,30 @@ NORMAL_LOGIN:
 		}
 
 		pcontext->is_login = TRUE;
+		script_path = resource_get_string(RES_LOGIN_SCRIPT_PATH);
+		if (NULL != script_path) {
+			snprintf(temp_buff, 512, "%s:%s",
+				pcontext->connection.client_ip,
+				pcontext->username);
+			lower_string(temp_buff);
+			if (TRUE == system_services_login_check_judge(temp_buff)) {
+				system_services_login_check_add(
+					temp_buff, LOGIN_CHECK_INTERVAL);
+				tmp_len = strlen(pcontext->username) + 1;
+				memcpy(temp_buff, pcontext->username, tmp_len);
+				offset = tmp_len;
+				tmp_len = strlen(pcontext->connection.client_ip) + 1;
+				memcpy(temp_buff + offset,
+					pcontext->connection.client_ip, tmp_len);
+				offset += tmp_len;
+				memcpy(temp_buff + offset, "POP3", 5);
+				offset += 5;
+				if (TRUE == system_services_fcgi_rpc(temp_buff,
+					offset, &pbuff_out, &out_len, script_path)) {
+					free(pbuff_out);
+				}
+			}
+		}
 		pop3_parser_log_info(pcontext, 8, "login success");
 		pop3_reply_str = resource_get_pop3_code(
 			POP3_CODE_2170000, 1, &string_length);

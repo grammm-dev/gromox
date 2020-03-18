@@ -19,7 +19,7 @@ MAIN_HOMEADDRESS		家庭住址
 MAIN_MEMO				备注
 MAIN_MAX_SIZE			最大容量
 MAIN_LANGUAGE			语言
-LANGUAGE_ITEMS			zh:简体中文|en:英语|jp:日语|cn:繁体中文
+LANGUAGE_ITEMS			zh-cn:简体中文|en-us:英语|ja-jp:日语|zh-tw:繁体中文
 MAIN_TYPE				类型
 USER_TYPE_NORMAL		普通用户
 USER_TYPE_ROOM			会议室

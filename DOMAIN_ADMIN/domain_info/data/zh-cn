@@ -20,6 +20,6 @@ GROUP_NUM				部门数
 MLIST_NUM				邮件地址列表数
 MAIL_BACKUP				邮件备份
 MAIL_MONITOR			邮件监控
-MAIL_UNCHKUSR			离职员工邮件收集
+MAIL_WEBMEETING			视频会议
 MAIL_SUBSYSTEM			邮件子系统
 USER_EXTPASSWD			用户密码安全增强机制

@@ -1,12 +1,11 @@
 #add project parts name here
 PARTS_LIST=amidb \
-amysql \
+adac \
 asession \
 alock \
 asensor \
-digest \
 freebusy \
-pandora \
+agent \
 rtf2html
 
 SCRIPTS_PATH=./scripts

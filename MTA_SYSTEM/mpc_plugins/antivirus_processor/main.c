@@ -7,7 +7,6 @@
 #include <stdarg.h>
 
 #define MAX_CIRCLE_NUMBER		0x7FFFFFFF
-#define DEF_MODE				S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH
 #define SPAM_STATISTIC_SPAM_INSULATION  1
 
 typedef void (*SPAM_STATISTIC)(int);
@@ -26,8 +25,8 @@ static SPAM_STATISTIC spam_statistic;
 
 static void enum_attachment(MIME *pmime, ANTIVIRUS_RESULT *presult);
 
-static void antivirus_log(MESSAGE_CONTEXT *pcontext, int level,
-	char *format, ...);
+static void antivirus_log(MESSAGE_CONTEXT *pcontext,
+	int level, char *format, ...);
 
 static BOOL message_insulate(MESSAGE_CONTEXT *pcontext,
 	ANTIVIRUS_RESULT *presult, int id);
@@ -100,19 +99,22 @@ static BOOL antivirus_hook(MESSAGE_CONTEXT *pcontext)
 	}
 	pmail = pcontext->pmail;
 	pmime = mail_get_head(pcontext->pmail);
-	if (NULL == pmime || TRUE == mime_get_field(pmime, "X-Insulation-Reason",
-		temp_buff, 1024)) {
+	if (NULL == pmime || TRUE == mime_get_field(pmime,
+		"X-Insulation-Reason", temp_buff, 1024)) {
 		return FALSE;
 	}
 	result.is_found = FALSE;
 	mail_enum_mime(pmail, (MAIL_MIME_ENUM)enum_attachment, &result);
-	if (TRUE == result.is_found && TRUE == message_insulate(pcontext,
-		&result, increase_id())) {	
+	if (TRUE == result.is_found && TRUE == message_insulate(
+		pcontext, &result, increase_id())) {
+		/* mark mail as spam */
+		pcontext->pcontrol->is_spam = TRUE;
 		mime_set_content_param(result.pmime, "name", "\"virus.txt\"");
 		mime_set_field(result.pmime, "Content-Disposition",
 			"attachment; filename=\"virus.txt\"");
-		mime_write_content(result.pmime, "virus found in the content", 26,
-			MIME_ENCODING_NONE);
+		mime_write_content(result.pmime,
+			"virus found in the content",
+			26, MIME_ENCODING_NONE);
 		if (NULL != spam_statistic) {
 			spam_statistic(SPAM_STATISTIC_SPAM_INSULATION);
 		}
@@ -160,7 +162,7 @@ static BOOL message_insulate(MESSAGE_CONTEXT *pcontext,
 	time(&current_time);
 	snprintf(msgid, 256, "av.%d.%ld.%s", id, current_time, get_host_ID());
 	snprintf(temp_path, 256, "%s/%s", g_insulation_path, msgid);
-	fd = open(temp_path, O_WRONLY|O_CREAT|O_TRUNC, DEF_MODE);
+	fd = open(temp_path, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 	if (-1 == fd) {
 		return FALSE;
 	}
@@ -206,8 +208,8 @@ static BOOL message_insulate(MESSAGE_CONTEXT *pcontext,
         return FALSE;
     }
 	close(fd);
-	antivirus_log(pcontext, 8, "message has been put into insulated with ID %s "
-		"because virus [%s] found in mail", msgid, presult->virusname);
+	antivirus_log(pcontext, 8, "message has been put into insulated with ID"
+		" %s because virus [%s] found in mail", msgid, presult->virusname);
 	return TRUE;
 }
 
@@ -232,8 +234,8 @@ static int increase_id()
 }
 
 
-static void antivirus_log(MESSAGE_CONTEXT *pcontext, int level,
-	char *format, ...)
+static void antivirus_log(MESSAGE_CONTEXT *pcontext,
+	int level, char *format, ...)
 {
 	char log_buf[2048], rcpt_buff[2048];
 	size_t size_read = 0, rcpt_len = 0, i;
@@ -263,4 +265,3 @@ static void antivirus_log(MESSAGE_CONTEXT *pcontext, int level,
 			rcpt_buff, log_buf);
 
 }
-

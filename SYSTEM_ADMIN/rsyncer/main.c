@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <pthread.h>
+#include <sqlite3.h>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -629,7 +630,9 @@ static CONNECTION backup_subdir(CONNECTION conn, char *path)
 	DIR *dirp;
 	int result;
 	BOOL b_cid;
+	sqlite3 *psqlite;
 	CONNECTION conn2;
+	sqlite3_stmt *pstmt;
 	char temp_path[256];
 	char link_buff[256];
 	char link_buff1[256];
@@ -771,35 +774,81 @@ static CONNECTION backup_subdir(CONNECTION conn, char *path)
 			}
 		}
 	}
-
-	dirp = opendir(path);
-	if (NULL == dirp) {
+	
+	if (SQLITE_OK != sqlite3_open_v2(":memory:", &psqlite,
+		SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE, NULL)) {
+		while (pnode=double_list_get_from_head(&dir_list)) {
+			free(pnode->pdata);
+		}
+		double_list_free(&dir_list);
 		return conn2;
 	}
-
+	if (SQLITE_OK != sqlite3_exec(psqlite,
+		"CREATE TABLE dirents (dirent TEXT UNIQUE)",
+		NULL, NULL, NULL)) {
+		sqlite3_close(psqlite);
+		while (pnode=double_list_get_from_head(&dir_list)) {
+			free(pnode->pdata);
+		}
+		double_list_free(&dir_list);
+		return conn2;
+	}
+	sqlite3_exec(psqlite, "BEGIN TRANSACTION", NULL, NULL, NULL);
+	if (SQLITE_OK != sqlite3_prepare_v2(psqlite,
+		"INSERT INTO dirents VALUES (?)", -1, &pstmt, NULL)) {
+		sqlite3_close(psqlite);
+		while (pnode=double_list_get_from_head(&dir_list)) {
+			free(pnode->pdata);
+		}
+		double_list_free(&dir_list);
+		return conn2;
+	}
+	while (pnode=double_list_get_from_head(&dir_list)) {
+		pdirent = (DIRENT_NODE*)pnode->pdata;
+		sqlite3_reset(pstmt);
+		sqlite3_bind_text(pstmt, 1, pdirent->d_name, -1, SQLITE_STATIC);
+		if (SQLITE_DONE != sqlite3_step(pstmt)) {
+			free(pnode->pdata);
+			sqlite3_finalize(pstmt);
+			sqlite3_close(psqlite);
+			while (pnode=double_list_get_from_head(&dir_list)) {
+				free(pnode->pdata);
+			}
+			double_list_free(&dir_list);
+			return conn2;
+		}
+		free(pnode->pdata);
+	}
+	double_list_free(&dir_list);
+	sqlite3_finalize(pstmt);
+	sqlite3_exec(psqlite, "COMMIT TRANSACTION", NULL, NULL, NULL);
+	if (SQLITE_OK != sqlite3_prepare_v2(psqlite,
+		"SELECT ROWID FROM dirents WHERE dirent=?",
+		-1, &pstmt, NULL)) {
+		sqlite3_close(psqlite);
+		return conn2;
+	}
+	dirp = opendir(path);
+	if (NULL == dirp) {
+		sqlite3_finalize(pstmt);
+		sqlite3_close(psqlite);
+		return conn2;
+	}
 	while ((direntp = readdir(dirp)) != NULL) {
 		if (0 == strcmp(direntp->d_name, ".") ||
 			0 == strcmp(direntp->d_name, "..")) {
 			continue;
 		}
-		for (pnode=double_list_get_head(&dir_list); NULL!=pnode;
-			pnode=double_list_get_after(&dir_list, pnode)) {
-			pdirent = (DIRENT_NODE*)pnode->pdata;
-			if (0 == strcmp(pdirent->d_name, direntp->d_name)) {
-				break;
-			}
-		}
-		if (NULL == pnode) {
+		sqlite3_reset(pstmt);
+		sqlite3_bind_text(pstmt, 1, direntp->d_name, -1, SQLITE_STATIC);
+		if (SQLITE_ROW != sqlite3_step(pstmt)) {
 			snprintf(temp_path, 255, "%s/%s", path, direntp->d_name);
 			remove_inode(temp_path);
 		}
 	}
 	closedir(dirp);
-
-	while (pnode=double_list_get_from_head(&dir_list)) {
-		free(pnode->pdata);
-	}
-	double_list_free(&dir_list);
+	sqlite3_finalize(pstmt);
+	sqlite3_close(psqlite);
 	return conn2;
 }
 

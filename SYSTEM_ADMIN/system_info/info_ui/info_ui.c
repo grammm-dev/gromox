@@ -253,7 +253,7 @@ static void info_ui_main_html(const char *session)
 	int real_domains;
 	int backup_domains;
 	int monitor_domains;
-	int unchkusr_domains;
+	int webmeeting_domains;
 	int subsys_domains;
 	int sms_domains;
 	int extpasswd_domains;
@@ -271,7 +271,7 @@ static void info_ui_main_html(const char *session)
 	language = getenv("HTTP_ACCEPT_LANGUAGE");
 
 	if (FALSE == data_source_system_info(&real_domains, &backup_domains,
-		&monitor_domains, &unchkusr_domains, &subsys_domains, &sms_domains,
+		&monitor_domains, &webmeeting_domains, &subsys_domains, &sms_domains,
 		&extpasswd_domains, &alias_domains, &outofdate_domains, &deleted_domains,
 		&suspend_domains, &total_groups, &alloc_addresses, &real_addresses,
 		&alias_addresses, &total_mlists, &total_space)) {
@@ -307,8 +307,8 @@ static void info_ui_main_html(const char *session)
 	printf(HTML_MAIN_5, lang_resource_get(g_lang_resource,"REAL_DOMAIN_NUM", language),
 		real_domains, lang_resource_get(g_lang_resource,"BACKUP_DOMAIN_NUM", language),
 		backup_domains, lang_resource_get(g_lang_resource,"MONITOR_DOMAIN_NUM", language),
-		monitor_domains, lang_resource_get(g_lang_resource,"UNCHECK_USER_DOMAIN_NUM",
-		language), unchkusr_domains, lang_resource_get(g_lang_resource,"SUBSYSTEM_DOMAIN_NUM",
+		monitor_domains, lang_resource_get(g_lang_resource,"WEBMEETING_DOMAIN_NUM",
+		language), webmeeting_domains, lang_resource_get(g_lang_resource,"SUBSYSTEM_DOMAIN_NUM",
 		language), subsys_domains, lang_resource_get(g_lang_resource,"NETDISK_DOMAIN_NUM",
 		language), sms_domains, lang_resource_get(g_lang_resource,"EXTPASSWD_DOMAIN_NUM",
 		language), extpasswd_domains, lang_resource_get(g_lang_resource,"ALIAS_DOMAIN_NUM",

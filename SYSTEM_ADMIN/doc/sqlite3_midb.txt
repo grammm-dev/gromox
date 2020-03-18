@@ -60,6 +60,10 @@ CREATE INDEX fid_rcpt_index ON messages(folder_id, rcpt);
 
 CREATE INDEX fid_size_index ON messages(folder_id, size);
 
+CREATE INDEX fid_uid_idx_index ON messages(folder_id, uid, idx);
+
+CREATE INDEX fid_read_idx_index ON messages(folder_id, read, idx);
+
 CREATE TABLE mapping (
 	message_id INTEGER PRIMARY KEY,
 	mid_string TEXT NOT NULL,

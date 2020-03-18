@@ -26,6 +26,7 @@
 #include <sys/socket.h>
 #include <openssl/err.h>
 
+#define LOGIN_CHECK_INTERVAL						3600
 
 #define	MAX_RECLYING_REMAINING						0x4000000
 
@@ -427,14 +428,17 @@ int http_parser_process(HTTP_CONTEXT *pcontext)
 	int written_len;
 	char reason[256];
 	int response_len;
+	uint32_t out_len;
 	size_t decode_len;
 	char dstring[128];
+	uint8_t *pbuff_out;
 	DCERPC_CALL *pcall;
 	char field_name[64];
 	char tmp_buff[2048];
 	char tmp_buff1[1024];
 	uint16_t frag_length;
 	int size, line_length;
+	const char *script_path;
 	DOUBLE_LIST_NODE *pnode;
 	char response_buff[1024];
     int actual_read, ssl_errno;
@@ -571,8 +575,8 @@ CONTEXT_PROCESSING:
 				} else {
 					ptoken = memchr(line, ':', line_length);
 					if (NULL == ptoken) {
-						http_parser_log_info(pcontext,
-							8, "request method error");
+						http_parser_log_info(pcontext, 8,
+							"request header field error");
 						goto BAD_HTTP_REQUEST;
 					}
 					
@@ -716,6 +720,30 @@ CONTEXT_PROCESSING:
 							resource_get_string(RES_USER_DEFAULT_LANG));
 					}
 					pcontext->b_authed = TRUE;
+					script_path = resource_get_string(RES_LOGIN_SCRIPT_PATH);
+					if (NULL != script_path) {
+						snprintf(tmp_buff, 512, "%s:%s",
+							pcontext->connection.client_ip,
+							pcontext->username);
+						lower_string(tmp_buff);
+						if (TRUE == system_services_login_check_judge(tmp_buff)) {
+							system_services_login_check_add(
+								tmp_buff, LOGIN_CHECK_INTERVAL);
+							tmp_len = strlen(pcontext->username) + 1;
+							memcpy(tmp_buff, pcontext->username, tmp_len);
+							tmp_len1 = tmp_len;
+							tmp_len = strlen(pcontext->connection.client_ip) + 1;
+							memcpy(tmp_buff + tmp_len1,
+								pcontext->connection.client_ip, tmp_len);
+							tmp_len1 += tmp_len;
+							memcpy(tmp_buff + tmp_len1, "HTTP", 5);
+							tmp_len1 += 5;
+							if (TRUE == system_services_fcgi_rpc(tmp_buff,
+								tmp_len1, &pbuff_out, &out_len, script_path)) {
+								free(pbuff_out);
+							}
+						}
+					}
 					http_parser_log_info(pcontext, 8, "login success");
 				} else {
 					pcontext->b_authed = FALSE;
@@ -986,7 +1014,7 @@ CONTEXT_PROCESSING:
 					pcontext->write_length = 0;
 					pcontext->write_offset = 0;
 					pcontext->sched_stat = SCHED_STAT_SOCKET;
-					return PROCESS_POLLING_RDWR;
+					return PROCESS_CONTINUE;
 				}
 			} else if (NULL != pcontext->pfast_context) {
 				switch (mod_fastcgi_check_response(pcontext)) {
@@ -1688,19 +1716,7 @@ CONTEXT_PROCESSING:
 		
 		return PROCESS_IDLE;
 	} else if (SCHED_STAT_SOCKET == pcontext->sched_stat) {
-		if (0 == pcontext->write_length) {
-			tmp_len = hpm_processor_receive(pcontext,
-				pcontext->write_buff, STREAM_BLOCK_SIZE);
-			if (0 == tmp_len) {
-				http_parser_log_info(pcontext, 8,
-					"connection closed by hpm");
-				goto END_PROCESSING;
-			} else if (tmp_len > 0) {
-				pcontext->write_length = tmp_len;
-				pcontext->write_offset = 0;
-			}
-		}
-		if (pcontext->write_length > pcontext->write_offset) {
+		if (pcontext->write_length > 0) {
 			written_len = pcontext->write_length - pcontext->write_offset;
 			if (NULL != pcontext->connection.ssl) {
 				written_len = SSL_write(pcontext->connection.ssl,
@@ -1724,6 +1740,7 @@ CONTEXT_PROCESSING:
 					pcontext->write_offset = 0;
 					pcontext->write_length = 0;
 				}
+				return PROCESS_CONTINUE;
 			} else {
 				if (EAGAIN != errno) {
 					http_parser_log_info(pcontext, 8, "connection lost");
@@ -1737,37 +1754,48 @@ CONTEXT_PROCESSING:
 				}
 				return PROCESS_POLLING_WRONLY;
 			}
-		}
-		if (NULL == pcontext->connection.ssl) {
-			actual_read = read(pcontext->connection.sockd,
-							tmp_buff, sizeof(tmp_buff));
 		} else {
-			actual_read = SSL_read(pcontext->connection.ssl,
+			if (NULL == pcontext->connection.ssl) {
+				actual_read = read(pcontext->connection.sockd,
 								tmp_buff, sizeof(tmp_buff));
-		}
-		gettimeofday(&current_time, NULL);
-		if (0 == actual_read) {
-			http_parser_log_info(pcontext, 8, "connection lost");
-			goto END_PROCESSING;
-		} else if (actual_read > 0) {
-			pcontext->connection.last_timestamp = current_time;
-			if (FALSE == hpm_processor_send(
-				pcontext, tmp_buff, actual_read)) {
-				http_parser_log_info(pcontext, 8,
-					"connection closed by hpm");
-				goto END_PROCESSING;	
+			} else {
+				actual_read = SSL_read(pcontext->connection.ssl,
+									tmp_buff, sizeof(tmp_buff));
 			}
-		} else {
-			if (EAGAIN != errno) {
+			gettimeofday(&current_time, NULL);
+			if (0 == actual_read) {
 				http_parser_log_info(pcontext, 8, "connection lost");
 				goto END_PROCESSING;
+			} else if (actual_read > 0) {
+				pcontext->connection.last_timestamp = current_time;
+				if (FALSE == hpm_processor_send(
+					pcontext, tmp_buff, actual_read)) {
+					http_parser_log_info(pcontext, 8,
+						"connection closed by hpm");
+					goto END_PROCESSING;	
+				}
+			} else {
+				if (EAGAIN != errno) {
+					http_parser_log_info(pcontext, 8, "connection lost");
+					goto END_PROCESSING;
+				}
+				/* check if context is timed out */
+				if (CALCULATE_INTERVAL(current_time,
+					pcontext->connection.last_timestamp) >= g_timeout) {
+					http_parser_log_info(pcontext, 8, "time out");
+					goto END_PROCESSING;
+				}
 			}
-			/* check if context is timed out */
-			if (CALCULATE_INTERVAL(current_time,
-				pcontext->connection.last_timestamp) >= g_timeout) {
-				http_parser_log_info(pcontext, 8, "time out");
-				goto END_PROCESSING;
-			}
+		}
+		tmp_len = hpm_processor_receive(pcontext,
+			pcontext->write_buff, STREAM_BLOCK_SIZE);
+		if (0 == tmp_len) {
+			http_parser_log_info(pcontext, 8, "connection closed by hpm");
+			goto END_PROCESSING;
+		} else if (tmp_len > 0) {
+			pcontext->write_length = tmp_len;
+			pcontext->write_offset = 0;
+			goto CONTEXT_PROCESSING;
 		}
 		return PROCESS_POLLING_RDONLY;
 	}

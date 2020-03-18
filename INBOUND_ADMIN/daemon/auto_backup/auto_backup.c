@@ -42,11 +42,7 @@ int auto_backup_run()
 	sprintf(src_file, "%s/backend_table.txt", g_data_path);
 	sprintf(dst_file, "%s/data_files/backend_table.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
-
-	sprintf(src_file, "%s/boundary_blacklist.txt", g_data_path);
-	sprintf(dst_file, "%s/data_files/boundary_blacklist.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-
+	
 	sprintf(src_file, "%s/dns_table.txt", g_data_path);
 	sprintf(dst_file, "%s/data_files/dns_table.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
@@ -55,10 +51,6 @@ int auto_backup_run()
 	sprintf(dst_file, "%s/data_files/redirect_table.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
 	
-	sprintf(src_file, "%s/domain_blacklist.txt", g_data_path);
-	sprintf(dst_file, "%s/data_files/domain_blacklist.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-
 	sprintf(src_file, "%s/domain_mailbox.txt", g_data_path);
 	sprintf(dst_file, "%s/data_files/domain_mailbox.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
@@ -67,18 +59,10 @@ int auto_backup_run()
 	sprintf(dst_file, "%s/data_files/domain_whitelist.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
 	
-	sprintf(src_file, "%s/dynamic_dnslist.txt", g_data_path);
-	sprintf(dst_file, "%s/data_files/dynamic_dnslist.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-	
 	sprintf(src_file, "%s/forward_table.txt", g_data_path);
 	sprintf(dst_file, "%s/data_files/forward_table.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
 	
-	sprintf(src_file, "%s/from_blacklist.txt", g_data_path);
-	sprintf(dst_file, "%s/data_files/from_blacklist.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-
 	sprintf(src_file, "%s/from_replace.txt", g_data_path);
 	sprintf(dst_file, "%s/data_files/from_replace.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
@@ -161,10 +145,6 @@ int auto_backup_run()
 	sprintf(dst_file, "%s/data_files/tagging_whitelist.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
 	
-	sprintf(src_file, "%s/xmailer_blacklist.txt", g_data_path);
-	sprintf(dst_file, "%s/data_files/xmailer_blacklist.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-
 	sprintf(dst_file, "%s/data_files/athena.cfg", g_backup_path);
 	file_operation_copy_file(g_config_path, dst_file);
 	

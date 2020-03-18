@@ -517,7 +517,7 @@ int exmdb_client_run()
 	plist = list_file_init(g_list_path, "%s:256%s:16%s:16%d");
 	if (NULL == plist) {
 		printf("[exmdb_client]: fail to open exmdb list file\n");
-		return 1;
+		return -1;
 	}
 	g_notify_stop = FALSE;
 	list_num = list_file_get_item_num(plist);
@@ -528,18 +528,18 @@ int exmdb_client_run()
 		} else if (0 == strcasecmp(pitem[i].type, "public")) {
 			b_private = FALSE;
 		} else {
-			printf("[exmdb_provider]: unknown type \"%s\", only"
-					"can be \"private\" or \"public\"!");
+			printf("[exmdb_provider]: unknown type \"%s\", only "
+				"can be \"private\" or \"public\"!", pitem[i].type);
 			list_file_free(plist);
 			g_notify_stop = TRUE;
-			return 2;
+			return -2;
 		}
 		pserver = malloc(sizeof(REMOTE_SVR));
 		if (NULL == pserver) {
 			printf("[exmdb_client]: fail to allocate memory for exmdb\n");
 			list_file_free(plist);
 			g_notify_stop = TRUE;
-			return 5;
+			return -5;
 		}
 		pserver->node.pdata = pserver;
 		strcpy(pserver->prefix, pitem[i].prefix);
@@ -556,7 +556,7 @@ int exmdb_client_run()
 					"allocate memory for exmdb\n");
 				list_file_free(plist);
 				g_notify_stop = TRUE;
-				return 6;
+				return -6;
 			}
 			pconn->node.pdata = pconn;
 			pconn->sockd = -1;
@@ -570,7 +570,7 @@ int exmdb_client_run()
 					"allocate memory for exmdb\n");
 				list_file_free(plist);
 				g_notify_stop = TRUE;
-				return 7;
+				return -7;
 			}
 			pagent->node.pdata = pagent;
 			pagent->pserver = pserver;
@@ -581,7 +581,7 @@ int exmdb_client_run()
 					"create agent thread for exmdb\n");
 				list_file_free(plist);
 				g_notify_stop = TRUE;
-				return 8;
+				return -8;
 			}
 			double_list_append_as_tail(&g_agent_list, &pagent->node);
 		}
@@ -593,7 +593,7 @@ int exmdb_client_run()
 	if (0 != pthread_create(&g_scan_id, NULL, scan_work_func, NULL)) {
 		printf("[exmdb_client]: fail to create proxy scan thread\n");
 		g_notify_stop = TRUE;
-		return 9;
+		return -9;
 	}
 	return 0;
 }

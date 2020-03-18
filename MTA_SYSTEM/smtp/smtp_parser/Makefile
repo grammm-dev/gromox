@@ -5,12 +5,14 @@ OUTPUT_NAME=
 C_SOURCE_FILES=$(wildcard *.c)
 CPP_SOURCE_FILES=$(wildcard *.cxx *.cpp *.C)
 INCLUDE_PATHS=../../common/include\
+			  ../../email_lib/include\
+			  ../../mapi_lib/include\
 			  ../../epoll_scheduler/include\
 			  ../smtp_parser\
 			  ../resource\
 			  ../system_services\
 			  ../flusher\
-			  ../anti_spamming\
+			  ../anti_spam\
 			  ../files_allocator\
 			  ../blocks_allocator\
 			  ../bndstack_allocator# add include paths here

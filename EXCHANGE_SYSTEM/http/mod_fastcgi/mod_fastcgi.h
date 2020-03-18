@@ -37,8 +37,6 @@ typedef struct _FASTCGI_CONTEXT {
 
 struct _HTTP_CONTEXT;
 
-typedef struct _HTTP_CONTEXT HTTP_CONTEXT;
-
 void mod_fastcgi_init(int context_num, const char *list_path,
 	uint64_t cache_size, uint64_t max_size, int exec_timeout);
 
@@ -48,20 +46,20 @@ int mod_fastcgi_stop();
 
 void mod_fastcgi_free();
 
-BOOL mod_fastcgi_get_context(HTTP_CONTEXT *phttp);
+BOOL mod_fastcgi_get_context(struct _HTTP_CONTEXT *phttp);
 
-BOOL mod_fastcgi_check_end_of_read(HTTP_CONTEXT *phttp);
+BOOL mod_fastcgi_check_end_of_read(struct _HTTP_CONTEXT *phttp);
 
-BOOL mod_fastcgi_check_responded(HTTP_CONTEXT *phttp);
+BOOL mod_fastcgi_check_responded(struct _HTTP_CONTEXT *phttp);
 
-BOOL mod_fastcgi_relay_content(HTTP_CONTEXT *phttp);
+BOOL mod_fastcgi_relay_content(struct _HTTP_CONTEXT *phttp);
 
-void mod_fastcgi_put_context(HTTP_CONTEXT *phttp);
+void mod_fastcgi_put_context(struct _HTTP_CONTEXT *phttp);
 
-BOOL mod_fastcgi_write_request(HTTP_CONTEXT *phttp);
+BOOL mod_fastcgi_write_request(struct _HTTP_CONTEXT *phttp);
 
-int mod_fastcgi_check_response(HTTP_CONTEXT *phttp);
+int mod_fastcgi_check_response(struct _HTTP_CONTEXT *phttp);
 
-BOOL mod_fastcgi_read_response(HTTP_CONTEXT *phttp);
+BOOL mod_fastcgi_read_response(struct _HTTP_CONTEXT *phttp);
 
 #endif /* _H_MOD_FASTCGI_ */

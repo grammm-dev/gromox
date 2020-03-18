@@ -2356,6 +2356,7 @@ static BOOL instance_get_message_subject(
 	TPROPVAL_ARRAY *pproplist, uint16_t cpid,
 	uint32_t proptag, void **ppvalue)
 {
+	int tmp_len;
 	char *pvalue;
 	char *psubject_prefix;
 	char *pnormalized_subject;
@@ -2392,14 +2393,16 @@ static BOOL instance_get_message_subject(
 	if (NULL == psubject_prefix) {
 		psubject_prefix = "";
 	}
-	pvalue = common_util_alloc(
-		strlen(pnormalized_subject)
-		+ strlen(psubject_prefix) + 1);
+	tmp_len = strlen(pnormalized_subject)
+			+ strlen(psubject_prefix) + 1;
+	if (tmp_len > 4096) {
+		tmp_len = 4096;
+	}
+	pvalue = common_util_alloc(tmp_len);
 	if (NULL == pvalue) {
 		return FALSE;
 	}
-	strcpy(pvalue, psubject_prefix);
-	strcat(pvalue, pnormalized_subject);
+	snprintf(pvalue, tmp_len, "%s%s", psubject_prefix, pnormalized_subject);
 	if (PROPVAL_TYPE_WSTRING == (proptag & 0xFFFF)) {
 		*ppvalue = common_util_dup(pvalue);
 		if (NULL == *ppvalue) {

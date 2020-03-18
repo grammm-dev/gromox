@@ -260,7 +260,7 @@ static void info_ui_main_html(const char *domainname, const char *session)
 	char str_end[64];
 	char str_backup[16];
 	char str_monitor[16];
-	char str_unchkusr[16];
+	char str_webmeeting[16];
 	char str_subsystem[16];
 	char str_extpasswd[16];
 	time_t create_day;
@@ -344,10 +344,10 @@ static void info_ui_main_html(const char *domainname, const char *session)
 		strcpy(str_monitor, lang_resource_get(g_lang_resource,"OPTION_NO", language));
 	}
 
-	if (privilege_bits & DOMAIN_PRIVILEGE_UNCHECKUSR) {
-		strcpy(str_unchkusr, lang_resource_get(g_lang_resource,"OPTION_YES", language));
+	if (privilege_bits & DOMAIN_PRIVILEGE_WEBMEETING) {
+		strcpy(str_webmeeting, lang_resource_get(g_lang_resource,"OPTION_YES", language));
 	} else {
-		strcpy(str_unchkusr, lang_resource_get(g_lang_resource,"OPTION_NO", language));
+		strcpy(str_webmeeting, lang_resource_get(g_lang_resource,"OPTION_NO", language));
 	}
 	
 	if (privilege_bits & DOMAIN_PRIVILEGE_SUBSYSTEM) {
@@ -384,7 +384,7 @@ static void info_ui_main_html(const char *domainname, const char *session)
 		lang_resource_get(g_lang_resource,"MLIST_NUM", language), mlist_num,
 		lang_resource_get(g_lang_resource,"MAIL_BACKUP", language), str_backup,
 		lang_resource_get(g_lang_resource,"MAIL_MONITOR", language), str_monitor,
-		lang_resource_get(g_lang_resource,"MAIL_UNCHKUSR", language), str_unchkusr,
+		lang_resource_get(g_lang_resource,"MAIL_WEBMEETING", language), str_webmeeting,
 		lang_resource_get(g_lang_resource,"MAIL_SUBSYSTEM", language), str_subsystem,
 		lang_resource_get(g_lang_resource,"USER_EXTPASSWD", language), str_extpasswd);
 }

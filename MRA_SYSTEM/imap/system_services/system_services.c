@@ -42,6 +42,11 @@ void (*system_services_broadcast_event)(const char*);
 void (*system_services_broadcast_select)(const char*, const char*);
 void (*system_services_broadcast_unselect)(const char*, const char*);
 void (*system_services_log_info)(int, char*, ...);
+BOOL (*system_services_login_check_judge)(const char*);
+int (*system_services_login_check_add)(const char*, int);
+BOOL (*system_services_fcgi_rpc)(const uint8_t *pbuff_in,
+	uint32_t in_len, uint8_t **ppbuff_out, uint32_t *pout_len,
+	const char *script_path);
 
 /*
  *	module's construct function
@@ -61,20 +66,22 @@ int system_services_run()
 {
 	system_services_judge_ip = service_query("ip_filter_judge", "system");
 	if (NULL == system_services_judge_ip) {
-		printf("[system_services]: fail to get \"ip_filter_judge\" service\n");
+		printf("[system_services]: fail to get"
+			" \"ip_filter_judge\" service\n");
 		return -1;
 	}
-	system_services_container_add_ip = service_query("ip_container_add",
-												"system");
+	system_services_container_add_ip =
+		service_query("ip_container_add", "system");
 	if (NULL == system_services_container_add_ip) {
-		printf("[system_services]: fail to get \"ip_container_add\" service\n");
+		printf("[system_services]: fail to get"
+			" \"ip_container_add\" service\n");
 		return -2;
 	}
-	system_services_container_remove_ip = service_query("ip_container_remove",
-												"system");
+	system_services_container_remove_ip =
+		service_query("ip_container_remove", "system");
 	if (NULL == system_services_container_remove_ip) {
-		printf("[system_services]: fail to get \"ip_container_remove\" "
-			"service\n");
+		printf("[system_services]: fail to get"
+			" \"ip_container_remove\" service\n");
 		return -3;
 	}
 	system_services_log_info = service_query("log_info", "system");
@@ -82,15 +89,18 @@ int system_services_run()
 		printf("[system_services]: fail to get \"log_info\" service\n");
 		return -4;
 	}
-	system_services_judge_user = service_query("user_filter_judge", "system");
+	system_services_judge_user = service_query(
+				"user_filter_judge", "system");
 	if (NULL == system_services_judge_user) {
-		printf("[system_services]: fail to get \"user_filter_judge\" service\n");
+		printf("[system_services]: fail to get"
+			" \"user_filter_judge\" service\n");
 		return -5;
 	}
-	system_services_add_user_into_temp_list = service_query("user_filter_add", 
-												"system");
+	system_services_add_user_into_temp_list =
+		service_query("user_filter_add", "system");
 	if (NULL == system_services_add_user_into_temp_list) {
-		printf("[system_services]: fail to get \"user_filter_add\" service\n");
+		printf("[system_services]: fail to get"
+			" \"user_filter_add\" service\n");
 		return -6;
 	}
 	system_services_auth_login = service_query("auth_login", "system");
@@ -141,15 +151,19 @@ int system_services_run()
 		return -13;
 	}
 	
-	system_services_subscribe_folder = service_query("subscribe_folder", "system");
+	system_services_subscribe_folder = service_query(
+						"subscribe_folder", "system");
 	if (NULL == system_services_subscribe_folder) {
-		printf("[system_services]: fail to get \"subscribe_folder\" service\n");
+		printf("[system_services]: fail to get"
+			" \"subscribe_folder\" service\n");
 		return -13;
 	}
 	
-	system_services_unsubscribe_folder = service_query("unsubscribe_folder", "system");
+	system_services_unsubscribe_folder = service_query(
+						"unsubscribe_folder", "system");
 	if (NULL == system_services_unsubscribe_folder) {
-		printf("[system_services]: fail to get \"unsubscribe_folder\" service\n");
+		printf("[system_services]: fail to get "
+			"\"unsubscribe_folder\" service\n");
 		return -14;
 	}
 	
@@ -159,9 +173,11 @@ int system_services_run()
 		return -15;
 	}
 	
-	system_services_enum_subscriptions = service_query("enum_subscriptions", "system");
+	system_services_enum_subscriptions = service_query(
+						"enum_subscriptions", "system");
 	if (NULL == system_services_enum_subscriptions) {
-		printf("[system_services]: fail to get \"enum_subscriptions\" service\n");
+		printf("[system_services]: fail to get "
+			"\"enum_subscriptions\" service\n");
 		return -16;
 	}
 	
@@ -213,15 +229,19 @@ int system_services_run()
 		return -24;
 	}
 	
-	system_services_fetch_simple_uid = service_query("fetch_simple_uid", "system");
+	system_services_fetch_simple_uid = service_query(
+						"fetch_simple_uid", "system");
 	if (NULL == system_services_fetch_simple_uid) {
-		printf("[system_services]: fail to get \"fetch_simple_uid\" service\n");
+		printf("[system_services]: fail to get"
+			" \"fetch_simple_uid\" service\n");
 		return -25;
 	}
 	
-	system_services_fetch_detail_uid = service_query("fetch_detail_uid", "system");
+	system_services_fetch_detail_uid = service_query(
+						"fetch_detail_uid", "system");
 	if (NULL == system_services_fetch_detail_uid) {
-		printf("[system_services]: fail to get \"fetch_detail_uid\" service\n");
+		printf("[system_services]: fail to get"
+			" \"fetch_detail_uid\" service\n");
 		return -26;
 	}
 	
@@ -233,7 +253,8 @@ int system_services_run()
 	
 	system_services_unset_flags = service_query("unset_mail_flags", "system");
 	if (NULL == system_services_unset_flags) {
-		printf("[system_services]: fail to get \"unset_mail_flags\" service\n");
+		printf("[system_services]: fail to get"
+			" \"unset_mail_flags\" service\n");
 		return -28;
 	}
 	
@@ -257,32 +278,60 @@ int system_services_run()
 	
 	system_services_search_uid = service_query("imap_search_uid", "system");
 	if (NULL == system_services_search_uid) {
-		printf("[system_services]: fail to get \"imap_search_uid\" service\n");
+		printf("[system_services]: fail to get"
+			" \"imap_search_uid\" service\n");
 		return -32;
 	}
 	
-	system_services_install_event_stub = service_query("install_event_stub", "system");
+	system_services_install_event_stub = service_query(
+						"install_event_stub", "system");
 	if (NULL == system_services_install_event_stub) {
-		printf("[system_services]: fail to get \"install_event_stub\" service\n");
+		printf("[system_services]: fail to get"
+			" \"install_event_stub\" service\n");
 		return -33;
 	}
 	
-	system_services_broadcast_event = service_query("broadcast_event", "system");
+	system_services_broadcast_event = service_query(
+						"broadcast_event", "system");
 	if (NULL == system_services_broadcast_event) {
-		printf("[system_services]: fail to get \"broadcast_event\" service\n");
+		printf("[system_services]: fail to get"
+			" \"broadcast_event\" service\n");
 		return -34;
 	}
 	
-	system_services_broadcast_select = service_query("broadcast_select", "system");
+	system_services_broadcast_select = service_query(
+						"broadcast_select", "system");
 	if (NULL == system_services_broadcast_select) {
-		printf("[system_services]: fail to get \"broadcast_select\" service\n");
+		printf("[system_services]: fail to get"
+			" \"broadcast_select\" service\n");
 		return -35;
 	}
 	
-	system_services_broadcast_unselect = service_query("broadcast_unselect", "system");
+	system_services_broadcast_unselect = service_query(
+						"broadcast_unselect", "system");
 	if (NULL == system_services_broadcast_unselect) {
-		printf("[system_services]: fail to get \"broadcast_unselect\" service\n");
+		printf("[system_services]: fail to get "
+			"\"broadcast_unselect\" service\n");
 		return -36;
+	}
+	system_services_login_check_judge = service_query(
+						"login_check_judge", "system");
+	if (NULL == system_services_login_check_judge) {
+		printf("[system_services]: fail to get"
+			" \"login_check_judge\" service\n");
+		return -37;
+	}
+	system_services_login_check_add = service_query(
+						"login_check_add", "system");
+	if (NULL == system_services_login_check_add) {
+		printf("[system_services]: fail to get"
+			" \"login_check_add\" service\n");
+		return -38;
+	}
+	system_services_fcgi_rpc = service_query("fcgi_rpc", "system");
+	if (NULL == system_services_fcgi_rpc) {
+		printf("[system_services]: fail to get \"fcgi_rpc\" service\n");
+		return -39;
 	}
 	return 0;
 }
@@ -334,6 +383,9 @@ int system_services_stop()
 	service_release("broadcast_event", "system");
 	service_release("broadcast_select", "system");
 	service_release("broadcast_unselect", "system");
+	service_release("login_check_judge", "system");
+	service_release("login_check_add", "system");
+	service_release("fcgi_rpc", "system");
 	return 0;
 }
 

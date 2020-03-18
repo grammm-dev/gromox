@@ -50,8 +50,8 @@ BOOL mysql_adaptor_get_groupname(const char *username, char *groupname);
 BOOL mysql_adaptor_get_mlist(const char *username,
 	const char *from, int *presult, MEM_FILE *pfile);
 
-BOOL mysql_adaptor_check_virtual(const char *username, const char *from,
-	BOOL *pb_expanded, MEM_FILE *pfile);
+BOOL mysql_adaptor_check_virtual(const char *username,
+	const char *from, BOOL *pb_expanded, MEM_FILE *pfile);
 
 int mysql_adaptor_get_param(int param);
 

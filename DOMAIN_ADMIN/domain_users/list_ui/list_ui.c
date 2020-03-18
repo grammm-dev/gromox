@@ -1026,10 +1026,10 @@ int list_ui_run()
 			lang = request_parser_get(pparser, "lang");
 			if (0 == strcasecmp(type, "add")) {
 				if (NULL == lang ||
-					(0 != strcasecmp(lang, "en") &&
-					0 != strcasecmp(lang, "jp") &&
-					0 != strcasecmp(lang, "zh") &&
-					0 != strcasecmp(lang, "cn"))) {
+					(0 != strcasecmp(lang, "en-us") &&
+					0 != strcasecmp(lang, "ja-jp") &&
+					0 != strcasecmp(lang, "zh-cn") &&
+					0 != strcasecmp(lang, "zh-tw"))) {
 					goto POST_ERROR;
 				}
 			}

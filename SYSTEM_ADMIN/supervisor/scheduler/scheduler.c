@@ -238,7 +238,7 @@ static void* smtp_work_func(void *param)
 	time(&psmtp_unit->last_time);
 	while (TRUE) {
 		message_supervising(temp_buff, MESSAGE_SUPERVISING_SMTP,
-			psmtp_unit->check_id);
+			psmtp_unit->supervise_mailbox, psmtp_unit->check_id);
 		if (FALSE == psmtp_unit->need_auth) {
 			s_result = smtp_send_inbound(psmtp_unit->dest_ip,
 				psmtp_unit->dest_port, psmtp_unit->supervise_mailbox,
@@ -389,7 +389,7 @@ static void* pop3_work_func(void *param)
 	time(&ppop3_unit->last_time);
 	while (TRUE) {
 		message_supervising(temp_buff, MESSAGE_SUPERVISING_POP3,
-			ppop3_unit->check_id);
+			ppop3_unit->supervise_mailbox, ppop3_unit->check_id);
 POP3THR_SEND:
 		pthread_mutex_lock(&g_smtp_lock);
 		pnode = double_list_get_from_head(&g_smtp_list);

@@ -8,7 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define CS_PATH							"/var/medusa/token/zarafa"
+#define CS_PATH							"/var/grid-core/token/zarafa"
 
 static BOOL g_notify_stop;
 static int g_listen_sockd;

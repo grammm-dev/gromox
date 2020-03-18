@@ -3,11 +3,11 @@
 #include "util.h"
 #include <stdio.h>
 
-#define SPAM_STATISTIC_INMAIL_FREQUENCY         2
+#define SPAM_STATISTIC_INMAIL_FREQUENCY         12
 
+typedef void (*SPAM_STATISTIC)(int);
 typedef BOOL (*WHITELIST_QUERY)(char*);
 typedef BOOL (*INMAIL_FREQUENCY_AUDIT)(char*);
-typedef void (*SPAM_STATISTIC)(int);
 
 static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
     CONNECTION *pconnection, char *reason, int length);
@@ -16,10 +16,11 @@ static void console_talk(int argc, char **argv, char *result, int length);
 
 DECLARE_API;
 
+static SPAM_STATISTIC spam_statistic;
 static WHITELIST_QUERY ip_whitelist_query;
+static WHITELIST_QUERY from_whitelist_query;
 static WHITELIST_QUERY domain_whitelist_query;
 static INMAIL_FREQUENCY_AUDIT inmail_frequency_audit;
-static SPAM_STATISTIC spam_statistic;
 
 static int g_block_interval;
 static char g_config_file[256];
@@ -37,25 +38,32 @@ BOOL AS_LibMain(int reason, void **ppdata)
     case PLUGIN_INIT:
 		LINK_API(ppdata);
 
-		inmail_frequency_audit = (INMAIL_FREQUENCY_AUDIT)query_service(
-								"inmail_frequency_audit");
+		inmail_frequency_audit = (INMAIL_FREQUENCY_AUDIT)
+			query_service("inmail_frequency_audit");
 		if (NULL == inmail_frequency_audit) {
 			printf("[inmail_frequency]: fail to get "
-					"\"inmail_frequency_audit\" service\n");
+				"\"inmail_frequency_audit\" service\n");
 			return FALSE;
 		}
-		ip_whitelist_query = (WHITELIST_QUERY)query_service(
-								"ip_whitelist_query");
+		ip_whitelist_query = (WHITELIST_QUERY)
+			query_service("ip_whitelist_query");
 		if (NULL == ip_whitelist_query) {
-			printf("[inmail_frequency]: fail to get \"ip_whitelist_query\" "
-					"service\n");
+			printf("[inmail_frequency]: fail to get"
+				" \"ip_whitelist_query\" service\n");
 			return FALSE;
 		}
-		domain_whitelist_query = (WHITELIST_QUERY)query_service(
-									"domain_whitelist_query");
+		domain_whitelist_query = (WHITELIST_QUERY)
+			query_service("domain_whitelist_query");
 		if (NULL == domain_whitelist_query) {
-			printf("[inmail_frequency]: fail to get \"domain_whitelist_query\" "
-					"service\n");
+			printf("[inmail_frequency]: fail to get "
+				"\"domain_whitelist_query\" service\n");
+			return FALSE;
+		}
+		from_whitelist_query = (WHITELIST_QUERY)
+			query_service("from_whitelist_query");
+		if (NULL == from_whitelist_query) {
+			printf("[inmail_frequency]: fail to get "
+				"\"from_whitelist_query\" service\n");
 			return FALSE;
 		}
 		spam_statistic = (SPAM_STATISTIC)query_service("spam_statistic");
@@ -82,7 +90,7 @@ BOOL AS_LibMain(int reason, void **ppdata)
 		printf("[inmail_frequency]: block interval is %s\n", temp_buff);
 		str_value = config_file_get_value(pconfig_file, "RETURN_STRING");
 		if (NULL == str_value) {
-			strcpy(g_return_string, "000002 your IP has sent too many "
+			strcpy(g_return_string, "000012 your IP has sent too many "
 				"mails, will be blocked for a while");
 		} else {
 			strcpy(g_return_string, str_value);
@@ -115,7 +123,8 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 	
 	/* ignore the inbound mails */
 	if (TRUE == pmail->penvelop->is_outbound ||
-		TRUE == pmail->penvelop->is_relay) {
+		TRUE == pmail->penvelop->is_relay ||
+		TRUE == pmail->penvelop->is_known) {
 		return MESSAGE_ACCEPT;
 	}
 	if (TRUE == ip_whitelist_query(pconnection->client_ip)) {
@@ -123,6 +132,9 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 	}
 	pdomain = strchr(pmail->penvelop->from, '@') + 1;
 	if (TRUE == domain_whitelist_query(pdomain)) {
+		return MESSAGE_ACCEPT;
+	}
+	if (TRUE == from_whitelist_query(pmail->penvelop->from)) {
 		return MESSAGE_ACCEPT;
 	}
 	if (FALSE == inmail_frequency_audit(pconnection->client_ip)) {

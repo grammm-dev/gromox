@@ -27,7 +27,7 @@
 
 #define DOMAIN_PRIVILEGE_MONITOR            0x2
 
-#define DOMAIN_PRIVILEGE_UNCHECKUSR         0x4
+#define DOMAIN_PRIVILEGE_WEBMEETING         0x4
 
 #define DOMAIN_PRIVILEGE_SUBSYSTEM          0x8
 

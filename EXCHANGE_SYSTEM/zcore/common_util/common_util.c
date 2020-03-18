@@ -8,6 +8,7 @@
 #include "propval.h"
 #include "timezone.h"
 #include "rop_util.h"
+#include "mail_func.h"
 #include "mime_pool.h"
 #include "list_file.h"
 #include "ext_buffer.h"
@@ -48,11 +49,6 @@ typedef struct _ENVIRONMENT_CONTEXT {
 	int clifd;
 } ENVIRONMENT_CONTEXT;
 
-typedef struct _LANGMAP_ITEM {
-	char lang[32];
-	char i18n[32];
-} LANGMAP_ITEM;
-
 static int g_max_rcpt;
 static int g_mime_num;
 static int g_smtp_port;
@@ -64,9 +60,7 @@ static MIME_POOL *g_mime_pool;
 static pthread_key_t g_dir_key;
 static pthread_key_t g_env_key;
 static char g_default_zone[64];
-static char g_langmap_path[256];
 static char g_freebusy_path[256];
-static LIST_FILE *g_langmap_list;
 static char g_default_charset[32];
 static char g_folderlang_path[256];
 static char g_submit_command[1024];
@@ -621,8 +615,8 @@ void common_util_init(const char *org_name, const char *hostname,
 	const char *default_charset, const char *default_zone, int mime_num,
 	int max_rcpt, int max_message, unsigned int max_mail_len,
 	unsigned int max_rule_len, const char *smtp_ip, int smtp_port,
-	const char *freebusy_path, const char *langmap_path,
-	const char *folderlang_path, const char *submit_command)
+	const char *freebusy_path, const char *folderlang_path,
+	const char *submit_command)
 {
 	strcpy(g_org_name, org_name);
 	strcpy(g_hostname, hostname);
@@ -636,7 +630,6 @@ void common_util_init(const char *org_name, const char *hostname,
 	strcpy(g_smtp_ip, smtp_ip);
 	g_smtp_port = smtp_port;
 	strcpy(g_freebusy_path, freebusy_path);
-	strcpy(g_langmap_path, langmap_path);
 	strcpy(g_folderlang_path, folderlang_path);
 	strcpy(g_submit_command, submit_command);
 	pthread_key_create(&g_dir_key, NULL);
@@ -662,30 +655,19 @@ int common_util_run()
 		printf("[common_util]: fail to init oxcmail library\n");
 		return -2;
 	}
-	g_langmap_list = list_file_init(g_langmap_path, "%s:32%s:32");
-	if (NULL == g_langmap_list ||
-		0 == list_file_get_item_num(g_langmap_list)) {
-		printf("[common_util]: fail to init langmap %s\n", g_langmap_path);
-		return -3;
-	}
-	
 	g_folderlang_list = list_file_init(g_folderlang_path,
 		"%s:64%s:64%s:64%s:64%s:64%s:64%s:64%s:64%s"
 		":64%s:64%s:64%s:64%s:64%s:64%s:64%s:64%s:64");
 	if (NULL == g_folderlang_list) {
 		printf("[common_util]: fail to init "
 			"folderlang %s\n", g_folderlang_path);
-		return -4;
+		return -3;
 	}
 	return 0;
 }
 
 int common_util_stop()
 {
-	if (NULL != g_langmap_list) {
-		list_file_free(g_langmap_list);
-		g_langmap_list = NULL;
-	}
 	if (NULL != g_folderlang_list) {
 		list_file_free(g_folderlang_list);
 		g_folderlang_list = NULL;
@@ -2168,7 +2150,7 @@ static BOOL common_util_send_mail(MAIL *pmail,
 		pnode=double_list_get_after(prcpt_list, pnode)) {
 		if (NULL == strchr(pnode->pdata, '@')) {
 			command_len = sprintf(last_command,
-				"rcpt to:<%s@none>\r\n", pnode->pdata);
+				"rcpt to:<illegal@zcore>\r\n");
 		} else {
 			command_len = sprintf(last_command,
 				"rcpt to:<%s>\r\n", pnode->pdata);
@@ -2317,6 +2299,7 @@ BOOL common_util_send_message(STORE_OBJECT *pstore,
 	uint64_t parent_id;
 	uint64_t folder_id;
 	TARRAY_SET *prcpts;
+	EMAIL_ADDR email_addr;
 	DOUBLE_LIST temp_list;
 	uint32_t message_flags;
 	DOUBLE_LIST_NODE *pnode;
@@ -2401,8 +2384,12 @@ BOOL common_util_send_message(STORE_OBJECT *pstore,
 		pnode->pdata = common_util_get_propvals(
 			prcpts->pparray[i], PROP_TAG_SMTPADDRESS);
 		if (NULL != pnode->pdata && '\0' != ((char*)pnode->pdata)[0]) {
-			double_list_append_as_tail(&temp_list, pnode);
-			continue;
+			parse_email_addr(&email_addr, pnode->pdata);
+			if ('\0' != email_addr.local_part[0]
+				&& '\0' != email_addr.domain[0]) {
+				double_list_append_as_tail(&temp_list, pnode);
+				continue;
+			}
 		}
 		pvalue = common_util_get_propvals(
 			prcpts->pparray[i], PROP_TAG_ADDRESSTYPE);
@@ -3547,32 +3534,36 @@ BOOL common_util_nttime_to_tm(uint64_t nt_time, struct tm *ptm)
 
 const char* common_util_lang_to_i18n(const char *lang)
 {
-	int i, num;
-	LANGMAP_ITEM *pitem;
+	char *ptoken;
+	char tmp_buff[70];
 	
-	pitem = list_file_get_list(g_langmap_list);
-	num = list_file_get_item_num(g_langmap_list);
-	for (i=0; i<num; i++) {
-		if (0 == strcasecmp(pitem[i].lang, lang)) {
-			return pitem[i].i18n;
-		}
+	strncpy(tmp_buff, lang, 64);
+	lower_string(tmp_buff);
+	ptoken = strchr(tmp_buff, '-');
+	if (NULL != ptoken) {
+		*ptoken = '_';
+		upper_string(ptoken + 1);
 	}
-	return pitem[0].i18n;
+	strcat(tmp_buff, ".UTF-8");
+	return common_util_dup(tmp_buff);
 }
 
 const char* common_util_i18n_to_lang(const char *i18n)
 {
-	int i, num;
-	LANGMAP_ITEM *pitem;
+	char *ptoken;
+	char tmp_buff[70];
 	
-	pitem = list_file_get_list(g_langmap_list);
-	num = list_file_get_item_num(g_langmap_list);
-	for (i=0; i<num; i++) {
-		if (0 == strcasecmp(pitem[i].i18n, i18n)) {
-			return pitem[i].lang;
-		}
+	strncpy(tmp_buff, i18n, 70);
+	ptoken = strchr(tmp_buff, '.');
+	if (NULL != ptoken) {
+		*ptoken = '\0';
 	}
-	return pitem[0].lang;
+	lower_string(tmp_buff);
+	ptoken = strchr(tmp_buff, '_');
+	if (NULL != ptoken) {
+		*ptoken = '-';
+	}
+	return common_util_dup(tmp_buff);
 }
 
 const char* common_util_get_default_timezone()

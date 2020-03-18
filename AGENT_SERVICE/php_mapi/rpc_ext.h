@@ -81,7 +81,6 @@
 #define CALL_ID_ICALTOMESSAGE						0x4e
 #define CALL_ID_MESSAGETOVCF						0x4f
 #define CALL_ID_VCFTOMESSAGE						0x50
-#define CALL_ID_UINFO								0x51
 #define CALL_ID_CHECKSESSION						0x52
 #define CALL_ID_GETUSERAVAILABILITY					0x53
 #define CALL_ID_SETPASSWD							0x54
@@ -96,10 +95,6 @@ typedef struct _REQ_LOGON {
 typedef struct _REQ_CHECKSESSION {
 	GUID hsession;
 } REQ_CHECKSESSION;
-
-typedef struct _REQ_UINFO {
-	char *username;
-} REQ_UINFO;
 
 typedef struct _REQ_UNLOADOBJECT {
 	GUID hsession;
@@ -598,7 +593,6 @@ typedef struct _REQ_LINKMESSAGE {
 typedef union _REQUEST_PAYLOAD {
 	REQ_LOGON logon;
 	REQ_CHECKSESSION checksession;
-	REQ_UINFO uinfo;
 	REQ_UNLOADOBJECT unloadobject;
 	REQ_OPENENTRY openentry;
 	REQ_OPENSTOREENTRY openstoreentry;
@@ -690,13 +684,6 @@ typedef struct _RPC_REQUEST {
 typedef struct _RESP_LOGON {
 	GUID hsession;
 } RESP_LOGON;
-
-typedef struct _RESP_UINFO {
-	BINARY entryid;
-	char *pdisplay_name;
-	char *px500dn;
-	uint32_t privilege_bits;
-} RESP_UINFO;
 
 typedef struct _RESP_OPENENTRY {
 	uint8_t mapi_type;
@@ -918,7 +905,6 @@ typedef struct _RESP_GETUSERAVAILABILITY {
 
 typedef union _RESPONSE_PAYLOAD {
 	RESP_LOGON logon;
-	RESP_UINFO uinfo;
 	RESP_OPENENTRY openentry;
 	RESP_OPENSTOREENTRY openstoreentry;
 	RESP_OPENABENTRY openabentry;

@@ -534,13 +534,13 @@ BACKEND_TABLE:
 	pfile = list_file_init(src_file, "%s:16%s:256%d");
 	if (NULL == pfile) {
 		system_log_info("[backup_ui]: fail to init backend list file\n");
-		goto BOUNDARY_LIST;
+		goto DNS_TABLE;
 	}
 	fd = open(temp_file, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
 	if (-1 == fd) {
 		system_log_info("[backup_ui]: fail to create temporary file\n");
 		list_file_free(pfile);
-		goto BOUNDARY_LIST;
+		goto DNS_TABLE;
 	}
 	item_num = list_file_get_item_num(pfile);
 	pitem = list_file_get_list(pfile);
@@ -553,34 +553,6 @@ BACKEND_TABLE:
 	close(fd);
 	list_file_free(pfile);
 	file_operation_broadcast(temp_file, "data/delivery/gateway_dispatch.txt");
-	
-BOUNDARY_LIST:
-	sprintf(src_file, "%s/data_files/boundary_blacklist.txt", g_backup_path);
-	sprintf(dst_file, "%s/boundary_blacklist.txt", g_data_path);
-	sprintf(temp_file, "%s/data_files/temp.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-	pfile = list_file_init(src_file, "%s:256%l%s:256");
-	if (NULL == pfile) {
-		system_log_info("[backup_ui]: fail to init bounday list file\n");
-		goto DNS_TABLE;
-	}
-	fd = open(temp_file, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
-	if (-1 == fd) {
-		system_log_info("[backup_ui]: fail to create temporary file\n");
-		list_file_free(pfile);
-		goto DNS_TABLE;
-	}
-	item_num = list_file_get_item_num(pfile);
-	pitem = list_file_get_list(pfile);
-	for (i=0; i<item_num; i++) {
-		sprintf(temp_line, "%s\n", pitem + i * (2 * 256 + sizeof(long)));
-		backup_ui_encode_line(temp_line, temp_buff);
-		len = strlen(temp_buff);
-		write(fd, temp_buff, len);
-	}
-	close(fd);
-	list_file_free(pfile);
-	file_operation_broadcast(temp_file, "data/smtp/boundary_list.txt");
 
 DNS_TABLE:
 	sprintf(src_file, "%s/data_files/dns_table.txt", g_backup_path);
@@ -590,13 +562,13 @@ DNS_TABLE:
 	pfile = list_file_init(src_file, "%s:256%s:8%s:256");
 	if (NULL == pfile) {
 		system_log_info("[backup_ui]: fail to init dns list file\n");
-		goto DOMAIN_BLACKLIST;
+		goto DOMAIN_MAILBOX;
 	}
 	fd = open(temp_file, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
 	if (-1 == fd) {
 		system_log_info("[backup_ui]: fail to create temporary file\n");
 		list_file_free(pfile);
-		goto DOMAIN_BLACKLIST;
+		goto DOMAIN_MAILBOX;
 	}
 	item_num = list_file_get_item_num(pfile);
 	pitem = list_file_get_list(pfile);
@@ -617,14 +589,14 @@ DNS_TABLE:
 	if (NULL == pfile) {
 		close(fd);
 		system_log_info("[backup_ui]: fail to init redirect list file\n");
-		goto DOMAIN_BLACKLIST;
+		goto DOMAIN_MAILBOX;
 	}
 	fd1 = open(temp_file1, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
 	if (-1 == fd1) {
 		close(fd);
 		list_file_free(pfile);
 		system_log_info("[backup_ui]: fail to create temporary file\n");
-		goto DOMAIN_BLACKLIST;
+		goto DOMAIN_MAILBOX;
 	}
 	item_num = list_file_get_item_num(pfile);
 	pitem = list_file_get_list(pfile);
@@ -641,33 +613,6 @@ DNS_TABLE:
 	list_file_free(pfile);
 	file_operation_broadcast(temp_file, "data/delivery/dns_adaptor.txt");
 	file_operation_broadcast(temp_file1, "data/delivery/redirect_domains.txt");
-
-DOMAIN_BLACKLIST:
-	sprintf(src_file, "%s/data_files/domain_blacklist.txt", g_backup_path);
-	sprintf(dst_file, "%s/domain_blacklist.txt", g_data_path);
-	sprintf(temp_file, "%s/data_files/temp.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-	pfile = list_file_init(src_file, "%s:256%l%s:256");
-	if (NULL == pfile) {
-		system_log_info("[backup_ui]: fail to init domain black list file\n");
-		goto DOMAIN_MAILBOX;
-	}
-	fd = open(temp_file, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
-	if (-1 == fd) {
-		system_log_info("[backup_ui]: fail to create temporary file\n");
-		list_file_free(pfile);
-		goto DOMAIN_MAILBOX;
-	}
-	item_num = list_file_get_item_num(pfile);
-	pitem = list_file_get_list(pfile);
-	for (i=0; i<item_num; i++) {
-		len = sprintf(temp_line, "%s\n",
-				pitem + i * (2 * 256 + sizeof(long)));
-		write(fd, temp_line, len);
-	}
-	close(fd);
-	list_file_free(pfile);
-	file_operation_broadcast(temp_file, "data/smtp/forbidden_domain.txt");
 
 DOMAIN_MAILBOX:
 	sprintf(src_file, "%s/data_files/domain_mailbox.txt", g_backup_path);
@@ -704,13 +649,13 @@ DOMAIN_WHITELIST:
 	pfile = list_file_init(src_file, "%s:256%l%s:256");
 	if (NULL == pfile) {
 		system_log_info("[backup_ui]: fail to init domain white list file\n");
-		goto DYNAMIC_LIST;
+		goto FORWARD_TABLE;
 	}
 	fd = open(temp_file, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
 	if (-1 == fd) {
 		system_log_info("[backup_ui]: fail to create temporary file\n");
 		list_file_free(pfile);
-		goto DYNAMIC_LIST;
+		goto FORWARD_TABLE;
 	}
 	item_num = list_file_get_item_num(pfile);
 	pitem = list_file_get_list(pfile);
@@ -723,33 +668,6 @@ DOMAIN_WHITELIST:
 	list_file_free(pfile);
 	file_operation_broadcast(temp_file, "data/smtp/domain_whitelist.txt");
 
-DYNAMIC_LIST:
-	sprintf(src_file, "%s/data_files/dynamic_dnslist.txt", g_backup_path);
-	sprintf(dst_file, "%s/dynamic_dnslist.txt", g_data_path);
-	sprintf(temp_file, "%s/data_files/temp.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-	pfile = list_file_init(src_file, "%s:256%l%s:256");
-	if (NULL == pfile) {
-		system_log_info("[backup_ui]: fail to init dynamic domain list file\n");
-		goto FORWARD_TABLE;
-	}
-	fd = open(temp_file, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
-	if (-1 == fd) {
-		system_log_info("[backup_ui]: fail to create temporary file\n");
-		list_file_free(pfile);
-		goto FORWARD_TABLE;
-	}
-	item_num = list_file_get_item_num(pfile);
-	pitem = list_file_get_list(pfile);
-	for (i=0; i<item_num; i++) {
-		len = sprintf(temp_line, "%s\n",
-				pitem + i * (2 * 256 + sizeof(long)));
-		write(fd, temp_line, len);
-	}
-	close(fd);
-	list_file_free(pfile);
-	file_operation_broadcast(temp_file, "data/smtp/ddns_filter.txt");
-
 FORWARD_TABLE:
 	sprintf(src_file, "%s/data_files/forward_table.txt", g_backup_path);
 	sprintf(dst_file, "%s/forward_table.txt", g_data_path);
@@ -758,13 +676,13 @@ FORWARD_TABLE:
 	pfile = list_file_init(src_file, "%s:256%s:12%s:256");
 	if (NULL == pfile) {
 		system_log_info("[backup_ui]: fail to init forward table file\n");
-		goto FROM_BLACKLIST;
+		goto FROM_REPLACE;
 	}
 	fd = open(temp_file, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
 	if (-1 == fd) {
 		system_log_info("[backup_ui]: fail to create temporary file\n");
 		list_file_free(pfile);
-		goto FROM_BLACKLIST;
+		goto FROM_REPLACE;
 	}
 	item_num = list_file_get_item_num(pfile);
 	pitem = list_file_get_list(pfile);
@@ -778,33 +696,6 @@ FORWARD_TABLE:
 	close(fd);
 	list_file_free(pfile);
 	file_operation_broadcast(temp_file, "data/delivery/mail_forwarder.txt");
-
-FROM_BLACKLIST:
-	sprintf(src_file, "%s/data_files/from_blacklist.txt", g_backup_path);
-	sprintf(dst_file, "%s/from_blacklist.txt", g_data_path);
-	sprintf(temp_file, "%s/data_files/temp.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-	pfile = list_file_init(src_file, "%s:256%l%s:256");
-	if (NULL == pfile) {
-		system_log_info("[backup_ui]: fail to init from black list file\n");
-		goto FROM_REPLACE;
-	}
-	fd = open(temp_file, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
-	if (-1 == fd) {
-		system_log_info("[backup_ui]: fail to create temporary file\n");
-		list_file_free(pfile);
-		goto FROM_REPLACE;
-	}
-	item_num = list_file_get_item_num(pfile);
-	pitem = list_file_get_list(pfile);
-	for (i=0; i<item_num; i++) {
-		len = sprintf(temp_line, "%s\n",
-				pitem + i * (2 * 256 + sizeof(long)));
-		write(fd, temp_line, len);
-	}
-	close(fd);
-	list_file_free(pfile);
-	file_operation_broadcast(temp_file, "data/smtp/forbidden_from.txt");
 
 FROM_REPLACE:
 	sprintf(src_file, "%s/data_files/from_replace.txt", g_backup_path);
@@ -1160,13 +1051,13 @@ TAGGING_WHITELIST:
 	pfile = list_file_init(src_file, "%s:256%l%s:256");
 	if (NULL == pfile) {
 		system_log_info("[backup_ui]: fail to tagging white list file\n");
-		goto XMAILER_LIST;
+		goto SYSTEM_SETUP;
 	}
 	fd = open(temp_file, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
 	if (-1 == fd) {
 		system_log_info("[backup_ui]: fail to create temporary file\n");
 		list_file_free(pfile);
-		goto XMAILER_LIST;
+		goto SYSTEM_SETUP;
 	}
 	item_num = list_file_get_item_num(pfile);
 	pitem = list_file_get_list(pfile);
@@ -1177,35 +1068,7 @@ TAGGING_WHITELIST:
 	}
 	close(fd);
 	list_file_free(pfile);
-	file_operation_broadcast(temp_file, "data/smtp/tagging_table.txt");
-
-XMAILER_LIST:
-	sprintf(src_file, "%s/data_files/xmailer_blacklist.txt", g_backup_path);
-	sprintf(dst_file, "%s/xmailer_blacklist.txt", g_data_path);
-	sprintf(temp_file, "%s/data_files/temp.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-	pfile = list_file_init(src_file, "%s:64%l%s:8%s:256");
-	if (NULL == pfile) {
-		system_log_info("[backup_ui]: fail to init xmailer black list file\n");
-		goto SYSTEM_SETUP;
-	}
-	fd = open(temp_file, O_CREAT|O_TRUNC|O_WRONLY, DEF_MODE);
-	if (-1 == fd) {
-		system_log_info("[backup_ui]: fail to create temporary file\n");
-		list_file_free(pfile);
-		goto SYSTEM_SETUP;
-	}
-	item_num = list_file_get_item_num(pfile);
-	pitem = list_file_get_list(pfile);
-	for (i=0; i<item_num; i++) {
-		backup_ui_encode_line(pitem + i * (64 + sizeof(long) + 8 + 256), temp_buff);
-		len = sprintf(temp_line, "M_%s\t%s\n",
-				pitem + i * (64 + sizeof(long) + 8 + 256) + 64 + sizeof(long), temp_buff);
-		write(fd, temp_line, len);
-	}
-	close(fd);
-	list_file_free(pfile);
-	file_operation_broadcast(temp_file, "data/smtp/xmailer_filter.txt");
+	file_operation_broadcast(temp_file, "data/smtp/from_whitelist.txt");
 
 SYSTEM_SETUP:
 	sprintf(src_file, "%s/data_files/athena.cfg", g_backup_path);
@@ -1550,17 +1413,13 @@ SYSTEM_SETUP:
 CONSOLE_FLUSH:
 	gateway_control_notify("gateway_dispatch.hook backends reload",
 		NOTIFY_DELIVERY);
-	gateway_control_notify("boundary_list.svc reload", NOTIFY_SMTP);
 	gateway_control_notify("dns_adaptor.svc reload fixed", NOTIFY_DELIVERY);
 	gateway_control_notify("dns_adaptor.svc reload inbound-ips", NOTIFY_DELIVERY);
 	gateway_control_notify("redirect_domains.svc reload", NOTIFY_DELIVERY);
-	gateway_control_notify("forbidden_domain.svc reload", NOTIFY_SMTP);
 	gateway_control_notify("domain_list.svc reload", NOTIFY_SMTP|NOTIFY_DELIVERY);
 	gateway_control_notify("domain_mailbox.hook reload", NOTIFY_DELIVERY);
 	gateway_control_notify("domain_whitelist.svc reload", NOTIFY_SMTP);
-	gateway_control_notify("ddns_filter.pas reload", NOTIFY_SMTP);
 	gateway_control_notify("mail_forwarder.hook reload", NOTIFY_DELIVERY);
-	gateway_control_notify("forbidden_from.svc reload", NOTIFY_SMTP);
 	gateway_control_notify("from_replace.hook reload", NOTIFY_DELIVERY);
 	gateway_control_notify("ip_filter.svc grey-list reload", NOTIFY_SMTP);
 	gateway_control_notify("ip_whitelist.svc reload", NOTIFY_SMTP);
@@ -1573,8 +1432,7 @@ CONSOLE_FLUSH:
 	gateway_control_notify("keyword_filter.pas charset reload", NOTIFY_SMTP);
 	gateway_control_notify("forbidden_rcpt.svc reload", NOTIFY_SMTP);
 	gateway_control_notify("system_sign.hook reload", NOTIFY_DELIVERY);
-	gateway_control_notify("tagging_table.svc reload", NOTIFY_SMTP);
-	gateway_control_notify("xmailer_filter.pas reload", NOTIFY_SMTP);
+	gateway_control_notify("from_whitelist.svc reload", NOTIFY_SMTP);
 
 	backup_ui_restart_adaptor();
 	backup_ui_restart_supervisor();
@@ -1615,21 +1473,13 @@ static void backup_ui_backup_file()
 	sprintf(src_file, "%s/backend_table.txt", g_data_path);
 	sprintf(dst_file, "%s/data_files/backend_table.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
-
-	sprintf(src_file, "%s/boundary_blacklist.txt", g_data_path);
-	sprintf(dst_file, "%s/data_files/boundary_blacklist.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-
+	
 	sprintf(src_file, "%s/dns_table.txt", g_data_path);
 	sprintf(dst_file, "%s/data_files/dns_table.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
 	
 	sprintf(src_file, "%s/redirect_table.txt", g_data_path);
 	sprintf(dst_file, "%s/data_files/redirect_table.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-	
-	sprintf(src_file, "%s/domain_blacklist.txt", g_data_path);
-	sprintf(dst_file, "%s/data_files/domain_blacklist.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
 	
 	sprintf(src_file, "%s/domain_mailbox.txt", g_data_path);
@@ -1646,10 +1496,6 @@ static void backup_ui_backup_file()
 	
 	sprintf(src_file, "%s/forward_table.txt", g_data_path);
 	sprintf(dst_file, "%s/data_files/forward_table.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-	
-	sprintf(src_file, "%s/from_blacklist.txt", g_data_path);
-	sprintf(dst_file, "%s/data_files/from_blacklist.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
 
 	sprintf(src_file, "%s/from_replace.txt", g_data_path);
@@ -1724,10 +1570,6 @@ static void backup_ui_backup_file()
 	
 	sprintf(src_file, "%s/tagging_whitelist.txt", g_data_path);
 	sprintf(dst_file, "%s/data_files/tagging_whitelist.txt", g_backup_path);
-	file_operation_copy_file(src_file, dst_file);
-
-	sprintf(src_file, "%s/xmailer_blacklist.txt", g_data_path);
-	sprintf(dst_file, "%s/data_files/xmailer_blacklist.txt", g_backup_path);
 	file_operation_copy_file(src_file, dst_file);
 
 	sprintf(dst_file, "%s/data_files/athena.cfg", g_backup_path);

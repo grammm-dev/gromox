@@ -4,7 +4,7 @@
 
 BOOL cmd_handler_smtp_error_code_control(int argc, char** argv);
 
-BOOL cmd_handler_anti_spamming_control(int argc, char** argv);
+BOOL cmd_handler_anti_spam_control(int argc, char** argv);
 
 BOOL cmd_handler_smtp_control(int argc, char** argv);
 

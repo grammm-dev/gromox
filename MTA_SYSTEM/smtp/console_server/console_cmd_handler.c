@@ -1,10 +1,10 @@
 #include "console_cmd_handler.h"
 #include "blocks_allocator.h"
 #include "console_server.h"
-#include "anti_spamming.h"
 #include "contexts_pool.h"
 #include "threads_pool.h"
 #include "lib_buffer.h"
+#include "anti_spam.h"
 #include "resource.h"
 #include "flusher.h"
 #include "service.h"
@@ -27,7 +27,7 @@ static char g_server_help[] =
 	"250 SMTP DAEMON server help information:\r\n"
 	"\treturn-code    --return code operating\r\n"
 	"\tservice        --control service plugins\r\n"
-	"\tanti-spamming  --control anti-spamming plugins\r\n"
+	"\tanti-spam      --control anti-spam plugins\r\n"
 	"\tflusher        --control the flusher plgin\r\n"
 	"\tsmtp           --smtp operating\r\n"
 	"\tsystem         --control the SMTP DAEMON server\r\n"
@@ -52,14 +52,14 @@ static char g_service_help[] =
 	"\t    --print modules depending the service plug-in";
 
 static char g_anti_spam_help[] =
-	"250 SMTP DAEMON anti-spamming plugins help information:\r\n"
-	"\tanti-spamming info\r\n"
+	"250 SMTP DAEMON anti-spam plugins help information:\r\n"
+	"\tanti-spam info\r\n"
 	"\t    --print the plug-in info\r\n"
-	"\tanti-spamming load <name>\r\n"
+	"\tanti-spam load <name>\r\n"
 	"\t    --load the specified plug-in\r\n"
-	"\tanti-spamming unload <name>\r\n"
+	"\tanti-spam unload <name>\r\n"
 	"\t    --unload the specified plug-in\r\n"
-	"\tanti-spamming reload <name>\r\n"
+	"\tanti-spam reload <name>\r\n"
 	"\t    --reload the specified plug-in";
 
 static char g_smtp_parser_help[] =
@@ -241,15 +241,15 @@ BOOL cmd_handler_service_control(int argc, char** argv)
 }
 
 /*  
- *  anti-spamming plug-in control, which can print all the plug-in 
+ *  anti-spam plug-in control, which can print all the plug-in 
  *  information, load and unload the specified plug-in dynamicly.
  *  the usage is as follows,
- *      anti-spamming info          // print the plug-in info
- *      anti-spamming load   <name> // load the specified plug-in
- *      anti-spamming unload <name> // unload the specified plug-in
- *      anti-spamming reload <name> // reload the specified plug-in
+ *      anti-spam info          // print the plug-in info
+ *      anti-spam load   <name> // load the specified plug-in
+ *      anti-spam unload <name> // unload the specified plug-in
+ *      anti-spam reload <name> // reload the specified plug-in
  */
-BOOL cmd_handler_anti_spamming_control(int argc, char** argv)
+BOOL cmd_handler_anti_spam_control(int argc, char** argv)
 {
 	int  result = 0;
 
@@ -264,16 +264,16 @@ BOOL cmd_handler_anti_spamming_control(int argc, char** argv)
 
 	if (2 == argc && 0 == strcmp(argv[1], "info")) {
 		g_plugname_buffer_size = 0;
-		anti_spamming_enum_plugins(cmd_handler_dump_plugname);
+		anti_spam_enum_plugins(cmd_handler_dump_plugname);
 		g_plugname_buffer[g_plugname_buffer_size] = '\0';
-		console_server_reply_to_client("250 loaded anti-spamming plugins\r\n%s",
+		console_server_reply_to_client("250 loaded anti-spam plugins\r\n%s",
 				g_plugname_buffer);
 		g_plugname_buffer_size = 0;
 		return TRUE;
 	}
 
 	if (3 == argc && 0 == strcmp(argv[1], "load")) {
-		result = anti_spamming_load_library(argv[2]);
+		result = anti_spam_load_library(argv[2]);
 		switch (result) {
 		case PLUGIN_LOAD_OK:
 			console_server_reply_to_client("250 load plug-in OK");
@@ -302,7 +302,7 @@ BOOL cmd_handler_anti_spamming_control(int argc, char** argv)
 	}
 
 	if (3 == argc && 0 == strcmp(argv[1], "unload")) {
-		result = anti_spamming_unload_library(argv[2]);
+		result = anti_spam_unload_library(argv[2]);
 		switch (result) {
 		case PLUGIN_UNLOAD_OK:
 			console_server_reply_to_client("250 unload %s OK", argv[2]);
@@ -312,7 +312,7 @@ BOOL cmd_handler_anti_spamming_control(int argc, char** argv)
 			return TRUE;
 		case PLUGIN_SYSTEM_ERROR:
 			console_server_reply_to_client("550 information in "
-				"anti-spamming module diff with the current plug-in");
+				"anti-spam module diff with the current plug-in");
 			return TRUE;
 		default:
 			console_server_reply_to_client("550 unknown error");
@@ -321,7 +321,7 @@ BOOL cmd_handler_anti_spamming_control(int argc, char** argv)
 	}
 
 	if (3 == argc && 0 == strcmp(argv[1], "reload")) {
-		result = anti_spamming_reload_library(argv[2]);
+		result = anti_spam_reload_library(argv[2]);
 		switch (result) {
 		case PLUGIN_RELOAD_OK:
 			console_server_reply_to_client("250 reload %s OK", argv[2]);
@@ -759,9 +759,9 @@ BOOL cmd_handler_as_plugins(int argc, char** argv)
 	
 	memset(buf, 0, TALK_BUFFER_LEN);
 	if (PLUGIN_TALK_OK == 
-		anti_spamming_console_talk(argc, argv, buf, TALK_BUFFER_LEN)) {
+		anti_spam_console_talk(argc, argv, buf, TALK_BUFFER_LEN)) {
 		if (strlen(buf) == 0) {
-			strncpy(buf, "550 anti-spamming plugin console talk is error "
+			strncpy(buf, "550 anti-spam plugin console talk is error "
 					"implemented!!!", sizeof(buf) - 1);
 			buf[sizeof(buf) - 1] = '\0';
 		}

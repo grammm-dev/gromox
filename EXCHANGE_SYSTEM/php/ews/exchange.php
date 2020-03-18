@@ -286,7 +286,7 @@ class ExchangeWebServices {
 		require_once "../lib/conf.php";
 		$appconf = get_app_config();
 		if (!$appconf['system']['freebusy']) {
-			$fb_dir = "/var/pandora/tools";
+			$fb_dir = "/var/grid-agent/tools";
 		} else {
 			$fb_dir = $appconf['system']['freebusy'];
 		}

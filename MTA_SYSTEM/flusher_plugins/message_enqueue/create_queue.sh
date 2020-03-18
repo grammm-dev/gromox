@@ -14,5 +14,6 @@ mkdir $1/timer
 mkdir $1/cache
 mkdir $1/clone
 mkdir $1/insulation
+mkdir $1/mapi
 echo "message queue $1 is created successfully"
 exit 0

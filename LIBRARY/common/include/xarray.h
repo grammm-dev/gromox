@@ -3,8 +3,8 @@
 #include "lib_buffer.h"
 #include "double_list.h"
 
-#define XARRAY_CACHEITEM_NUMBER  (16*1024)
-#define XARRAY_HASHITEM_NUMBER   (4*1024)
+#define XARRAY_CACHEITEM_NUMBER  (256*1024)
+#define XARRAY_HASHITEM_NUMBER   (64*1024)
 
 typedef struct _XARRAY_UNIT {
 	DOUBLE_LIST_NODE    node;

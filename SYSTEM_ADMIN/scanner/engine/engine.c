@@ -248,6 +248,205 @@ static void engine_clean_cid(const char *path)
 	sqlite3_close(psqlite);
 }
 
+static void engine_clean_dac_bin(const char *path)
+{
+	DIR *dirp;
+	int sql_len;
+	sqlite3 *psqlite;
+	sqlite3 *psqlite1;
+	char tmp_path[256];
+	sqlite3_stmt *pstmt;
+	sqlite3_stmt *pstmt1;
+	char sql_string[256];
+	struct dirent *direntp;
+	
+	if (SQLITE_OK != sqlite3_open_v2(":memory:", &psqlite,
+		SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE, NULL)) {
+		return;
+	}
+	sprintf(sql_string, "CREATE TABLE files (filename TEXT PRIMARY KEY)");
+	if (SQLITE_OK != sqlite3_exec(psqlite,
+		sql_string, NULL, NULL, NULL)) {
+		sqlite3_close(psqlite);
+		return;
+	}
+	sqlite3_exec(psqlite, "BEGIN TRANSACTION", NULL, NULL, NULL);
+	sql_len = sprintf(sql_string, "INSERT INTO files VALUES (?)");
+	if (SQLITE_OK != sqlite3_prepare_v2(psqlite,
+		sql_string, sql_len, &pstmt, NULL)) {
+		sqlite3_close(psqlite);
+		return;
+	}
+	sprintf(tmp_path, "%s/exmdb/dac.sqlite3", path);
+	if (SQLITE_OK != sqlite3_open_v2(tmp_path,
+		&psqlite1, SQLITE_OPEN_READWRITE, NULL)) {
+		sqlite3_finalize(pstmt);
+		sqlite3_close(psqlite);
+		return;
+	}
+	if (SQLITE_OK != sqlite3_prepare_v2(psqlite1,
+		"SELECT propval FROM propvals WHERE type=258",
+		-1, &pstmt1, NULL)) {
+		sqlite3_finalize(pstmt);
+		sqlite3_close(psqlite);
+		sqlite3_close(psqlite1);
+		return;
+	}
+	while (SQLITE_ROW == sqlite3_step(pstmt1)) {
+		sqlite3_reset(pstmt);
+		sqlite3_bind_text(pstmt, 1,
+			sqlite3_column_text(pstmt1, 0),
+			-1, SQLITE_STATIC);
+		if (SQLITE_DONE != sqlite3_step(pstmt)) {
+			sqlite3_finalize(pstmt);
+			sqlite3_finalize(pstmt1);
+			sqlite3_close(psqlite);
+			sqlite3_close(psqlite1);
+			return;
+		}
+	}
+	sqlite3_finalize(pstmt1);
+	sqlite3_close(psqlite1);
+	sqlite3_finalize(pstmt);
+	sqlite3_exec(psqlite, "COMMIT TRANSACTION", NULL, NULL, NULL);
+	sql_len = sprintf(sql_string, "SELECT "
+		"filename FROM files WHERE filename=?");
+	if (SQLITE_OK != sqlite3_prepare_v2(psqlite,
+		sql_string, sql_len, &pstmt, NULL)) {
+		sqlite3_close(psqlite);
+		return;
+	}
+	sprintf(tmp_path, "%s/dac", path);
+	dirp = opendir(tmp_path);
+	if (NULL == dirp) {
+		sqlite3_finalize(pstmt);
+		sqlite3_close(psqlite);
+		return;
+	}
+	while ((direntp = readdir(dirp)) != NULL) {
+		if (0 == strcmp(direntp->d_name, ".") ||
+			0 == strcmp(direntp->d_name, "..")) {
+			continue;
+		}
+		sqlite3_reset(pstmt);
+		sqlite3_bind_text(pstmt, 1, direntp->d_name, -1, SQLITE_STATIC);
+		if (SQLITE_ROW != sqlite3_step(pstmt)) {
+			sprintf(tmp_path, "%s/dac/%s", path, direntp->d_name);
+			remove(tmp_path);
+		}
+	}
+	closedir(dirp);
+	sqlite3_finalize(pstmt);
+	sqlite3_close(psqlite);
+}
+
+static BOOL engine_delete_dac_table(
+	sqlite3 *psqlite, uint64_t object_id)
+{
+	sqlite3_stmt *pstmt;
+	
+	if (SQLITE_OK != sqlite3_prepare_v2(psqlite,
+		"SELECT cellvals.value FROM cellvals JOIN "
+		"tblrows ON cellvals.row_id=tblrows.row_id "
+		"AND cellvals.type=13 AND tblrows.object_id=?",
+		-1, &pstmt, NULL)) {
+		return FALSE;
+	}
+	sqlite3_bind_int64(pstmt, 1, object_id);
+	if (SQLITE_ROW == sqlite3_step(pstmt)) {
+		if (FALSE == engine_delete_dac_table(psqlite,
+			sqlite3_column_int64(pstmt, 0))) {
+			return FALSE;	
+		}
+	}
+	sqlite3_finalize(pstmt);
+	if (SQLITE_OK != sqlite3_prepare_v2(psqlite,
+		"DELETE FROM objtbls WHERE object_id=?",
+		-1, &pstmt, NULL)) {
+		return FALSE;	
+	}
+	sqlite3_bind_int64(pstmt, 1, object_id);
+	sqlite3_step(pstmt);
+	sqlite3_finalize(pstmt);
+	return TRUE;
+}
+
+static BOOL engine_delete_dac_row(sqlite3 *psqlite, uint64_t row_id)
+{
+	sqlite3_stmt *pstmt;
+	
+	if (SQLITE_OK != sqlite3_prepare_v2(psqlite,
+		"SELECT value FROM cellvals WHERE type=13"
+		" AND row_id=?", -1, &pstmt, NULL)) {
+		return FALSE;
+	}
+	sqlite3_bind_int64(pstmt, 1, row_id);
+	if (SQLITE_ROW == sqlite3_step(pstmt)) {
+		if (FALSE == engine_delete_dac_table(psqlite,
+			sqlite3_column_int64(pstmt, 0))) {
+			return FALSE;	
+		}
+	}
+	sqlite3_finalize(pstmt);
+	if (SQLITE_OK != sqlite3_prepare_v2(psqlite,
+		"DELETE FROM tblrows WHERE row_id=?",
+		-1, &pstmt, NULL)) {
+		return FALSE;	
+	}
+	sqlite3_bind_int64(pstmt, 1, row_id);
+	sqlite3_step(pstmt);
+	sqlite3_finalize(pstmt);
+	return TRUE;
+}
+
+static void engine_clean_dac_row(const char *path)
+{
+	int sql_len;
+	uint64_t row_id;
+	time_t cur_time;
+	sqlite3 *psqlite;
+	char tmp_path[256];
+	uint64_t valid_days;
+	sqlite3_stmt *pstmt;
+	uint64_t created_time;
+	
+	time(&cur_time);
+	sprintf(tmp_path, "%s/exmdb/dac.sqlite3", path);
+	if (SQLITE_OK != sqlite3_open_v2(tmp_path,
+		&psqlite, SQLITE_OPEN_READWRITE, NULL)) {
+		return;
+	}
+	sqlite3_exec(psqlite, "PRAGMA foreign_keys=ON", NULL, NULL, NULL);
+	if (SQLITE_OK != sqlite3_prepare_v2(psqlite, "SELECT"
+		" tblrows.row_id, strftime('%s', tblrows.ctime),"
+		" objtbls.valid_days FROM tblrows JOIN objtbls ON"
+		" tblrows.object_id=objtbls.object_id", -1, &pstmt,
+		NULL)) {
+		sqlite3_close(psqlite);
+		return;
+	}
+	sqlite3_exec(psqlite, "BEGIN TRANSACTION", NULL, NULL, NULL);
+	while (SQLITE_ROW == sqlite3_step(pstmt)) {
+		row_id = sqlite3_column_int64(pstmt, 0);
+		created_time = sqlite3_column_int64(pstmt, 1);
+		valid_days = sqlite3_column_int64(pstmt, 2);
+		if (0 == valid_days) {
+			continue;
+		}
+		if (cur_time - created_time > valid_days*24*3600) {
+			if (FALSE == engine_delete_dac_row(psqlite, row_id)) {
+				sqlite3_exec(psqlite, "ROLLBACK", NULL, NULL, NULL);
+				sqlite3_finalize(pstmt);
+				sqlite3_close(psqlite);
+				return;
+			}
+		}
+	}
+	sqlite3_exec(psqlite, "COMMIT TRANSACTION", NULL, NULL, NULL);
+	sqlite3_finalize(pstmt);
+	sqlite3_close(psqlite);
+}
+
 static void engine_clean_eml_and_ext(const char *path)
 {
 	DIR *dirp;
@@ -362,7 +561,7 @@ static void engine_clean_eml_and_ext(const char *path)
 	sqlite3_close(psqlite);
 }
 
-static void engine_cleaning_tmp(const char *path)
+static void engine_clean_tmp(const char *path)
 {
 	DIR *dirp;
 	char *pdot;
@@ -424,7 +623,7 @@ static void engine_cleaning_tmp(const char *path)
 	closedir(dirp);
 }
 
-static BOOL engine_rebuild_exmdb(const char *path)
+static BOOL engine_rebuild_exchange(const char *path)
 {
 	pid_t pid;
 	int status;
@@ -482,7 +681,7 @@ static BOOL engine_clean_and_calculate_maildir(
 		}
 		sqlite3_close(psqlite);
 		if (TRUE == b_corrupt) {
-			if (TRUE == engine_rebuild_exmdb(path)) {
+			if (TRUE == engine_rebuild_exchange(path)) {
 				system_log_info("[engine]: %s/exmdb/exchange.sqlite3"
 					" is fixed OK", path);
 			} else {
@@ -495,6 +694,34 @@ static BOOL engine_clean_and_calculate_maildir(
 				system_log_info("[engine]: "
 					"%s/exmdb/exchange.sqlite3 is malformed,"
 					" cannot be fixed, verify it ASAP!", path);
+			}
+		}
+	}
+	sprintf(tmp_path, "%s/exmdb/dac.sqlite3", path);
+	if (SQLITE_OK == sqlite3_open_v2(tmp_path,
+		&psqlite, SQLITE_OPEN_READWRITE, NULL)) {
+		b_corrupt = FALSE;
+		if (SQLITE_OK == sqlite3_prepare_v2(psqlite,
+			"PRAGMA integrity_check", -1, &pstmt, NULL )) {
+			if (SQLITE_ROW == sqlite3_step(pstmt)) {
+				presult = sqlite3_column_text(pstmt, 0);
+				if (NULL == presult || 0 != strcmp(presult, "ok")) {
+					b_corrupt = TRUE;
+				}
+			}
+			sqlite3_finalize(pstmt);
+		}
+		sqlite3_close(psqlite);	
+		if (TRUE == b_corrupt) {
+			sprintf(tmp_path2, "%s/exmdb/dac.sqlite3", slave_path);
+			if (0 == stat(tmp_path2, &node_stat) &&
+				0 != S_ISREG(node_stat.st_mode)) {
+				engine_copy_file(tmp_path2, tmp_path, node_stat.st_size);
+				system_log_info("[engine]: %s/exmdb/dac.sqlite3 is "
+					"malformed, rollback from backup system!", path);
+			} else {
+				system_log_info("[engine]: %s/exmdb/dac.sqlite3 is "
+					"malformed, cannot be fixed, verify it ASAP!", path);
 			}
 		}
 	}
@@ -528,7 +755,9 @@ static BOOL engine_clean_and_calculate_maildir(
 	}
 	engine_clean_eml_and_ext(path);
 	engine_clean_cid(path);
-	engine_cleaning_tmp(path);
+	engine_clean_tmp(path);
+	engine_clean_dac_bin(path);
+	engine_clean_dac_row(path);
 	bytes = 0;
 	files = 0;
 	*pbytes = 0;
@@ -595,7 +824,7 @@ static BOOL engine_clean_and_calculate_homedir(
 		}
 		sqlite3_close(psqlite);
 		if (TRUE == b_corrupt) {
-			if (TRUE == engine_rebuild_exmdb(path)) {
+			if (TRUE == engine_rebuild_exchange(path)) {
 				system_log_info("[engine]: %s/exmdb/exchange.sqlite3"
 					" is fixed OK", path);
 			} else {

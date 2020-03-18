@@ -40,7 +40,8 @@ static void *thread_work_func(void *param)
 	struct sockaddr_in peer_name;
 	EXMDB_CONNECTION *pconnection;
 	
-	while (NULL == common_util_lang_to_charset ||
+	while (FALSE == g_notify_stop &&
+		(NULL == common_util_lang_to_charset ||
 		NULL == common_util_cpid_to_charset ||
 		NULL == common_util_set_propvals ||
 		NULL == common_util_remove_propvals ||
@@ -56,8 +57,8 @@ static void *thread_work_func(void *param)
 		NULL == common_util_get_domain_ids ||
 		NULL == common_util_send_mail ||
 		NULL == common_util_get_mime_pool ||
-		NULL == common_util_log_info) {
-		sleep(1);	
+		NULL == common_util_log_info)) {
+		sleep(1);
 	}
 	while (FALSE == g_notify_stop) {
 		/* wait for an incoming connection */

@@ -5,12 +5,11 @@
 #include "rbl_cache.h"
 #include <stdio.h>
 
-#define SPAM_STATISTIC_DNS_RBL         37
+#define SPAM_STATISTIC_DNS_RBL         4
 
-typedef BOOL (*WHITELIST_QUERY)(char*);
 typedef void (*SPAM_STATISTIC)(int);
+typedef BOOL (*WHITELIST_QUERY)(char*);
 typedef BOOL (*CHECK_RETRYING)(const char*, const char*, MEM_FILE*);
-typedef BOOL (*CHECK_TAGGING)(const char*, MEM_FILE*);
 
 static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
     CONNECTION *pconnection, char *reason, int length);
@@ -19,11 +18,11 @@ static void console_talk(int argc, char **argv, char *result, int length);
 
 DECLARE_API;
 
-static WHITELIST_QUERY ip_whitelist_query;
-static WHITELIST_QUERY domain_whitelist_query;
 static SPAM_STATISTIC spam_statistic;
 static CHECK_RETRYING check_retrying;
-static CHECK_TAGGING check_tagging;
+static WHITELIST_QUERY ip_whitelist_query;
+static WHITELIST_QUERY from_whitelist_query;
+static WHITELIST_QUERY domain_whitelist_query;
 
 static char g_config_file[256];
 static char g_return_string[1024];
@@ -46,22 +45,25 @@ BOOL AS_LibMain(int reason, void **ppdata)
 			printf("[dns_rbl]: fail to get \"check_retrying\" service\n");
 			return FALSE;
 		}
-		check_tagging = (CHECK_TAGGING)query_service("check_tagging");
-		if (NULL == check_tagging) {
-			printf("[dns_rbl]: fail to get \"check_tagging\" service\n");
-			return FALSE;
-		}
-		ip_whitelist_query = (WHITELIST_QUERY)query_service(
-							"ip_whitelist_query");
+		ip_whitelist_query = (WHITELIST_QUERY)
+			query_service("ip_whitelist_query");
 		if (NULL == ip_whitelist_query) {
-			printf("[dns_rbl]: fail to get \"ip_whitelist_query\" service\n");
+			printf("[dns_rbl]: fail to get "
+				"\"ip_whitelist_query\" service\n");
 			return FALSE;
 		}
-		domain_whitelist_query = (WHITELIST_QUERY)query_service(
-				                "domain_whitelist_query");
+		domain_whitelist_query = (WHITELIST_QUERY)
+			query_service("domain_whitelist_query");
 		if (NULL == domain_whitelist_query) {
-			printf("[dns_rbl]: fail to get \"domain_whitelist_query\" "
-					"service\n");
+			printf("[dns_rbl]: fail to get "
+				"\"domain_whitelist_query\" service\n");
+			return FALSE;
+		}
+		from_whitelist_query = (WHITELIST_QUERY)
+			query_service("from_whitelist_query");
+		if (NULL == from_whitelist_query) {
+			printf("[dns_rbl]: fail to get "
+				"\"from_whitelist_query\" service\n");
 			return FALSE;
 		}
 		spam_statistic = (SPAM_STATISTIC)query_service("spam_statistic");
@@ -146,11 +148,12 @@ BOOL AS_LibMain(int reason, void **ppdata)
 static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
     CONNECTION *pconnection, char *reason, int length)
 {
-	char *pdomain;
 	int result;
+	char *pdomain;
 	
 	if (TRUE == pmail->penvelop->is_outbound ||
-		TRUE == pmail->penvelop->is_relay) {
+		TRUE == pmail->penvelop->is_relay ||
+		TRUE == pmail->penvelop->is_known) {
 		return MESSAGE_ACCEPT;
 	}
 	if (TRUE == ip_whitelist_query(pconnection->client_ip)) {
@@ -159,6 +162,9 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 	pdomain = strchr(pmail->penvelop->from, '@');
 	pdomain ++;
 	if (TRUE == domain_whitelist_query(pdomain)) {
+		return MESSAGE_ACCEPT;
+	}
+	if (TRUE == from_whitelist_query(pmail->penvelop->from)) {
 		return MESSAGE_ACCEPT;
 	}
 	/* ignore system messages */
@@ -170,38 +176,26 @@ static int mail_statistic(int context_ID, MAIL_WHOLE *pmail,
 	if (RBL_CACHE_NORMAL == result) {
 		return MESSAGE_ACCEPT;
 	} else if (RBL_CACHE_BLACK == result) {
-		if (TRUE == check_tagging(pmail->penvelop->from,
-			&pmail->penvelop->f_rcpt_to)) {
-			mark_context_spam(context_ID);
-			return MESSAGE_ACCEPT;
-		} else {
-			if (FALSE == check_retrying(pconnection->client_ip,
-				pmail->penvelop->from, &pmail->penvelop->f_rcpt_to)) {
-				if (NULL!= spam_statistic) {
-					spam_statistic(SPAM_STATISTIC_DNS_RBL);
-				}
-				return MESSAGE_RETRYING;
-			} else {
-				return MESSAGE_ACCEPT;
+		if (FALSE == check_retrying(pconnection->client_ip,
+			pmail->penvelop->from, &pmail->penvelop->f_rcpt_to)) {
+			if (NULL!= spam_statistic) {
+				spam_statistic(SPAM_STATISTIC_DNS_RBL);
 			}
+			return MESSAGE_RETRYING;
+		} else {
+			return MESSAGE_ACCEPT;
 		}
 	}
 	if (FALSE == dns_rbl_judge(pconnection->client_ip, reason, length)) {
 		rbl_cache_add(pconnection->client_ip, RBL_CACHE_BLACK, reason);
-		if (TRUE == check_tagging(pmail->penvelop->from,
-			&pmail->penvelop->f_rcpt_to)) {
-			mark_context_spam(context_ID);
-			return MESSAGE_ACCEPT;
-		} else {
-			if (FALSE == check_retrying(pconnection->client_ip,
-				pmail->penvelop->from, &pmail->penvelop->f_rcpt_to)) {	
-				if (NULL!= spam_statistic) {
-					spam_statistic(SPAM_STATISTIC_DNS_RBL);
-				}
-				return MESSAGE_RETRYING;
-			} else {
-				return MESSAGE_ACCEPT;
+		if (FALSE == check_retrying(pconnection->client_ip,
+			pmail->penvelop->from, &pmail->penvelop->f_rcpt_to)) {	
+			if (NULL!= spam_statistic) {
+				spam_statistic(SPAM_STATISTIC_DNS_RBL);
 			}
+			return MESSAGE_RETRYING;
+		} else {
+			return MESSAGE_ACCEPT;
 		}
 	}
 	rbl_cache_add(pconnection->client_ip, RBL_CACHE_NORMAL, NULL);

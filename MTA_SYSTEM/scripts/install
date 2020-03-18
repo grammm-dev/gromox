@@ -1,17 +1,17 @@
 #!/bin/sh
 
 
-mkdir /var/herculiz
-cp -R * /var/herculiz
-/var/herculiz/bin/create_queue.sh /var/herculiz/queue
+mkdir /var/grid-mta
+cp -R * /var/grid-mta
+/var/grid-mta/bin/create_queue.sh /var/grid-mta/queue
 groupadd -g 800 herculiz
-useradd herculiz -u 800 -g herculiz -d /var/herculiz -s /bin/nologin
-chown -R herculiz:herculiz /var/herculiz
-chmod -R a+rw /var/herculiz
-chmod a+x /var/herculiz
-mv /var/herculiz/bin/herculiz.bin /usr/bin/herculiz
-mv /var/herculiz/bin/herculiz.sh /etc/rc.d/init.d/herculiz
-rm -f /var/herculiz/bin/herculiz.service
-chkconfig --add herculiz
-echo "HERCULIZ MTA is installed OK"
+useradd herculiz -u 800 -g herculiz -d /tmp -s /bin/nologin
+chown -R herculiz:herculiz /var/grid-mta
+chmod -R a+rw /var/grid-mta
+chmod a+x /var/grid-mta
+mv /var/grid-mta/bin/mta.bin /usr/bin/mta
+mv /var/grid-mta/bin/grid-mta.sh /etc/rc.d/init.d/grid-mta
+rm -f /var/grid-mta/bin/grid-mta.service
+chkconfig --add grid-mta
+echo "grid MTA is installed OK"
 echo

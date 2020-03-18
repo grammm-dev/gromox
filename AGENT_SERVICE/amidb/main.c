@@ -28,7 +28,7 @@
 
 #define AMIDB_VERSION           "1.0"
 
-#define CS_PATH                 "/var/pandora/token/amidb"
+#define CS_PATH                 "/var/grid-agent/token/amidb"
 
 #define SOCKET_TIMEOUT          60
 

@@ -159,6 +159,13 @@ href=\"domain_folders?domain=%s&session=%s\" target=basefrm>\n\
 <TD noWrap align=left><A title=\"%s\" \n\
 href=\"domain_folders?domain=%s&session=%s\" target=basefrm>%s</A></TD></TR>\n"
 
+#define HTML_LEFT_ITEM_MEETINGS	\
+"<TR><TD align=left width=48><A title=\"%s\" \n\
+href=\"domain_meetings?domain=%s&session=%s\" target=basefrm>\n\
+<IMG src=\"../data/picture/icon_meetings.jpg\" border=0></A></TD>\n\
+<TD noWrap align=left><A title=\"%s\" \n\
+href=\"domain_meetings?domain=%s&session=%s\" target=basefrm>%s</A></TD></TR>\n"
+
 #define HTML_LEFT_ITEM_CLASSES	\
 "<TR><TD align=left width=48><A title=\"%s\" \n\
 href=\"domain_classes?domain=%s&session=%s\" target=basefrm>\n\
@@ -568,6 +575,11 @@ static void ui_main_left_html(const char *domain, const char *session)
 	printf(HTML_LEFT_ITEM_FOLDERS, lang_resource_get(g_lang_resource,"ITEM_DOMAIN_FOLDERS",
 		language), domain, session, lang_resource_get(g_lang_resource,"ITEM_DOMAIN_FOLDERS",
 		language), domain, session, lang_resource_get(g_lang_resource,"ITEM_DOMAIN_FOLDERS",
+		language));
+	
+	printf(HTML_LEFT_ITEM_MEETINGS, lang_resource_get(g_lang_resource,"ITEM_DOMAIN_MEETINGS",
+		language), domain, session, lang_resource_get(g_lang_resource,"ITEM_DOMAIN_MEETINGS",
+		language), domain, session, lang_resource_get(g_lang_resource,"ITEM_DOMAIN_MEETINGS",
 		language));
 	
 	printf(HTML_LEFT_ITEM_CLASSES, lang_resource_get(g_lang_resource,"ITEM_DOMAIN_CLASSES",

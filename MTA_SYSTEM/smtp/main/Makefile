@@ -6,16 +6,16 @@ C_SOURCE_FILES=$(wildcard *.c)
 CPP_SOURCE_FILES=$(wildcard *.cxx *.cpp *.C)
 INCLUDE_PATHS=../../common/include\
 			  ../../epoll_scheduler/include\
-			  ../resource         \
-			  ../anti_spamming    \
-			  ../blocks_allocator \
-			  ../console_server   \
-			  ../files_allocator  \
-			  ../listener         \
-			  ../flusher          \
-			  ../smtp_parser      \
-			  ../service          \
-			  ../system_services  \
+			  ../resource\
+			  ../anti_spam\
+			  ../blocks_allocator\
+			  ../console_server\
+			  ../files_allocator\
+			  ../listener\
+			  ../flusher\
+			  ../smtp_parser\
+			  ../service\
+			  ../system_services\
 			  ../bndstack_allocator# add include paths here
 LIBRARY_PATHS=# add library paths here
 LIBRARY_FILES=# add library files here
