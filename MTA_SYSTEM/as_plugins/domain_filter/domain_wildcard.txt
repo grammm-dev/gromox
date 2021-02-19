@@ -1,4 +1,0 @@
-mail.*.bid
-mail.*.icu
-mail.*.best
-*.darlindpika.space

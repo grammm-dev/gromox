@@ -1,1 +1,0 @@
-#limit client IP addresses here, if blank, no limit
