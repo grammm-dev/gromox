@@ -1,9 +1,6 @@
 #include "nsp_bridge.h"
 #include "common_util.h"
 #include <string.h>
-#define EC_SUCCESS ecSuccess
-#define EC_ERROR ecRpcFailed
-
 #define HANDLE_EXCHANGE_NSP								1
 
 #define MAPI_E_SUCCESS 									0x00000000
@@ -78,14 +75,14 @@ uint32_t nsp_bridge_bind(uint32_t flags, const STAT *pstat,
 	
 	result = nsp_interface_bind(0, flags, pstat,
 			&server_flatuid, &session_handle);
-	if (EC_SUCCESS != result) {
+	if (result != ecSuccess) {
 		memset(psession_guid, 0, sizeof(GUID));
 		memset(pserver_guid, 0, sizeof(GUID));
 		return result;
 	}
 	common_util_flatuid_to_guid(&server_flatuid, pserver_guid);
 	*psession_guid = session_handle.guid;
-	return EC_SUCCESS;
+	return ecSuccess;
 }
 
 uint32_t nsp_bridge_unbind(GUID session_guid, uint32_t reserved,
@@ -145,12 +142,12 @@ uint32_t nsp_bridge_getmatches(GUID session_guid, uint32_t reserved1,
 		pnspres = cu_alloc<NSPRES>();
 		if (NULL == pnspres) {
 			*ppmids = NULL;
-			return EC_ERROR;
+			return ecRpcFailed;
 		}
 		if (FALSE == common_util_restriction_to_nspres(
 			pfilter, pnspres)) {
 			*ppmids = NULL;
-			return EC_ERROR;
+			return ecRpcFailed;
 		}
 	}
 	if (NULL == ppropname) {
@@ -159,28 +156,27 @@ uint32_t nsp_bridge_getmatches(GUID session_guid, uint32_t reserved1,
 		pnspname = cu_alloc<NSP_PROPNAME>();
 		if (NULL == pnspname) {
 			*ppmids = NULL;
-			return EC_ERROR;
+			return ecRpcFailed;
 		}
 		if (FALSE == common_util_addressbook_propname_to_nsp(
 			ppropname, pnspname)) {
 			*ppmids = NULL;
-			return EC_ERROR;
+			return ecRpcFailed;
 		}
 	}
 	result = nsp_interface_get_matches(
 		session_handle, reserved1, pstat,
 		pinmids, reserved2, pnspres, pnspname,
 		row_count, ppmids, pcolumns, &poutrows);
-	if (EC_SUCCESS != result) {
+	if (result != ecSuccess)
 		return result;
-	}
 	if (NULL != poutrows) {
 		if (FALSE == common_util_nsp_rowset_to_addressbook_colrow(
 			pcolumns, poutrows, pcolumn_rows)) {
-			return EC_ERROR;	
+			return ecRpcFailed;
 		}
 	}
-	return EC_SUCCESS;
+	return ecSuccess;
 }
 
 uint32_t nsp_bridge_getproplist(GUID session_guid, uint32_t flags,
@@ -208,7 +204,7 @@ uint32_t nsp_bridge_getprops(GUID session_guid, uint32_t flags,
 	session_handle.guid = session_guid;
 	result = nsp_interface_get_props(session_handle,
 					flags, pstat, pproptags, &prow);
-	if (EC_SUCCESS != result) {
+	if (result != ecSuccess) {
 		*pprow = NULL;
 		return result;
 	}
@@ -217,16 +213,16 @@ uint32_t nsp_bridge_getprops(GUID session_guid, uint32_t flags,
 	} else {
 		*pprow = cu_alloc<ADDRESSBOOK_PROPLIST>();
 		if (NULL == *pprow) {
-			return EC_ERROR;
+			return ecRpcFailed;
 		}
 		if (FALSE == common_util_nsp_proprow_to_addressbook_proplist(
 			prow, *pprow)) {
 			*pprow = NULL;
-			return EC_ERROR;	
+			return ecRpcFailed;
 		}
 	}
 	*pcodepage = pstat->codepage;
-	return EC_SUCCESS;
+	return ecSuccess;
 }
 
 uint32_t nsp_bridge_getspecialtable(GUID session_guid, uint32_t flags,
@@ -247,7 +243,7 @@ uint32_t nsp_bridge_getspecialtable(GUID session_guid, uint32_t flags,
 	}
 	result = nsp_interface_get_specialtable(session_handle,
 							flags, pstat, &version, &prows);
-	if (EC_SUCCESS != result) {
+	if (result != ecSuccess) {
 		*ppversion = NULL;
 		*prow_count = 0;
 		*pprows = NULL;
@@ -262,22 +258,22 @@ uint32_t nsp_bridge_getspecialtable(GUID session_guid, uint32_t flags,
 	if (NULL == prows) {
 		*prow_count = 0;
 		*pprows = NULL;
-		return EC_SUCCESS;
+		return ecSuccess;
 	}
 	*prow_count = prows->crows;
 	*pprows = cu_alloc<ADDRESSBOOK_PROPLIST>(prows->crows);
 	if (NULL == *pprows) {
-		return EC_ERROR;
+		return ecRpcFailed;
 	}
 	for (i=0; i<prows->crows; i++) {
 		if (FALSE == common_util_nsp_proprow_to_addressbook_proplist(
 			prows->prows + i, (*pprows) + i)) {
 			*pprows = NULL;
-			return EC_ERROR;	
+			return ecRpcFailed;
 		}
 	}
 	*pcodepage = pstat->codepage;
-	return EC_SUCCESS;
+	return ecSuccess;
 }
 
 uint32_t nsp_bridge_gettemplateinfo(GUID session_guid, uint32_t flags,
@@ -293,25 +289,25 @@ uint32_t nsp_bridge_gettemplateinfo(GUID session_guid, uint32_t flags,
 	session_handle.guid = session_guid;
 	result = nsp_interface_get_templateinfo(session_handle,
 			flags, type, pdn, codepage, locale_id, &prow);
-	if (EC_SUCCESS != result) {
+	if (result != ecSuccess) {
 		*pprow = NULL;
 		return result;
 	}
 	if (NULL == prow) {
 		*pprow = NULL;
-		return EC_SUCCESS;
+		return ecSuccess;
 	}
 	*pprow = cu_alloc<ADDRESSBOOK_PROPLIST>();
 	if (NULL == *pprow) {
-		return EC_ERROR;
+		return ecRpcFailed;
 	}
 	if (FALSE == common_util_nsp_proprow_to_addressbook_proplist(
 		prow, *pprow)) {
 		*pprow = NULL;
-		return EC_ERROR;	
+		return ecRpcFailed;
 	}
 	*pcodepage = codepage;
-	return EC_SUCCESS;
+	return ecSuccess;
 }
 
 uint32_t nsp_bridge_modlinkatt(GUID session_guid, uint32_t flags,
@@ -330,13 +326,13 @@ uint32_t nsp_bridge_modlinkatt(GUID session_guid, uint32_t flags,
 	} else {
 		entryid_array.pbin = cu_alloc<BINARY>(pentryids->count);
 		if (NULL == entryid_array.pbin) {
-			return EC_ERROR;
+			return ecRpcFailed;
 		}
 	}
 	for (i=0; i<pentryids->count; i++) {
 		if (FALSE == common_util_entryid_to_binary(
 			pentryids->pentryid + i, entryid_array.pbin + i)) {
-			return EC_ERROR;	
+			return ecRpcFailed;
 		}
 	}
 	return nsp_interface_mod_linkatt(session_handle,
@@ -359,11 +355,11 @@ uint32_t nsp_bridge_modprops(GUID session_guid, uint32_t reserved,
 	} else {
 		prow = cu_alloc<NSP_PROPROW>();
 		if (NULL == prow) {
-			return EC_ERROR;
+			return ecRpcFailed;
 		}
 		if (FALSE == common_util_addressbook_proplist_to_nsp_proprow(
 			pvalues, prow)) {
-			return EC_ERROR;	
+			return ecRpcFailed;
 		}
 	}
 	return nsp_interface_mod_props(session_handle,
@@ -385,16 +381,15 @@ uint32_t nsp_bridge_queryrows(GUID session_guid, uint32_t flags,
 	result = nsp_interface_query_rows(session_handle, flags,
 		pstat, explicit_table.count, explicit_table.pmid,
 		count, pcolumns, &prows);
-	if (EC_SUCCESS != result) {
+	if (result != ecSuccess)
 		return result;
-	}
 	if (NULL != prows) {
 		if (FALSE == common_util_nsp_rowset_to_addressbook_colrow(
 			pcolumns, prows, pcolumn_rows)) {
-			return EC_ERROR;	
+			return ecRpcFailed;
 		}
 	}
-	return EC_SUCCESS;
+	return ecSuccess;
 }
 
 uint32_t nsp_bridge_querycolumns(GUID session_guid,
@@ -426,16 +421,15 @@ uint32_t nsp_bridge_resolvenames(
 	*pcodepage = 1200;
 	result = nsp_interface_resolve_namesw(session_handle,
 		reserved, pstat, pproptags, pnames, ppmids, &prows);
-	if (EC_SUCCESS != result) {
+	if (result != ecSuccess)
 		return result;
-	}
 	if (NULL != prows) {
 		if (FALSE == common_util_nsp_rowset_to_addressbook_colrow(
 			pproptags, prows, pcolumn_rows)) {
-			return EC_ERROR;
+			return ecRpcFailed;
 		}
 	}
-	return EC_SUCCESS;
+	return ecSuccess;
 }
 
 uint32_t nsp_bridge_resortrestriction(GUID session_guid, 
@@ -469,26 +463,25 @@ uint32_t nsp_bridge_seekentries(GUID session_guid,
 	} else {
 		ptarget_val = cu_alloc<PROPERTY_VALUE>();
 		if (NULL == ptarget_val) {
-			return EC_ERROR;
+			return ecRpcFailed;
 		}
 		if (FALSE == common_util_addressbook_tapropval_to_property_value(
 			ptarget, ptarget_val)) {
-			return EC_ERROR;	
+			return ecRpcFailed;
 		}
 	}
 	result = nsp_interface_seek_entries(session_handle,
 		reserved, pstat, ptarget_val, pexplicit_table,
 		pcolumns, &prows);
-	if (EC_SUCCESS != result) {
+	if (result != ecSuccess)
 		return result;
-	}
 	if (NULL != prows) {
 		if (FALSE == common_util_nsp_rowset_to_addressbook_colrow(
 			pcolumns, prows, pcolumn_rows)) {
-			return EC_ERROR;	
+			return ecRpcFailed;
 		}
 	}
-	return EC_SUCCESS;
+	return ecSuccess;
 }
 
 uint32_t nsp_bridge_updatestat(GUID session_guid, uint32_t reserved,
@@ -504,7 +497,7 @@ uint32_t nsp_bridge_updatestat(GUID session_guid, uint32_t reserved,
 	if (0 != delta_requested) {
 		*ppdelta = cu_alloc<int32_t>();
 		if (NULL == *ppdelta) {
-			return EC_ERROR;
+			return ecRpcFailed;
 		}
 	} else {
 		*ppdelta = NULL;

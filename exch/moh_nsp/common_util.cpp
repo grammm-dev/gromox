@@ -1,33 +1,5 @@
 #include "common_util.h"
 #include <gromox/hpm_common.h>
-#define PROPVAL_TYPE_UNSPECIFIED PT_UNSPECIFIED
-#define PROPVAL_TYPE_BYTE PT_BOOLEAN
-#define PROPVAL_TYPE_SHORT PT_SHORT
-#define PROPVAL_TYPE_LONG PT_LONG
-#define PROPVAL_TYPE_STRING PT_STRING8
-#define PROPVAL_TYPE_WSTRING PT_UNICODE
-#define PROPVAL_TYPE_BINARY PT_BINARY
-#define PROPVAL_TYPE_GUID PT_CLSID
-#define PROPVAL_TYPE_FILETIME PT_SYSTIME
-#define PROPVAL_TYPE_ERROR PT_ERROR
-#define PROPVAL_TYPE_SHORT_ARRAY PT_MV_SHORT
-#define PROPVAL_TYPE_LONG_ARRAY PT_MV_LONG
-#define PROPVAL_TYPE_LONGLONG_ARRAY PT_MV_I8
-#define PROPVAL_TYPE_STRING_ARRAY PT_MV_STRING8
-#define PROPVAL_TYPE_WSTRING_ARRAY PT_MV_UNICODE
-#define PROPVAL_TYPE_BINARY_ARRAY PT_MV_BINARY
-#define PROPVAL_TYPE_GUID_ARRAY PT_MV_CLSID
-#define RESTRICTION_TYPE_AND RES_AND
-#define RESTRICTION_TYPE_OR RES_OR
-#define RESTRICTION_TYPE_NOT RES_NOT
-#define RESTRICTION_TYPE_CONTENT RES_CONTENT
-#define RESTRICTION_TYPE_PROPERTY RES_PROPERTY
-#define RESTRICTION_TYPE_PROPCOMPARE RES_PROPCOMPARE
-#define RESTRICTION_TYPE_BITMASK RES_BITMASK
-#define RESTRICTION_TYPE_SIZE RES_SIZE
-#define RESTRICTION_TYPE_EXIST RES_EXIST
-#define RESTRICTION_TYPE_SUBOBJ RES_SUBRESTRICTION
-#define EC_NOT_FOUND ecNotFound
 
 void* common_util_alloc(size_t size)
 {
@@ -130,20 +102,20 @@ static BOOL common_util_propval_to_valunion(uint16_t type,
 	const void *pvalue, PROP_VAL_UNION *punion)
 {
 	switch (type) {
-	case PROPVAL_TYPE_SHORT:
+	case PT_SHORT:
 		punion->s = *(uint16_t*)pvalue;
 		return TRUE;
-	case PROPVAL_TYPE_LONG:
+	case PT_LONG:
 		punion->l = *(uint32_t*)pvalue;
 		return TRUE;
-	case PROPVAL_TYPE_BYTE:
+	case PT_BOOLEAN:
 		punion->b = *(uint8_t*)pvalue;
 		return TRUE;
-	case PROPVAL_TYPE_STRING:
-	case PROPVAL_TYPE_WSTRING:
+	case PT_STRING8:
+	case PT_UNICODE:
 		punion->pstr = static_cast<char *>(deconst(pvalue));
 		return TRUE;
-	case PROPVAL_TYPE_BINARY:
+	case PT_BINARY:
 		if (NULL == pvalue) {
 			punion->bin.cb = 0;
 			punion->bin.pb = NULL;
@@ -151,20 +123,20 @@ static BOOL common_util_propval_to_valunion(uint16_t type,
 			punion->bin = *(BINARY*)pvalue;
 		}
 		return TRUE;
-	case PROPVAL_TYPE_GUID:
+	case PT_CLSID:
 		punion->pguid = cu_alloc<FLATUID>();
 		if (NULL == punion->pguid) {
 			return FALSE;
 		}
 		common_util_guid_to_flatuid(static_cast<const GUID *>(pvalue), reinterpret_cast<FLATUID *>(punion->pguid));
 		return TRUE;
-	case PROPVAL_TYPE_FILETIME:
+	case PT_SYSTIME:
 		common_util_nttime_to_filetime(*(uint64_t*)pvalue, &punion->ftime);
 		return TRUE;
-	case PROPVAL_TYPE_ERROR:
+	case PT_ERROR:
 		punion->err = *(uint32_t*)pvalue;
 		return TRUE;
-	case PROPVAL_TYPE_SHORT_ARRAY:
+	case PT_MV_SHORT:
 		if (NULL == pvalue) {
 			punion->short_array.count = 0;
 			punion->short_array.ps = NULL;
@@ -172,7 +144,7 @@ static BOOL common_util_propval_to_valunion(uint16_t type,
 			punion->short_array = *(SHORT_ARRAY*)pvalue;
 		}
 		return TRUE;
-	case PROPVAL_TYPE_LONG_ARRAY:
+	case PT_MV_LONG:
 		if (NULL == pvalue) {
 			punion->long_array.count = 0;
 			punion->long_array.pl = NULL;
@@ -180,8 +152,8 @@ static BOOL common_util_propval_to_valunion(uint16_t type,
 			punion->long_array = *(LONG_ARRAY*)pvalue;
 		}
 		return TRUE;
-	case PROPVAL_TYPE_STRING_ARRAY:
-	case PROPVAL_TYPE_WSTRING_ARRAY:
+	case PT_MV_STRING8:
+	case PT_MV_UNICODE:
 		if (NULL == pvalue) {
 			punion->string_array.count = 0;
 			punion->string_array.ppstr = NULL;
@@ -189,7 +161,7 @@ static BOOL common_util_propval_to_valunion(uint16_t type,
 			punion->string_array = *(STRING_ARRAY*)pvalue;
 		}
 		return TRUE;
-	case PROPVAL_TYPE_BINARY_ARRAY:
+	case PT_MV_BINARY:
 		if (NULL == pvalue) {
 			punion->bin_array.count = 0;
 			punion->bin_array.pbin = NULL;
@@ -197,7 +169,7 @@ static BOOL common_util_propval_to_valunion(uint16_t type,
 			punion->bin_array = *(BINARY_ARRAY*)pvalue;
 		}
 		return TRUE;
-	case PROPVAL_TYPE_GUID_ARRAY:
+	case PT_MV_CLSID:
 		if (NULL == pvalue) {
 			punion->guid_array.cvalues = 0;
 			punion->guid_array.ppguid = NULL;
@@ -215,73 +187,73 @@ static BOOL common_util_valunion_to_propval(uint16_t type,
 	void *pvalue;
 	
 	switch (type) {
-	case PROPVAL_TYPE_SHORT:
+	case PT_SHORT:
 		pvalue = (void*)&punion->s;
 		break;
-	case PROPVAL_TYPE_LONG:
+	case PT_LONG:
 		pvalue = (void*)&punion->l;
 		break;
-	case PROPVAL_TYPE_BYTE:
+	case PT_BOOLEAN:
 		pvalue = (void*)&punion->b;
 		break;
-	case PROPVAL_TYPE_STRING:
-	case PROPVAL_TYPE_WSTRING:
+	case PT_STRING8:
+	case PT_UNICODE:
 		pvalue = punion->pstr;
 		break;
-	case PROPVAL_TYPE_BINARY:
+	case PT_BINARY:
 		if (0 == punion->bin.cb) {
 			pvalue = NULL;
 		} else {
 			pvalue = (void*)&punion->bin;
 		}
 		break;
-	case PROPVAL_TYPE_GUID:
+	case PT_CLSID:
 		pvalue = cu_alloc<GUID>();
 		if (NULL == pvalue) {
 			return FALSE;
 		}
 		common_util_flatuid_to_guid(punion->pguid, static_cast<GUID *>(pvalue));
 		break;
-	case PROPVAL_TYPE_FILETIME:
+	case PT_SYSTIME:
 		pvalue = cu_alloc<uint64_t>();
 		if (NULL == pvalue) {
 			return FALSE;
 		}
 		common_util_filetime_to_nttime(&punion->ftime, static_cast<uint64_t *>(pvalue));
 		break;
-	case PROPVAL_TYPE_ERROR:
+	case PT_ERROR:
 		pvalue = (void*)&punion->err;
 		break;
-	case PROPVAL_TYPE_SHORT_ARRAY:
+	case PT_MV_SHORT:
 		if (0 == punion->short_array.count) {
 			pvalue = NULL;
 		} else {
 			pvalue = (void*)&punion->short_array;
 		}
 		break;
-	case PROPVAL_TYPE_LONG_ARRAY:
+	case PT_MV_LONG:
 		if (0 == punion->long_array.count) {
 			pvalue = NULL;
 		} else {
 			pvalue = (void*)&punion->long_array;
 		}
 		break;
-	case PROPVAL_TYPE_STRING_ARRAY:
-	case PROPVAL_TYPE_WSTRING_ARRAY:
+	case PT_MV_STRING8:
+	case PT_MV_UNICODE:
 		if (0 == punion->string_array.count) {
 			pvalue = NULL;
 		} else {
 			pvalue = (void*)&punion->string_array;
 		}
 		break;
-	case PROPVAL_TYPE_BINARY_ARRAY:
+	case PT_MV_BINARY:
 		if (0 == punion->bin_array.count) {
 			pvalue = NULL;
 		} else {
 			pvalue = (void*)&punion->bin_array;
 		}
 		break;
-	case PROPVAL_TYPE_GUID_ARRAY:
+	case PT_MV_CLSID:
 		if (0 == punion->guid_array.cvalues) {
 			pvalue = NULL;
 		} else {
@@ -372,9 +344,8 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 		}
 	}
 	for (i=0; i<pnsprow->cvalues; i++) {
-		if (PROPVAL_TYPE_ERROR == (pnsprow->pprops[i].proptag & 0xFFFF)) {
+		if (PROP_TYPE(pnsprow->pprops[i].proptag) == PT_ERROR)
 			break;
-		}
 	}
 	if (i < pnsprow->cvalues) {
 		pabrow->flag = PROPROW_FLAG_FLAGGED;
@@ -382,12 +353,12 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 		pabrow->flag = PROPROW_FLAG_NORMAL;
 	}
 	for (i=0; i<pnsprow->cvalues; i++) {
-		if (PROPVAL_TYPE_ERROR == (pnsprow->pprops[i].proptag & 0xFFFF)) {
+		if (PROP_TYPE(pnsprow->pprops[i].proptag) == PT_ERROR) {
 			pabrow->ppvalue[i] = cu_alloc<ADDRESSBOOK_FPROPVAL>();
 			if (NULL == pabrow->ppvalue[i]) {
 				return FALSE;
 			}
-			if (EC_NOT_FOUND == pnsprow->pprops[i].value.err) {
+			if (pnsprow->pprops[i].value.err == ecNotFound) {
 				((ADDRESSBOOK_FPROPVAL*)pabrow->ppvalue[i])->flag =
 										ADDRESSBOOK_FLAG_UNAVAILABLE;
 				((ADDRESSBOOK_FPROPVAL*)pabrow->ppvalue[i])->pvalue = NULL;
@@ -406,8 +377,7 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 			}
 		} else {
 			if (PROPROW_FLAG_NORMAL == pabrow->flag) {
-				if (PROPVAL_TYPE_UNSPECIFIED ==
-					(pcolumns->pproptag[i] & 0xFFFF)) {
+				if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED) {
 					pabrow->ppvalue[i] = cu_alloc<ADDRESSBOOK_TYPROPVAL>();
 					if (NULL == pabrow->ppvalue[i]) {
 						return FALSE;
@@ -430,8 +400,7 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 					}
 				}
 			} else {
-				if (PROPVAL_TYPE_UNSPECIFIED ==
-					(pcolumns->pproptag[i] & 0xFFFF)) {
+				if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED) {
 					pabrow->ppvalue[i] = cu_alloc<ADDRESSBOOK_TFPROPVAL>();
 					if (NULL == pabrow->ppvalue[i]) {
 						return FALSE;
@@ -604,38 +573,38 @@ BOOL common_util_restriction_to_nspres(
 {
 	pnspres->res_type = pres->rt;
 	switch (pres->rt) {
-	case RESTRICTION_TYPE_AND:
+	case RES_AND:
 		return common_util_to_nspres_and_or(
 		       static_cast<const RESTRICTION_AND_OR *>(pres->pres), &pnspres->res.res_and);
-	case RESTRICTION_TYPE_OR:
+	case RES_OR:
 		return common_util_to_nspres_and_or(
 		       static_cast<const RESTRICTION_AND_OR *>(pres->pres), &pnspres->res.res_or);
-	case RESTRICTION_TYPE_NOT:
+	case RES_NOT:
 		return common_util_to_nspres_not(
 		       static_cast<RESTRICTION_NOT *>(pres->pres), &pnspres->res.res_not);
-	case RESTRICTION_TYPE_CONTENT:
+	case RES_CONTENT:
 		return common_util_to_nspres_content(
 		       static_cast<RESTRICTION_CONTENT *>(pres->pres), &pnspres->res.res_content);
-	case RESTRICTION_TYPE_PROPERTY:
+	case RES_PROPERTY:
 		return common_util_to_nspres_property(
 		       static_cast<RESTRICTION_PROPERTY *>(pres->pres), &pnspres->res.res_property);
-	case RESTRICTION_TYPE_PROPCOMPARE:
+	case RES_PROPCOMPARE:
 		common_util_to_nspres_propcompare(
 			static_cast<RESTRICTION_PROPCOMPARE *>(pres->pres), &pnspres->res.res_propcompare);
 		return TRUE;
-	case RESTRICTION_TYPE_BITMASK:
+	case RES_BITMASK:
 		common_util_to_nspres_bitmask(
 			static_cast<RESTRICTION_BITMASK *>(pres->pres), &pnspres->res.res_bitmask);
 		return TRUE;
-	case RESTRICTION_TYPE_SIZE:
+	case RES_SIZE:
 		common_util_to_nspres_size(
 			static_cast<RESTRICTION_SIZE *>(pres->pres), &pnspres->res.res_size);
 		return TRUE;
-	case RESTRICTION_TYPE_EXIST:
+	case RES_EXIST:
 		common_util_to_nspres_exist(
 			static_cast<RESTRICTION_EXIST *>(pres->pres), &pnspres->res.res_exist);
 		return TRUE;
-	case RESTRICTION_TYPE_SUBOBJ:
+	case RES_SUBRESTRICTION:
 		return common_util_to_nspres_subobj(
 			static_cast<RESTRICTION_SUBOBJ *>(pres->pres), &pnspres->res.res_sub);
 	}

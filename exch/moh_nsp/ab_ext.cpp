@@ -1,17 +1,5 @@
 #include <gromox/mapidefs.h>
 #include "ab_ext.h"
-#define EC_SUCCESS ecSuccess
-#define PROPVAL_TYPE_UNSPECIFIED PT_UNSPECIFIED
-#define PROPVAL_TYPE_STRING PT_STRING8
-#define PROPVAL_TYPE_WSTRING PT_UNICODE
-#define PROPVAL_TYPE_BINARY PT_BINARY
-#define PROPVAL_TYPE_SHORT_ARRAY PT_MV_SHORT
-#define PROPVAL_TYPE_LONG_ARRAY PT_MV_LONG
-#define PROPVAL_TYPE_LONGLONG_ARRAY PT_MV_I8
-#define PROPVAL_TYPE_STRING_ARRAY PT_MV_STRING8
-#define PROPVAL_TYPE_WSTRING_ARRAY PT_MV_UNICODE
-#define PROPVAL_TYPE_BINARY_ARRAY PT_MV_BINARY
-#define PROPVAL_TYPE_GUID_ARRAY PT_MV_CLSID
 
 static int ab_ext_pull_string_array(EXT_PULL *pext, STRING_ARRAY *r)
 {
@@ -123,43 +111,43 @@ static int ab_ext_pull_multiple_val(
 	EXT_PULL *pext, uint16_t type, void **ppval)
 {
 	switch (type) {
-	case PROPVAL_TYPE_SHORT_ARRAY:
+	case PT_MV_SHORT:
 		*ppval = static_cast<SHORT_ARRAY *>(pext->alloc(sizeof(SHORT_ARRAY)));
 		if (NULL == (*ppval)) {
 			return EXT_ERR_ALLOC;
 		}
 		return ext_buffer_pull_short_array(pext, static_cast<SHORT_ARRAY *>(*ppval));
-	case PROPVAL_TYPE_LONG_ARRAY:
+	case PT_MV_LONG:
 		*ppval = static_cast<LONG_ARRAY *>(pext->alloc(sizeof(LONG_ARRAY)));
 		if (NULL == (*ppval)) {
 			return EXT_ERR_ALLOC;
 		}
 		return ext_buffer_pull_long_array(pext, static_cast<LONG_ARRAY *>(*ppval));
-	case PROPVAL_TYPE_LONGLONG_ARRAY:
+	case PT_MV_I8:
 		*ppval = static_cast<LONGLONG_ARRAY *>(pext->alloc(sizeof(LONGLONG_ARRAY)));
 		if (NULL == (*ppval)) {
 			return EXT_ERR_ALLOC;
 		}
 		return ext_buffer_pull_longlong_array(pext, static_cast<LONGLONG_ARRAY *>(*ppval));
-	case PROPVAL_TYPE_STRING_ARRAY:
+	case PT_MV_STRING8:
 		*ppval = static_cast<STRING_ARRAY *>(pext->alloc(sizeof(STRING_ARRAY)));
 		if (NULL == (*ppval)) {
 			return EXT_ERR_ALLOC;
 		}
 		return ab_ext_pull_string_array(pext, static_cast<STRING_ARRAY *>(*ppval));
-	case PROPVAL_TYPE_WSTRING_ARRAY:
+	case PT_MV_UNICODE:
 		*ppval = static_cast<STRING_ARRAY *>(pext->alloc(sizeof(STRING_ARRAY)));
 		if (NULL == (*ppval)) {
 			return EXT_ERR_ALLOC;
 		}
 		return ab_ext_pull_wstring_array(pext, static_cast<STRING_ARRAY *>(*ppval));
-	case PROPVAL_TYPE_GUID_ARRAY:
+	case PT_MV_CLSID:
 		*ppval = static_cast<GUID_ARRAY *>(pext->alloc(sizeof(GUID_ARRAY)));
 		if (NULL == (*ppval)) {
 			return EXT_ERR_ALLOC;
 		}
 		return ext_buffer_pull_guid_array(pext, static_cast<GUID_ARRAY *>(*ppval));
-	case PROPVAL_TYPE_BINARY_ARRAY:
+	case PT_MV_BINARY:
 		*ppval = static_cast<BINARY_ARRAY *>(pext->alloc(sizeof(BINARY_ARRAY)));
 		if (NULL == (*ppval)) {
 			return EXT_ERR_ALLOC;
@@ -327,8 +315,7 @@ static int ab_ext_pull_addressbook_proprow(EXT_PULL *pext,
 	}
 	if (PROPROW_FLAG_NORMAL == prow->flag) {
 		for (i=0; i<pcolumns->count; i++) {
-			if (PROPVAL_TYPE_UNSPECIFIED ==
-				pcolumns->pproptag[i] & 0xFFFF) {
+			if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED) {
 				prow->ppvalue[i] = pext->alloc(
 					sizeof(ADDRESSBOOK_TYPROPVAL));
 				if (NULL == prow->ppvalue[i]) {
@@ -346,8 +333,7 @@ static int ab_ext_pull_addressbook_proprow(EXT_PULL *pext,
 		}
 	} else if (PROPROW_FLAG_FLAGGED == prow->flag) {
 		for (i=0; i<pcolumns->count; i++) {
-			if (PROPVAL_TYPE_UNSPECIFIED ==
-				pcolumns->pproptag[i] & 0xFFFF) {
+			if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED) {
 				prow->ppvalue[i] = pext->alloc(
 					sizeof(ADDRESSBOOK_TFPROPVAL));
 				if (NULL == prow->ppvalue[i]) {
@@ -1658,19 +1644,19 @@ static int ab_ext_push_multiple_val(EXT_PUSH *pext,
 	uint16_t type, const void *pval)
 {
 	switch(type) {
-	case PROPVAL_TYPE_SHORT_ARRAY:
+	case PT_MV_SHORT:
 		return ext_buffer_push_short_array(pext, static_cast<const SHORT_ARRAY *>(pval));
-	case PROPVAL_TYPE_LONG_ARRAY:
+	case PT_MV_LONG:
 		return ext_buffer_push_long_array(pext, static_cast<const LONG_ARRAY *>(pval));
-	case PROPVAL_TYPE_LONGLONG_ARRAY:
+	case PT_MV_I8:
 		return ext_buffer_push_longlong_array(pext, static_cast<const LONGLONG_ARRAY *>(pval));
-	case PROPVAL_TYPE_STRING_ARRAY:
+	case PT_MV_STRING8:
 		return ab_ext_push_string_array(pext, static_cast<const STRING_ARRAY *>(pval));
-	case PROPVAL_TYPE_WSTRING_ARRAY:
+	case PT_MV_UNICODE:
 		return ab_ext_push_wstring_array(pext, static_cast<const STRING_ARRAY *>(pval));
-	case PROPVAL_TYPE_GUID_ARRAY:
+	case PT_MV_CLSID:
 		return ext_buffer_push_guid_array(pext, static_cast<const GUID_ARRAY *>(pval));
-	case PROPVAL_TYPE_BINARY_ARRAY:
+	case PT_MV_BINARY:
 		return ab_ext_push_binary_array(pext, static_cast<const BINARY_ARRAY *>(pval));
 	}
 	return EXT_ERR_FORMAT;
@@ -1681,10 +1667,8 @@ static int ab_ext_push_addressbook_propval(
 {
 	int status;
 	
-	if (PROPVAL_TYPE_STRING == type ||
-		PROPVAL_TYPE_WSTRING == type ||
-		PROPVAL_TYPE_BINARY == type ||
-		type & 0x1000) {
+	if (type == PT_STRING8 || type == PT_UNICODE || type == PT_BINARY ||
+	    (type & MV_FLAG)) {
 		if (NULL == pval) {
 			return ext_buffer_push_uint8(pext, 0);
 		}
@@ -1807,28 +1791,24 @@ static int ab_ext_push_addressbook_proprow(EXT_PUSH *pext,
 	}
 	if (PROPROW_FLAG_NORMAL == prow->flag) {
 		for (i=0; i<pcolumns->count; i++) {
-			if (PROPVAL_TYPE_UNSPECIFIED ==
-				pcolumns->pproptag[i] & 0xFFFF) {
+			if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED)
 				status = ab_ext_push_addressbook_typropval(
 				         pext, static_cast<ADDRESSBOOK_TYPROPVAL *>(prow->ppvalue[i]));
-			} else {
+			else
 				status = ab_ext_push_addressbook_propval(pext,
 					pcolumns->pproptag[i]&0xFFFF, prow->ppvalue[i]);
-			}
 			if (EXT_ERR_SUCCESS != status) {
 				return status;
 			}
 		}
 	} else if (PROPROW_FLAG_FLAGGED == prow->flag) {
 		for (i=0; i<pcolumns->count; i++) {
-			if (PROPVAL_TYPE_UNSPECIFIED ==
-				pcolumns->pproptag[i] & 0xFFFF) {
+			if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED)
 				status = ab_ext_push_addressbook_tfpropval(
 				         pext, static_cast<ADDRESSBOOK_TFPROPVAL *>(prow->ppvalue[i]));
-			} else {
+			else
 				status = ab_ext_push_addressbook_fpropval(pext,
 				         pcolumns->pproptag[i] & 0xFFFF, static_cast<ADDRESSBOOK_FPROPVAL *>(prow->ppvalue[i]));
-			}
 			if (EXT_ERR_SUCCESS != status) {
 				return status;
 			}
@@ -2112,7 +2092,7 @@ int ab_ext_push_getmatches_response(EXT_PUSH *pext,
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
-	if (EC_SUCCESS != presponse->result) {
+	if (presponse->result != ecSuccess) {
 		status = ext_buffer_push_uint8(pext, 0);
 	} else {
 		status = ext_buffer_push_uint8(pext, 0xFF);
@@ -2333,7 +2313,7 @@ int ab_ext_push_queryrows_response(EXT_PUSH *pext,
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
-	if (EC_SUCCESS != presponse->result) {
+	if (presponse->result != ecSuccess) {
 		status = ext_buffer_push_uint8(pext, 0);
 	} else {
 		status = ext_buffer_push_uint8(pext, 0xFF);
@@ -2409,7 +2389,7 @@ int ab_ext_push_resolvenames_response(EXT_PUSH *pext,
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
-	if (EC_SUCCESS != presponse->result) {
+	if (presponse->result != ecSuccess) {
 		status = ext_buffer_push_uint8(pext, 0);
 	} else {
 		status = ext_buffer_push_uint8(pext, 0xFF);
@@ -2493,7 +2473,7 @@ int ab_ext_push_seekentries_response(EXT_PUSH *pext,
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
-	if (EC_SUCCESS != presponse->result) {
+	if (presponse->result != ecSuccess) {
 		status = ext_buffer_push_uint8(pext, 0);
 	} else {
 		status = ext_buffer_push_uint8(pext, 0xFF);

@@ -15,11 +15,6 @@
 
 using namespace gromox;
 
-#define EC_SUCCESS ecSuccess
-#define EC_BAD_STUB_DATA RPC_X_BAD_STUB_DATA
-#define EC_OUT_OF_MEMORY ecMAPIOOM
-#define EC_OUT_OF_RESOURCE ecInsufficientResrc
-
 DECLARE_API();
 
 #define RESPONSE_CODE_SUCCESS					0
@@ -470,7 +465,7 @@ static uint32_t getaddressbookurl(GUID session_guid,
 		get_host_ID(), username1[0], username1[1], username1[2], username1[3],
 		username1[4], username1[5], username1[6], username1[7], username1[8],
 		username1[9], username1[10], username1[11], hex_string, ptoken);
-	return EC_SUCCESS;
+	return ecSuccess;
 }
 
 static uint32_t getmailboxurl(GUID session_guid,
@@ -495,7 +490,7 @@ static uint32_t getmailboxurl(GUID session_guid,
 	}
 	sprintf(server_url, "https://%s/mapi/emsmdb/?MailboxId=%s",
 									get_host_ID(), ptoken + 4);
-	return EC_SUCCESS;
+	return ecSuccess;
 }
 
 static void produce_session(const char *tag, char *session)
@@ -723,7 +718,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			request.bind.flags, request.bind.pstat,
 			request.bind.cb_auxin, request.bind.pauxin,
 			&session_guid, &response.bind.server_guid);
-		if (EC_SUCCESS == response.bind.result) {
+		if (response.bind.result == ecSuccess) {
 			if (NULL != psession) {
 				/* reconnecting and establishing of a new session */
 				pthread_mutex_lock(&g_hash_lock);
@@ -750,7 +745,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 					rpc_free_environment();
 					return failure_response(context_id, &start_time,
 						request_value, request_id, client_info,
-						session_string, sequence_guid, EC_OUT_OF_RESOURCE);
+					       session_string, sequence_guid, ecInsufficientResrc);
 				}
 				pcount = static_cast<int *>(str_hash_query(g_user_hash, tmp_session.username));
 				if (NULL == pcount) {
@@ -767,7 +762,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_bind_response(
 			&ext_push, &response.bind)) {
@@ -775,7 +770,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "Unbind")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_unbind_request(
@@ -806,7 +801,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_unbind_response(
 			&ext_push, &response.unbind)) {
@@ -814,7 +809,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "CompareMIds")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_comparemids_request(
@@ -838,7 +833,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_comparemids_response(
 			&ext_push, &response.comparemids)) {
@@ -846,7 +841,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "DNToMId")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_dntomid_request(
@@ -868,7 +863,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_dntomid_response(
 			&ext_push, &response.dntomid)) {
@@ -876,7 +871,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "GetMatches")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_getmatches_request(
@@ -906,7 +901,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_getmatches_response(
 			&ext_push, &response.getmatches)) {
@@ -914,7 +909,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "GetPropList")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_getproplist_request(
@@ -937,7 +932,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_getproplist_response(
 			&ext_push, &response.getproplist)) {
@@ -945,7 +940,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "GetProps")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_getprops_request(
@@ -969,7 +964,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_getprops_response(
 			&ext_push, &response.getprops)) {
@@ -977,7 +972,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "GetSpecialTable")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_getspecialtable_request(
@@ -1003,7 +998,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_getspecialtable_response(
 			&ext_push, &response.getspecialtable)) {
@@ -1011,7 +1006,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "GetTemplateInfo")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_gettemplateinfo_request(
@@ -1037,7 +1032,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_gettemplateinfo_response(
 			&ext_push, &response.gettemplateinfo)) {
@@ -1045,7 +1040,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "ModLinkAtt")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_modlinkatt_request(
@@ -1068,7 +1063,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_modlinkatt_response(
 			&ext_push, &response.modlinkatt)) {
@@ -1076,7 +1071,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "ModProps")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_modprops_request(
@@ -1099,7 +1094,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_modprops_response(
 			&ext_push, &response.modprops)) {
@@ -1107,7 +1102,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "QueryColumns")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_querycolumns_request(
@@ -1129,7 +1124,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_querycolumns_response(
 			&ext_push, &response.querycolumns)) {
@@ -1137,7 +1132,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "QueryRows")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_queryrows_request(
@@ -1163,7 +1158,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_queryrows_response(
 			&ext_push, &response.queryrows)) {
@@ -1171,7 +1166,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "ResolveNames")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_resolvenames_request(
@@ -1197,7 +1192,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_resolvenames_response(
 			&ext_push, &response.resolvenames)) {
@@ -1205,7 +1200,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "ResortRestriction")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_resortrestriction_request(
@@ -1229,7 +1224,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_resortrestriction_response(
 			&ext_push, &response.resortrestriction)) {
@@ -1237,7 +1232,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "SeekEntries")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_seekentries_request(
@@ -1263,7 +1258,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_seekentries_response(
 			&ext_push, &response.seekentries)) {
@@ -1271,7 +1266,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "UpdateStat")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_updatestat_request(
@@ -1295,7 +1290,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_updatestat_response(
 			&ext_push, &response.updatestat)) {
@@ -1303,7 +1298,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "GetMailboxUrl")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_getmailboxurl_request(
@@ -1325,7 +1320,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_getmailboxurl_response(
 			&ext_push, &response.getmailboxurl)) {
@@ -1333,7 +1328,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "GetAddressBookUrl")) {
 		if (EXT_ERR_SUCCESS != ab_ext_pull_getaddressbookurl_request(
@@ -1355,7 +1350,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_OUT_OF_MEMORY);
+			       session_string, sequence_guid, ecMAPIOOM);
 		}
 		if (EXT_ERR_SUCCESS != ab_ext_push_getaddressbookurl_response(
 			&ext_push, &response.getaddressbookurl)) {
@@ -1363,7 +1358,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+			       session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else {
 		rpc_free_environment();
