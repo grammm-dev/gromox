@@ -57,7 +57,7 @@ exchange_plugins = \
 	libgxp_exchange_emsmdb.la \
 	libgxp_exchange_nsp.la \
 	libgxp_exchange_rfr.la \
-	libgxh_proxy.la \
+	libgxh_moh_emsmdb.la libgxh_moh_nsp.la libgxh_proxy.la \
 	libgxs_abktplug.la \
 	libgxs_at_client.la \
 	libgxs_authmgr.la \
@@ -74,7 +74,7 @@ noinst_DATA += \
 	libgxp_exchange_emsmdb.ldd \
 	libgxp_exchange_nsp.ldd \
 	libgxp_exchange_rfr.ldd \
-	libgxh_proxy.ldd \
+	libgxh_moh_emsmdb.ldd libgxh_moh_nsp.ldd libgxh_proxy.ldd \
 	libgxs_abktplug.ldd \
 	libgxs_at_client.ldd \
 	libgxs_authmgr.ldd \
@@ -189,6 +189,14 @@ libgxp_exchange_rfr_la_SOURCES = exch/exchange_rfr.cpp
 libgxp_exchange_rfr_la_LDFLAGS = ${plugin_LDFLAGS}
 libgxp_exchange_rfr_la_LIBADD = ${HX_LIBS} libgromox_common.la libgromox_rpc.la
 EXTRA_libgxp_exchange_rfr_la_DEPENDENCIES = ${default_sym}
+libgxh_moh_emsmdb_la_SOURCES = exch/moh_emsmdb/emsmdb_bridge.cpp exch/moh_emsmdb/main.cpp exch/moh_emsmdb/mb_ext.cpp
+libgxh_moh_emsmdb_la_LDFLAGS = ${plugin_LDFLAGS}
+libgxh_moh_emsmdb_la_LIBADD = -lpthread libgromox_common.la libgromox_mapi.la
+EXTRA_libgxh_moh_emsmdb_la_DEPENDENCIES = ${default_sym}
+libgxh_moh_nsp_la_SOURCES = exch/moh_nsp/ab_ext.cpp exch/moh_nsp/common_util.cpp exch/moh_nsp/main.cpp exch/moh_nsp/nsp_bridge.cpp
+libgxh_moh_nsp_la_LDFLAGS = ${plugin_LDFLAGS}
+libgxh_moh_nsp_la_LIBADD = libgromox_common.la libgromox_mapi.la
+EXTRA_libgxh_moh_nsp_la_DEPENDENCIES = ${default_sym}
 libgxh_proxy_la_SOURCES = exch/mod_proxy.cpp
 libgxh_proxy_la_LDFLAGS = ${plugin_LDFLAGS}
 libgxh_proxy_la_LIBADD = -lpthread libgromox_common.la

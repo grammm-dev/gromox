@@ -1,5 +1,33 @@
 #include "common_util.h"
-#include "hpm_common.h"
+#include <gromox/hpm_common.h>
+#define PROPVAL_TYPE_UNSPECIFIED PT_UNSPECIFIED
+#define PROPVAL_TYPE_BYTE PT_BOOLEAN
+#define PROPVAL_TYPE_SHORT PT_SHORT
+#define PROPVAL_TYPE_LONG PT_LONG
+#define PROPVAL_TYPE_STRING PT_STRING8
+#define PROPVAL_TYPE_WSTRING PT_UNICODE
+#define PROPVAL_TYPE_BINARY PT_BINARY
+#define PROPVAL_TYPE_GUID PT_CLSID
+#define PROPVAL_TYPE_FILETIME PT_SYSTIME
+#define PROPVAL_TYPE_ERROR PT_ERROR
+#define PROPVAL_TYPE_SHORT_ARRAY PT_MV_SHORT
+#define PROPVAL_TYPE_LONG_ARRAY PT_MV_LONG
+#define PROPVAL_TYPE_LONGLONG_ARRAY PT_MV_I8
+#define PROPVAL_TYPE_STRING_ARRAY PT_MV_STRING8
+#define PROPVAL_TYPE_WSTRING_ARRAY PT_MV_UNICODE
+#define PROPVAL_TYPE_BINARY_ARRAY PT_MV_BINARY
+#define PROPVAL_TYPE_GUID_ARRAY PT_MV_CLSID
+#define RESTRICTION_TYPE_AND RES_AND
+#define RESTRICTION_TYPE_OR RES_OR
+#define RESTRICTION_TYPE_NOT RES_NOT
+#define RESTRICTION_TYPE_CONTENT RES_CONTENT
+#define RESTRICTION_TYPE_PROPERTY RES_PROPERTY
+#define RESTRICTION_TYPE_PROPCOMPARE RES_PROPCOMPARE
+#define RESTRICTION_TYPE_BITMASK RES_BITMASK
+#define RESTRICTION_TYPE_SIZE RES_SIZE
+#define RESTRICTION_TYPE_EXIST RES_EXIST
+#define RESTRICTION_TYPE_SUBOBJ RES_SUBRESTRICTION
+#define EC_NOT_FOUND ecNotFound
 
 void* common_util_alloc(size_t size)
 {
@@ -55,12 +83,12 @@ static BOOL common_util_guid_array_to_flatuid_array(
 	int i;
 	
 	pflatuids->cvalues = pguids->count;
-	pflatuids->ppguid = common_util_alloc(pguids->count*sizeof(FLATUID*));
+	pflatuids->ppguid = cu_alloc<FLATUID *>(pguids->count);
 	if (NULL == pflatuids->ppguid) {
 		return FALSE;
 	}
 	for (i=0; i<pguids->count; i++) {
-		pflatuids->ppguid[i] = common_util_alloc(sizeof(FLATUID));
+		pflatuids->ppguid[i] = cu_alloc<FLATUID>();
 		if (NULL == pflatuids->ppguid[i]) {
 			return FALSE;
 		}
@@ -75,7 +103,7 @@ static BOOL common_util_flatuid_array_to_guid_array(
 	int i;
 	
 	pguids->count = pflatuids->cvalues;
-	pguids->pguid = common_util_alloc(sizeof(FLATUID*)*pflatuids->cvalues);
+	pguids->pguid = cu_alloc<GUID>(pflatuids->cvalues);
 	if (NULL == pguids->pguid) {
 		return FALSE;
 	}
@@ -88,7 +116,7 @@ static BOOL common_util_flatuid_array_to_guid_array(
 BOOL common_util_addressbook_propname_to_nsp(
 	const ADDRESSBOOK_PROPNAME *pabname, NSP_PROPNAME *ppropname)
 {
-	ppropname->pguid = common_util_alloc(sizeof(FLATUID));
+	ppropname->pguid = cu_alloc<FLATUID>();
 	if (NULL == ppropname->pguid) {
 		return FALSE;
 	}
@@ -113,7 +141,7 @@ static BOOL common_util_propval_to_valunion(uint16_t type,
 		return TRUE;
 	case PROPVAL_TYPE_STRING:
 	case PROPVAL_TYPE_WSTRING:
-		punion->pstr = (void*)pvalue;
+		punion->pstr = static_cast<char *>(deconst(pvalue));
 		return TRUE;
 	case PROPVAL_TYPE_BINARY:
 		if (NULL == pvalue) {
@@ -124,11 +152,11 @@ static BOOL common_util_propval_to_valunion(uint16_t type,
 		}
 		return TRUE;
 	case PROPVAL_TYPE_GUID:
-		punion->pguid = common_util_alloc(sizeof(GUID));
+		punion->pguid = cu_alloc<FLATUID>();
 		if (NULL == punion->pguid) {
 			return FALSE;
 		}
-		common_util_guid_to_flatuid(pvalue, punion->pguid);
+		common_util_guid_to_flatuid(static_cast<const GUID *>(pvalue), reinterpret_cast<FLATUID *>(punion->pguid));
 		return TRUE;
 	case PROPVAL_TYPE_FILETIME:
 		common_util_nttime_to_filetime(*(uint64_t*)pvalue, &punion->ftime);
@@ -176,7 +204,7 @@ static BOOL common_util_propval_to_valunion(uint16_t type,
 			return TRUE;
 		}
 		return common_util_guid_array_to_flatuid_array(
-							pvalue, &punion->guid_array);
+		       static_cast<const GUID_ARRAY *>(pvalue), &punion->guid_array);
 	}
 	return FALSE;
 }
@@ -208,18 +236,18 @@ static BOOL common_util_valunion_to_propval(uint16_t type,
 		}
 		break;
 	case PROPVAL_TYPE_GUID:
-		pvalue = common_util_alloc(sizeof(GUID));
+		pvalue = cu_alloc<GUID>();
 		if (NULL == pvalue) {
 			return FALSE;
 		}
-		common_util_flatuid_to_guid(punion->pguid, pvalue);
+		common_util_flatuid_to_guid(punion->pguid, static_cast<GUID *>(pvalue));
 		break;
 	case PROPVAL_TYPE_FILETIME:
-		pvalue = common_util_alloc(sizeof(uint64_t));
+		pvalue = cu_alloc<uint64_t>();
 		if (NULL == pvalue) {
 			return FALSE;
 		}
-		common_util_filetime_to_nttime(&punion->ftime, pvalue);
+		common_util_filetime_to_nttime(&punion->ftime, static_cast<uint64_t *>(pvalue));
 		break;
 	case PROPVAL_TYPE_ERROR:
 		pvalue = (void*)&punion->err;
@@ -257,14 +285,13 @@ static BOOL common_util_valunion_to_propval(uint16_t type,
 		if (0 == punion->guid_array.cvalues) {
 			pvalue = NULL;
 		} else {
-			pvalue = common_util_alloc(sizeof(GUID_ARRAY));
+			pvalue = cu_alloc<GUID_ARRAY>();
 			if (NULL == pvalue) {
 				return FALSE;
 			}
 			if (FALSE == common_util_flatuid_array_to_guid_array(
-				&punion->guid_array, pvalue)) {
+			    &punion->guid_array, static_cast<GUID_ARRAY *>(pvalue)))
 				return FALSE;	
-			}
 		}
 		break;
 	default:
@@ -289,8 +316,7 @@ BOOL common_util_nsp_proprow_to_addressbook_proplist(
 	int i;
 	
 	pproplist->count = prow->cvalues;
-	pproplist->ppropval = common_util_alloc(sizeof(
-			ADDRESSBOOK_TAPROPVAL)*prow->cvalues);
+	pproplist->ppropval = cu_alloc<ADDRESSBOOK_TAPROPVAL>(prow->cvalues);
 	if (NULL == pproplist->ppropval) {
 		return FALSE;
 	}
@@ -313,8 +339,7 @@ BOOL common_util_addressbook_proplist_to_nsp_proprow(
 	
 	prow->reserved = 0;
 	prow->cvalues = pproplist->count;
-	prow->pprops = common_util_alloc(sizeof(
-			PROPERTY_VALUE)*pproplist->count);
+	prow->pprops = cu_alloc<PROPERTY_VALUE>(pproplist->count);
 	if (NULL == prow->pprops) {
 		return FALSE;
 	}
@@ -341,7 +366,7 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 	if (0 == pnsprow->cvalues) {
 		pabrow->ppvalue = NULL;
 	} else {
-		pabrow->ppvalue = common_util_alloc(sizeof(void*)*pnsprow->cvalues);
+		pabrow->ppvalue = cu_alloc<void *>(pnsprow->cvalues);
 		if (NULL == pabrow->ppvalue) {
 			return FALSE;
 		}
@@ -358,8 +383,7 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 	}
 	for (i=0; i<pnsprow->cvalues; i++) {
 		if (PROPVAL_TYPE_ERROR == (pnsprow->pprops[i].proptag & 0xFFFF)) {
-			pabrow->ppvalue[i] = common_util_alloc(
-					sizeof(ADDRESSBOOK_FPROPVAL));
+			pabrow->ppvalue[i] = cu_alloc<ADDRESSBOOK_FPROPVAL>();
 			if (NULL == pabrow->ppvalue[i]) {
 				return FALSE;
 			}
@@ -371,7 +395,7 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 				((ADDRESSBOOK_FPROPVAL*)pabrow->ppvalue[i])->flag =
 											ADDRESSBOOK_FLAG_ERROR;
 				((ADDRESSBOOK_FPROPVAL*)pabrow->ppvalue[i])->pvalue =
-								common_util_alloc(sizeof(uint32_t));
+								cu_alloc<uint32_t>();
 				if (NULL == ((ADDRESSBOOK_FPROPVAL*)
 					pabrow->ppvalue[i])->pvalue) {
 					return FALSE;	
@@ -384,8 +408,7 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 			if (PROPROW_FLAG_NORMAL == pabrow->flag) {
 				if (PROPVAL_TYPE_UNSPECIFIED ==
 					(pcolumns->pproptag[i] & 0xFFFF)) {
-					pabrow->ppvalue[i] = common_util_alloc(
-							sizeof(ADDRESSBOOK_TYPROPVAL));
+					pabrow->ppvalue[i] = cu_alloc<ADDRESSBOOK_TYPROPVAL>();
 					if (NULL == pabrow->ppvalue[i]) {
 						return FALSE;
 					}
@@ -409,8 +432,7 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 			} else {
 				if (PROPVAL_TYPE_UNSPECIFIED ==
 					(pcolumns->pproptag[i] & 0xFFFF)) {
-					pabrow->ppvalue[i] = common_util_alloc(
-							sizeof(ADDRESSBOOK_TFPROPVAL));
+					pabrow->ppvalue[i] = cu_alloc<ADDRESSBOOK_TFPROPVAL>();
 					if (NULL == pabrow->ppvalue[i]) {
 						return FALSE;
 					}
@@ -426,8 +448,7 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 						return FALSE;						
 					}
 				} else {
-					pabrow->ppvalue[i] = common_util_alloc(
-							sizeof(ADDRESSBOOK_FPROPVAL));
+					pabrow->ppvalue[i] = cu_alloc<ADDRESSBOOK_FPROPVAL>();
 					if (NULL == pabrow->ppvalue[i]) {
 						return FALSE;
 					}
@@ -455,8 +476,7 @@ BOOL common_util_nsp_rowset_to_addressbook_colrow(
 	
 	pcolrow->columns = *pcolumns;
 	pcolrow->row_count = pset->crows;
-	pcolrow->prows = common_util_alloc(
-		sizeof(ADDRESSBOOK_PROPROW)*pset->crows);
+	pcolrow->prows = cu_alloc<ADDRESSBOOK_PROPROW>(pset->crows);
 	if (NULL == pcolrow->prows) {
 		return FALSE;
 	}
@@ -475,7 +495,7 @@ static BOOL common_util_to_nspres_and_or(
 	int i;
 	
 	pnspres->cres = pres->count;
-	pnspres->pres = common_util_alloc(sizeof(NSPRES)*pres->count);
+	pnspres->pres = cu_alloc<NSPRES>(pres->count);
 	if (NULL == pnspres->pres) {
 		return FALSE;
 	}
@@ -491,7 +511,7 @@ static BOOL common_util_to_nspres_and_or(
 static BOOL common_util_to_nspres_not(
 	const RESTRICTION_NOT *pres, NSPRES_NOT *pnspres)
 {
-	pnspres->pres = common_util_alloc(sizeof(NSPRES));
+	pnspres->pres = cu_alloc<NSPRES>();
 	if (NULL == pnspres->pres) {
 		return FALSE;
 	}
@@ -504,7 +524,7 @@ static BOOL common_util_to_nspres_content(
 {
 	pnspres->fuzzy_level = pres->fuzzy_level;
 	pnspres->proptag = pres->proptag;
-	pnspres->pprop = common_util_alloc(sizeof(PROPERTY_VALUE));
+	pnspres->pprop = cu_alloc<PROPERTY_VALUE>();
 	if (NULL == pnspres->pprop) {
 		return FALSE;
 	}
@@ -521,7 +541,7 @@ static BOOL common_util_to_nspres_property(
 {
 	pnspres->relop = pres->relop;
 	pnspres->proptag = pres->proptag;
-	pnspres->pprop = common_util_alloc(sizeof(PROPERTY_VALUE));
+	pnspres->pprop = cu_alloc<PROPERTY_VALUE>();
 	if (NULL == pnspres->pprop) {
 		return FALSE;
 	}
@@ -571,7 +591,7 @@ static BOOL common_util_to_nspres_subobj(
 	const RESTRICTION_SUBOBJ *pres, NSPRES_SUB *pnspres)
 {
 	pnspres->subobject = pres->subobject;
-	pnspres->pres = common_util_alloc(sizeof(NSPRES));
+	pnspres->pres = cu_alloc<NSPRES>();
 	if (NULL == pnspres->pres) {
 		return FALSE;
 	}
@@ -586,38 +606,38 @@ BOOL common_util_restriction_to_nspres(
 	switch (pres->rt) {
 	case RESTRICTION_TYPE_AND:
 		return common_util_to_nspres_and_or(
-			pres->pres, &pnspres->res.res_and);
+		       static_cast<const RESTRICTION_AND_OR *>(pres->pres), &pnspres->res.res_and);
 	case RESTRICTION_TYPE_OR:
 		return common_util_to_nspres_and_or(
-			pres->pres, &pnspres->res.res_or);
+		       static_cast<const RESTRICTION_AND_OR *>(pres->pres), &pnspres->res.res_or);
 	case RESTRICTION_TYPE_NOT:
 		return common_util_to_nspres_not(
-			pres->pres, &pnspres->res.res_not);
+		       static_cast<RESTRICTION_NOT *>(pres->pres), &pnspres->res.res_not);
 	case RESTRICTION_TYPE_CONTENT:
 		return common_util_to_nspres_content(
-			pres->pres, &pnspres->res.res_content);
+		       static_cast<RESTRICTION_CONTENT *>(pres->pres), &pnspres->res.res_content);
 	case RESTRICTION_TYPE_PROPERTY:
 		return common_util_to_nspres_property(
-			pres->pres, &pnspres->res.res_property);
+		       static_cast<RESTRICTION_PROPERTY *>(pres->pres), &pnspres->res.res_property);
 	case RESTRICTION_TYPE_PROPCOMPARE:
 		common_util_to_nspres_propcompare(
-			pres->pres, &pnspres->res.res_propcompare);
+			static_cast<RESTRICTION_PROPCOMPARE *>(pres->pres), &pnspres->res.res_propcompare);
 		return TRUE;
 	case RESTRICTION_TYPE_BITMASK:
 		common_util_to_nspres_bitmask(
-			pres->pres, &pnspres->res.res_bitmask);
+			static_cast<RESTRICTION_BITMASK *>(pres->pres), &pnspres->res.res_bitmask);
 		return TRUE;
 	case RESTRICTION_TYPE_SIZE:
 		common_util_to_nspres_size(
-			pres->pres, &pnspres->res.res_size);
+			static_cast<RESTRICTION_SIZE *>(pres->pres), &pnspres->res.res_size);
 		return TRUE;
 	case RESTRICTION_TYPE_EXIST:
 		common_util_to_nspres_exist(
-			pres->pres, &pnspres->res.res_exist);
+			static_cast<RESTRICTION_EXIST *>(pres->pres), &pnspres->res.res_exist);
 		return TRUE;
 	case RESTRICTION_TYPE_SUBOBJ:
 		return common_util_to_nspres_subobj(
-			pres->pres, &pnspres->res.res_sub);
+			static_cast<RESTRICTION_SUBOBJ *>(pres->pres), &pnspres->res.res_sub);
 	}
 	return FALSE;
 }
@@ -631,7 +651,7 @@ BOOL common_util_entryid_to_binary(
 	common_util_guid_to_flatuid(&pentryid->provider_uid, &provider_uid);
 	if (0x87 == pentryid->id_type) {
 		pbin->cb = 32;
-		pbin->pb = common_util_alloc(pbin->cb);
+		pbin->pb = cu_alloc<uint8_t>(pbin->cb);
 		if (NULL == pbin->pb) {
 			return FALSE;
 		}
@@ -656,7 +676,7 @@ BOOL common_util_entryid_to_binary(
 	} else {
 		len = strlen(pentryid->payload.pdn) + 1;
 		pbin->cb = 28 + len;
-		pbin->pb = common_util_alloc(pbin->cb);
+		pbin->pb = cu_alloc<uint8_t>(pbin->cb);
 		if (NULL == pbin->pb) {
 			return FALSE;
 		}

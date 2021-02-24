@@ -1,6 +1,6 @@
 #ifndef _H_AB_TYPES_
 #define _H_AB_TYPES_
-#include "mapi_types.h"
+#include <gromox/mapi_types.hpp>
 
 typedef struct _ADDRESSBOOK_TAPROPVAL {
 	uint16_t type;

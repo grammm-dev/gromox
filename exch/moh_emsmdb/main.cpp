@@ -1,16 +1,22 @@
-#include "cookie_parser.h"
+#include <libHX/string.h>
+#include <gromox/cookie_parser.hpp>
 #include "emsmdb_bridge.h"
-#include "double_list.h"
-#include "hpm_common.h"
-#include "str_hash.h"
+#include <gromox/cookie_parser.hpp>
+#include <gromox/double_list.hpp>
+#include <gromox/hpm_common.h>
+#include <gromox/str_hash.hpp>
 #include "mb_ext.h"
-#include "guid.h"
-#include "util.h"
+#include <gromox/guid.hpp>
+#include <gromox/util.hpp>
 #include <sys/time.h>
 #include <pthread.h>
 #include <time.h>
+#include <unistd.h>
+#define EC_SUCCESS ecSuccess
 
-DECLARE_API;
+DECLARE_API();
+
+using namespace gromox;
 
 #define RESPONSE_CODE_SUCCESS					0
 #define RESPONSE_CODE_UNKNOWN_FAILURE			1
@@ -89,15 +95,11 @@ static void emsmdb_term(int context_id);
 static void* scan_work_func(void *pparam);
 
 static void asyncemsmdb_wakeup_proc(int context_id, BOOL b_pending);
+static int (*asyncemsmdb_interface_async_wait)(uint32_t async_id, ECDOASYNCWAITEX_IN *, ECDOASYNCWAITEX_OUT *);
+static void (*asyncemsmdb_interface_register_active)(void *);
+static void (*asyncemsmdb_interface_remove)(EMSMDB_HANDLE *);
 
-extern int asyncemsmdb_interface_async_wait(uint32_t async_id,
-	ECDOASYNCWAITEX_IN *pin, ECDOASYNCWAITEX_OUT *pout);
-
-extern void asyncemsmdb_interface_register_active(void *pproc);
-
-extern void asyncemsmdb_interface_remove(EMSMDB_HANDLE *pacxh);
-
-static char* g_error_text[] = {
+static constexpr const char *g_error_text[] = {
 	"The request was properly formatted and accepted.",
 	"The request produced an unknown failure.",
 	"The request has an invalid verb.",
@@ -141,7 +143,7 @@ BOOL HPM_LibMain(int reason, void **ppdata)
 		double_list_init(&g_pending_list);
 		g_notify_stop = TRUE;
 		context_num = get_context_num();
-		g_status_array = malloc(sizeof(NOTIFICATION_CONTEXT)*context_num);
+		g_status_array = static_cast<NOTIFICATION_CONTEXT *>(malloc(sizeof(NOTIFICATION_CONTEXT) * context_num));
 		if (NULL == g_status_array) {
 			printf("[moh_emsmdb]: fail to allocate status array\n");
 			return FALSE;
@@ -160,6 +162,15 @@ BOOL HPM_LibMain(int reason, void **ppdata)
 			printf("[moh_emsmdb]: fail to init user hash table\n");
 			return FALSE;
 		}
+		if (!query_service1(emsmdb_interface_connect_ex) ||
+		    !query_service1(emsmdb_interface_rpc_ext2) ||
+		    !query_service1(emsmdb_interface_disconnect) ||
+		    !query_service1(emsmdb_interface_touch_handle) ||
+		    !query_service1(asyncemsmdb_interface_register_active) ||
+		    !query_service1(asyncemsmdb_interface_remove)) {
+			printf("[moh_emsmdb]: exchange_emsmdb not loaded\n");
+			return false;
+		}
 		g_notify_stop = FALSE;
 		if (0 != pthread_create(&g_scan_id, NULL, scan_work_func, NULL)) {
 			g_notify_stop = TRUE;
@@ -175,7 +186,7 @@ BOOL HPM_LibMain(int reason, void **ppdata)
 		if (FALSE == register_interface(&interface)) {
 			return FALSE;
 		}
-		asyncemsmdb_interface_register_active(asyncemsmdb_wakeup_proc);
+		asyncemsmdb_interface_register_active(reinterpret_cast<void *>(asyncemsmdb_wakeup_proc));
 		printf("[moh_emsmdb]: plugin is loaded into system\n");
 		return TRUE;
 	case PLUGIN_FREE:
@@ -218,9 +229,9 @@ static void* scan_work_func(void *pparam)
 		for (str_hash_iter_begin(iter);
 			FALSE == str_hash_iter_done(iter);
 			str_hash_iter_forward(iter)) {
-			psession = str_hash_iter_get_value(iter, NULL);
+			psession = static_cast<SESSION_DATA *>(str_hash_iter_get_value(iter, nullptr));
 			if (psession->expire_time < cur_time) {
-				pcount = str_hash_query(g_user_hash, psession->username);
+				pcount = static_cast<int *>(str_hash_query(g_user_hash, psession->username));
 				if (NULL != pcount) {
 					(*pcount) --;
 					if (0 == *pcount) {
@@ -625,7 +636,6 @@ static BOOL emsmdb_proc(int context_id,
 	char client_info[256];
 	char request_value[32];
 	HTTP_REQUEST *prequest;
-	COOKIE_PARSER *pparser;
 	SESSION_DATA *psession;
 	EMSMDB_REQUEST request;
 	char session_string[64];
@@ -712,14 +722,9 @@ static BOOL emsmdb_proc(int context_id,
 				tmp_buff, sizeof(tmp_buff) - 1);
 	if (MEM_END_OF_FILE != tmp_len) {
 		tmp_buff[tmp_len] = '\0';
-		pparser = cookie_parser_init(tmp_buff);
-		if (NULL == pparser) {
-			return error_responsecode(context_id, &start_time,
-						RESPONSE_CODE_INVALID_CONTEXT_COOKIE);
-		}
+		auto pparser = cookie_parser_init(tmp_buff);
 		pstring = cookie_parser_get(pparser, "sid");
 		if (NULL == pstring || strlen(pstring) >= sizeof(session_string)) {
-			cookie_parser_free(pparser);
 			return error_responsecode(context_id, &start_time,
 						RESPONSE_CODE_INVALID_CONTEXT_COOKIE);
 		}
@@ -729,14 +734,12 @@ static BOOL emsmdb_proc(int context_id,
 			pstring = cookie_parser_get(pparser, "sequence");
 			if (NULL == pstring || FALSE == guid_from_string(
 				&sequence_guid, pstring)) {
-				cookie_parser_free(pparser);
 				return error_responsecode(context_id, &start_time,
 							RESPONSE_CODE_INVALID_CONTEXT_COOKIE);
 			}
 		}
-		cookie_parser_free(pparser);
 		pthread_mutex_lock(&g_hash_lock);
-		psession = str_hash_query(g_session_hash, session_string);
+		psession = static_cast<SESSION_DATA *>(str_hash_query(g_session_hash, session_string));
 		if (NULL == psession) {
 			pthread_mutex_unlock(&g_hash_lock);
 			return error_responsecode(context_id, &start_time,
@@ -744,7 +747,7 @@ static BOOL emsmdb_proc(int context_id,
 		}
 		if (psession->expire_time < start_time.tv_sec) {
 			str_hash_remove(g_session_hash, session_string);
-			pcount = str_hash_query(g_user_hash, psession->username);
+			pcount = static_cast<int *>(str_hash_query(g_user_hash, psession->username));
 			if (NULL != pcount) {
 				(*pcount) --;
 				if (0 == *pcount) {
@@ -824,7 +827,7 @@ static BOOL emsmdb_proc(int context_id,
 			if (NULL != psession) {
 				/* reconnecting and establishing of a new session */
 				pthread_mutex_lock(&g_hash_lock);
-				psession = str_hash_query(g_session_hash, session_string);
+				psession = static_cast<SESSION_DATA *>(str_hash_query(g_session_hash, session_string));
 				if (NULL != psession) {
 					session_guid1 = psession->session_guid;
 					psession->session_guid = session_guid;
@@ -839,7 +842,7 @@ static BOOL emsmdb_proc(int context_id,
 				sequence_guid = guid_random_new();
 				tmp_session.sequence_guid = sequence_guid;
 				strcpy(tmp_session.username, auth_info.username);
-				lower_string(tmp_session.username);
+				HX_strlower(tmp_session.username);
 				time(&tmp_session.expire_time);
 				tmp_session.expire_time += SESSION_VALID_INTERVAL + 60;
 				pthread_mutex_lock(&g_hash_lock);
@@ -850,9 +853,9 @@ static BOOL emsmdb_proc(int context_id,
 					rpc_free_environment();
 					return failure_response(context_id, &start_time,
 						request_value, request_id, client_info,
-						session_string, sequence_guid, EC_OUT_OF_RESOURCE);
+						session_string, sequence_guid, ecInsufficientResrc);
 				}
-				pcount = str_hash_query(g_user_hash, tmp_session.username);
+				pcount = static_cast<int *>(str_hash_query(g_user_hash, tmp_session.username));
 				if (NULL == pcount) {
 					tmp_count = 1;
 					str_hash_add(g_user_hash,
@@ -870,7 +873,7 @@ static BOOL emsmdb_proc(int context_id,
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+				session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "Disconnect")) {
 		if (EXT_ERR_SUCCESS != mb_ext_pull_disconnect_request(
@@ -885,9 +888,9 @@ static BOOL emsmdb_proc(int context_id,
 					request.disconnect.cb_auxin,
 					request.disconnect.pauxin);
 		pthread_mutex_lock(&g_hash_lock);
-		psession = str_hash_query(g_session_hash, session_string);
+		psession = static_cast<SESSION_DATA *>(str_hash_query(g_session_hash, session_string));
 		if (NULL != psession) {
-			pcount = str_hash_query(g_user_hash, psession->username);
+			pcount = static_cast<int *>(str_hash_query(g_user_hash, psession->username));
 			if (NULL != pcount) {
 				(*pcount) --;
 				if (0 == *pcount) {
@@ -904,7 +907,7 @@ static BOOL emsmdb_proc(int context_id,
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+				session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "Execute")) {
 		if (EXT_ERR_SUCCESS != mb_ext_pull_execute_request(
@@ -934,7 +937,7 @@ static BOOL emsmdb_proc(int context_id,
 			rpc_free_environment();
 			return failure_response(context_id, &start_time,
 				request_value, request_id, client_info,
-				session_string, sequence_guid, EC_BAD_STUB_DATA);
+				session_string, sequence_guid, RPC_X_BAD_STUB_DATA);
 		}
 	} else if (0 == strcasecmp(request_value, "NotificationWait")) {
 		if (EXT_ERR_SUCCESS != mb_ext_pull_notificationwait_request(

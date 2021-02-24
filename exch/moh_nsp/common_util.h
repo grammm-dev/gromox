@@ -3,7 +3,8 @@
 #include "ab_types.h"
 
 void* common_util_alloc(size_t size);
-
+template<typename T> T *cu_alloc() { return static_cast<T *>(common_util_alloc(sizeof(T))); }
+template<typename T> T *cu_alloc(size_t elem) { return static_cast<T *>(common_util_alloc(sizeof(T) * elem)); }
 void common_util_guid_to_flatuid(const GUID *pguid, FLATUID *pflatuid);
 
 void common_util_flatuid_to_guid(const FLATUID *pflatuid, GUID *pguid);

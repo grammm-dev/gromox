@@ -1,7 +1,7 @@
 #ifndef _H_MB_EXT_
 #define _H_MB_EXT_
 #include "mb_types.h"
-#include "ext_buffer.h"
+#include <gromox/ext_buffer.hpp>
 
 int mb_ext_pull_connect_request(EXT_PULL *pext, CONNECT_REQUEST *prequest);
 

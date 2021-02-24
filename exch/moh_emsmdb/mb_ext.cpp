@@ -32,7 +32,7 @@ int mb_ext_pull_connect_request(EXT_PULL *pext, CONNECT_REQUEST *prequest)
 		prequest->pauxin = NULL;
 		return EXT_ERR_SUCCESS;
 	}
-	prequest->pauxin = pext->alloc(prequest->cb_auxin);
+	prequest->pauxin = static_cast<uint8_t *>(pext->alloc(prequest->cb_auxin));
 	if (NULL == prequest->pauxin) {
 		return EXT_ERR_ALLOC;
 	}
@@ -55,7 +55,7 @@ int mb_ext_pull_execute_request(EXT_PULL *pext, EXECUTE_REQUEST *prequest)
 	if (0 == prequest->cb_in) {
 		prequest->pin = NULL;
 	} else {
-		prequest->pin = pext->alloc(prequest->cb_in);
+		prequest->pin = static_cast<uint8_t *>(pext->alloc(prequest->cb_in));
 		if (NULL == prequest->pin) {
 			return EXT_ERR_ALLOC;
 		}
@@ -76,7 +76,7 @@ int mb_ext_pull_execute_request(EXT_PULL *pext, EXECUTE_REQUEST *prequest)
 		prequest->pauxin = NULL;
 		return EXT_ERR_SUCCESS;
 	}
-	prequest->pauxin = pext->alloc(prequest->cb_auxin);
+	prequest->pauxin = static_cast<uint8_t *>(pext->alloc(prequest->cb_auxin));
 	if (NULL == prequest->pauxin) {
 		return EXT_ERR_ALLOC;
 	}
@@ -97,7 +97,7 @@ int mb_ext_pull_disconnect_request(EXT_PULL *pext,
 		prequest->pauxin = NULL;
 		return EXT_ERR_SUCCESS;
 	}
-	prequest->pauxin = pext->alloc(prequest->cb_auxin);
+	prequest->pauxin = static_cast<uint8_t *>(pext->alloc(prequest->cb_auxin));
 	if (NULL == prequest->pauxin) {
 		return EXT_ERR_ALLOC;
 	}
@@ -122,7 +122,7 @@ int mb_ext_pull_notificationwait_request(EXT_PULL *pext,
 		prequest->pauxin = NULL;
 		return EXT_ERR_SUCCESS;
 	}
-	prequest->pauxin = pext->alloc(prequest->cb_auxin);
+	prequest->pauxin = static_cast<uint8_t *>(pext->alloc(prequest->cb_auxin));
 	if (NULL == prequest->pauxin) {
 		return EXT_ERR_ALLOC;
 	}

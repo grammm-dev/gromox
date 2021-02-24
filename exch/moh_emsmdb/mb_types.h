@@ -1,6 +1,6 @@
 #ifndef _H_MB_TYPES_
 #define _H_MB_TYPES_
-#include "mapi_types.h"
+#include <gromox/mapi_types.hpp>
 
 typedef struct _CONNECT_REQUEST {
 	char *puserdn;

@@ -1,7 +1,7 @@
 #ifndef _H_AB_EXT_
 #define _H_AB_EXT_
 #include "ab_types.h"
-#include "ext_buffer.h"
+#include <gromox/ext_buffer.hpp>
 
 int ab_ext_pull_bind_request(EXT_PULL *pext, BIND_REQUEST *prequest);
 
@@ -110,6 +110,6 @@ int ab_ext_push_getaddressbookurl_response(EXT_PUSH *pext,
 	const GETADDRESSBOOKURL_RESPONSE *presponse);
 
 int ab_ext_push_failure_response(EXT_PUSH *pext, uint32_t status_code);
-
+extern int ab_ext_push_getmailboxurl_response(EXT_PUSH *, const GETMAILBOXURL_RESPONSE *);
 
 #endif /* _H_AB_EXT_ */

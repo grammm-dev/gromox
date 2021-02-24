@@ -1,15 +1,26 @@
-#include "cookie_parser.h"
+#include <libHX/string.h>
+#include <gromox/cookie_parser.hpp>
+#include <gromox/defs.h>
 #include "common_util.h"
-#include "hpm_common.h"
-#include "str_hash.h"
+#include <gromox/hpm_common.h>
+#include <gromox/str_hash.hpp>
 #include "ab_ext.h"
-#include "guid.h"
-#include "util.h"
+#include <gromox/guid.hpp>
+#include <gromox/util.hpp>
 #include <sys/time.h>
 #include <pthread.h>
 #include <time.h>
+#include <unistd.h>
+#include "nsp_bridge.h"
 
-DECLARE_API;
+using namespace gromox;
+
+#define EC_SUCCESS ecSuccess
+#define EC_BAD_STUB_DATA RPC_X_BAD_STUB_DATA
+#define EC_OUT_OF_MEMORY ecMAPIOOM
+#define EC_OUT_OF_RESOURCE ecInsufficientResrc
+
+DECLARE_API();
 
 #define RESPONSE_CODE_SUCCESS					0
 #define RESPONSE_CODE_UNKNOWN_FAILURE			1
@@ -54,7 +65,7 @@ static void* scan_work_fun(void *pparam);
 
 static BOOL (*get_id_from_username)(const char *username, int *puser_id);
 
-static char* g_error_text[] = {
+static constexpr const char *g_error_text[] = {
 	"The request was properly formatted and accepted.",
 	"The request produced an unknown failure.",
 	"The request has an invalid verb.",
@@ -92,8 +103,7 @@ BOOL HPM_LibMain(int reason, void **ppdata)
     case PLUGIN_INIT:
 		LINK_API(ppdata);
 		pthread_mutex_init(&g_hash_lock, NULL);
-		get_id_from_username = query_service("get_id_from_username");
-		if (NULL == get_id_from_username) {
+		if (!query_service1(get_id_from_username)) {
 			printf("[moh_nsp]: fail to get "
 				"\"get_id_from_username\" service\n");
 			return FALSE;
@@ -113,6 +123,26 @@ BOOL HPM_LibMain(int reason, void **ppdata)
 		if (NULL == g_user_hash) {
 			printf("[moh_nsp]: fail to init user hash table\n");
 			return FALSE;
+		}
+		if (!query_service1(nsp_interface_bind) ||
+		    !query_service1(nsp_interface_compare_mids) ||
+		    !query_service1(nsp_interface_dntomid) ||
+		    !query_service1(nsp_interface_get_matches) ||
+		    !query_service1(nsp_interface_get_proplist) ||
+		    !query_service1(nsp_interface_get_props) ||
+		    !query_service1(nsp_interface_get_specialtable) ||
+		    !query_service1(nsp_interface_get_templateinfo) ||
+		    !query_service1(nsp_interface_mod_linkatt) ||
+		    !query_service1(nsp_interface_mod_props) ||
+		    !query_service1(nsp_interface_query_columns) ||
+		    !query_service1(nsp_interface_query_rows) ||
+		    !query_service1(nsp_interface_resolve_namesw) ||
+		    !query_service1(nsp_interface_resort_restriction) ||
+		    !query_service1(nsp_interface_seek_entries) ||
+		    !query_service1(nsp_interface_unbind) ||
+		    !query_service1(nsp_interface_update_stat)) {
+			printf("[moh_nsp]: exchange_nsp not loaded\n");
+			return false;
 		}
 		g_notify_stop = FALSE;
 		if (0 != pthread_create(&g_scan_id, NULL, scan_work_fun, NULL)) {
@@ -163,9 +193,9 @@ static void* scan_work_fun(void *pparam)
 		for (str_hash_iter_begin(iter);
 			FALSE == str_hash_iter_done(iter);
 			str_hash_iter_forward(iter)) {
-			psession = str_hash_iter_get_value(iter, NULL);
+			psession = static_cast<SESSION_DATA *>(str_hash_iter_get_value(iter, nullptr));
 			if (psession->expire_time < cur_time) {
-				pcount = str_hash_query(g_user_hash, psession->username);
+				pcount = static_cast<int *>(str_hash_query(g_user_hash, psession->username));
 				if (NULL != pcount) {
 					(*pcount) --;
 					if (0 == *pcount) {
@@ -428,7 +458,7 @@ static uint32_t getaddressbookurl(GUID session_guid,
 	memset(username1, 0, sizeof(username1));
 	strcpy(username1, username);
 	ptoken = strchr(username1, '@');
-	lower_string(username1);
+	HX_strlower(username1);
 	if (NULL != ptoken) {
 		ptoken ++;
 	} else {
@@ -463,7 +493,7 @@ static uint32_t getmailboxurl(GUID session_guid,
 		return getaddressbookurl(session_guid, username,
 			flags, NULL, cb_auxin, pauxin, server_url);
 	}
-	snprint(server_url, "https://%s/mapi/emsmdb/?MailboxId=%s",
+	sprintf(server_url, "https://%s/mapi/emsmdb/?MailboxId=%s",
 									get_host_ID(), ptoken + 4);
 	return EC_SUCCESS;
 }
@@ -524,7 +554,6 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 	NSP_RESPONSE response;
 	char request_value[32];
 	HTTP_REQUEST *prequest;
-	COOKIE_PARSER *pparser;
 	SESSION_DATA *psession;
 	char session_string[64];
 	SESSION_DATA tmp_session;
@@ -604,14 +633,9 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 				tmp_buff, sizeof(tmp_buff) - 1);
 	if (MEM_END_OF_FILE != tmp_len) {
 		tmp_buff[tmp_len] = '\0';
-		pparser = cookie_parser_init(tmp_buff);
-		if (NULL == pparser) {
-			return error_responsecode(context_id, &start_time,
-						RESPONSE_CODE_INVALID_CONTEXT_COOKIE);
-		}
+		auto pparser = cookie_parser_init(tmp_buff);
 		pstring = cookie_parser_get(pparser, "sid");
 		if (NULL == pstring || strlen(pstring) >= sizeof(session_string)) {
-			cookie_parser_free(pparser);
 			return error_responsecode(context_id, &start_time,
 						RESPONSE_CODE_INVALID_CONTEXT_COOKIE);
 		}
@@ -621,14 +645,12 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			pstring = cookie_parser_get(pparser, "sequence");
 			if (NULL == pstring || FALSE == guid_from_string(
 				&sequence_guid, pstring)) {
-				cookie_parser_free(pparser);
 				return error_responsecode(context_id, &start_time,
 							RESPONSE_CODE_INVALID_CONTEXT_COOKIE);
 			}
 		}
-		cookie_parser_free(pparser);
 		pthread_mutex_lock(&g_hash_lock);
-		psession = str_hash_query(g_session_hash, session_string);
+		psession = static_cast<SESSION_DATA *>(str_hash_query(g_session_hash, session_string));
 		if (NULL == psession) {
 			pthread_mutex_unlock(&g_hash_lock);
 			return error_responsecode(context_id, &start_time,
@@ -636,7 +658,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 		}
 		if (psession->expire_time < start_time.tv_sec) {
 			str_hash_remove(g_session_hash, session_string);
-			pcount = str_hash_query(g_user_hash, psession->username);
+			pcount = static_cast<int *>(str_hash_query(g_user_hash, psession->username));
 			if (NULL != pcount) {
 				(*pcount) --;
 				if (0 == *pcount) {
@@ -705,7 +727,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			if (NULL != psession) {
 				/* reconnecting and establishing of a new session */
 				pthread_mutex_lock(&g_hash_lock);
-				psession = str_hash_query(g_session_hash, session_string);
+				psession = static_cast<SESSION_DATA *>(str_hash_query(g_session_hash, session_string));
 				if (NULL != psession) {
 					nsp_bridge_unbind(psession->session_guid, 0, 0, 0);
 					psession->session_guid = session_guid;
@@ -717,7 +739,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 				sequence_guid = guid_random_new();
 				tmp_session.sequence_guid = sequence_guid;
 				strcpy(tmp_session.username, auth_info.username);
-				lower_string(tmp_session.username);
+				HX_strlower(tmp_session.username);
 				time(&tmp_session.expire_time);
 				tmp_session.expire_time += SESSION_VALID_INTERVAL + 60;
 				pthread_mutex_lock(&g_hash_lock);
@@ -730,7 +752,7 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 						request_value, request_id, client_info,
 						session_string, sequence_guid, EC_OUT_OF_RESOURCE);
 				}
-				pcount = str_hash_query(g_user_hash, tmp_session.username);
+				pcount = static_cast<int *>(str_hash_query(g_user_hash, tmp_session.username));
 				if (NULL == pcount) {
 					tmp_count = 1;
 					str_hash_add(g_user_hash, tmp_session.username, &tmp_count);
@@ -767,9 +789,9 @@ static BOOL nsp_proc(int context_id, const void *pcontent, uint64_t length)
 			session_guid, request.unbind.reserved,
 			request.unbind.cb_auxin, request.unbind.pauxin);
 		pthread_mutex_lock(&g_hash_lock);
-		psession = str_hash_query(g_session_hash, session_string);
+		psession = static_cast<SESSION_DATA *>(str_hash_query(g_session_hash, session_string));
 		if (NULL != psession) {
-			pcount = str_hash_query(g_user_hash, psession->username);
+			pcount = static_cast<int *>(str_hash_query(g_user_hash, psession->username));
 			if (NULL != pcount) {
 				(*pcount) --;
 				if (0 == *pcount) {

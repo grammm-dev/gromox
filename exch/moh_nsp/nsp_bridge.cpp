@@ -1,6 +1,8 @@
 #include "nsp_bridge.h"
 #include "common_util.h"
 #include <string.h>
+#define EC_SUCCESS ecSuccess
+#define EC_ERROR ecRpcFailed
 
 #define HANDLE_EXCHANGE_NSP								1
 
@@ -14,71 +16,55 @@ typedef struct _NSP_HANDLE {
 	GUID guid;
 } NSP_HANDLE;
 
-extern int nsp_interface_bind(uint64_t hrpc, uint32_t flags,
+int (*nsp_interface_bind)(uint64_t hrpc, uint32_t flags,
 	const STAT *pstat, FLATUID *pserver_guid, NSP_HANDLE *phandle);
-
-extern uint32_t nsp_interface_unbind(
+uint32_t (*nsp_interface_unbind)(
 	NSP_HANDLE *phandle, uint32_t reserved);
-
-extern int nsp_interface_update_stat(NSP_HANDLE handle,
+int (*nsp_interface_update_stat)(NSP_HANDLE handle,
 	uint32_t reserved, STAT *pstat, int32_t *pdelta);
-
-extern int nsp_interface_query_rows(NSP_HANDLE handle, uint32_t flags,
+int (*nsp_interface_query_rows)(NSP_HANDLE handle, uint32_t flags,
 	STAT *pstat, uint32_t table_count, uint32_t *ptable, uint32_t count,
 	const LPROPTAG_ARRAY *pproptags, NSP_ROWSET **pprows);
-
-extern int nsp_interface_seek_entries(NSP_HANDLE handle,
+int (*nsp_interface_seek_entries)(NSP_HANDLE handle,
 	uint32_t reserved, STAT *pstat, PROPERTY_VALUE *ptarget,
 	const MID_ARRAY *ptable, const LPROPTAG_ARRAY *pproptags,
 	NSP_ROWSET **pprows);
-
-extern int nsp_interface_get_matches(
+int (*nsp_interface_get_matches)(
 	NSP_HANDLE handle, uint32_t reserved1, STAT *pstat,
 	const MID_ARRAY *preserved, uint32_t reserved2,
 	NSPRES *pfilter, NSP_PROPNAME *ppropname,
 	uint32_t requested, MID_ARRAY **ppoutmids,
 	const LPROPTAG_ARRAY *pproptags, NSP_ROWSET **pprows);
-
-extern int nsp_interface_resort_restriction(
+int (*nsp_interface_resort_restriction)(
 	NSP_HANDLE handle, uint32_t reserved, STAT *pstat,
 	const MID_ARRAY *pinmids, MID_ARRAY **ppoutmids);
-
-extern int nsp_interface_dntomid(NSP_HANDLE handle,
+int (*nsp_interface_dntomid)(NSP_HANDLE handle,
 	uint32_t reserved, const STRING_ARRAY *pnames,
 	MID_ARRAY **ppoutmids);
-
-extern int nsp_interface_get_proplist(NSP_HANDLE handle,
+int (*nsp_interface_get_proplist)(NSP_HANDLE handle,
 	uint32_t flags, uint32_t mid, uint32_t codepage,
 	LPROPTAG_ARRAY **ppproptags);
-
-extern int nsp_interface_get_props(
+int (*nsp_interface_get_props)(
 	NSP_HANDLE handle, uint32_t flags, const STAT *pstat,
 	const LPROPTAG_ARRAY *pproptags, NSP_PROPROW **pprows);
-
-extern int nsp_interface_compare_mids(
+int (*nsp_interface_compare_mids)(
 	NSP_HANDLE handle, uint32_t reserved, const STAT *pstat,
 	uint32_t mid1, uint32_t mid2, uint32_t *presult);
-
-extern int nsp_interface_mod_props(
+int (*nsp_interface_mod_props)(
 	NSP_HANDLE handle, uint32_t reserved, const STAT *pstat,
 	const LPROPTAG_ARRAY *pproptags, const NSP_PROPROW *prow);
-
-extern int nsp_interface_get_specialtable(NSP_HANDLE handle,
+int (*nsp_interface_get_specialtable)(NSP_HANDLE handle,
 	uint32_t flags, const STAT *pstat, uint32_t *pversion,
 	NSP_ROWSET **pprows);
-
-extern int nsp_interface_get_templateinfo(NSP_HANDLE handle,
+int (*nsp_interface_get_templateinfo)(NSP_HANDLE handle,
 	uint32_t flags, uint32_t type, const char *pdn,
 	uint32_t codepage, uint32_t locale_id, NSP_PROPROW **ppdata);
-
-extern int nsp_interface_mod_linkatt(NSP_HANDLE handle,
+int (*nsp_interface_mod_linkatt)(NSP_HANDLE handle,
 	uint32_t flags, uint32_t proptag, uint32_t mid,
 	const BINARY_ARRAY *pentry_ids);
-
-extern int nsp_interface_query_columns(NSP_HANDLE handle,
+int (*nsp_interface_query_columns)(NSP_HANDLE handle,
 	uint32_t reserved, uint32_t flags, LPROPTAG_ARRAY **ppcolumns);
-
-extern int nsp_interface_resolve_namesw(NSP_HANDLE handle,
+int (*nsp_interface_resolve_namesw)(NSP_HANDLE handle,
 	uint32_t reserved, const STAT *pstat, const LPROPTAG_ARRAY *pproptags,
 	const STRING_ARRAY *pstrs, MID_ARRAY **ppmids, NSP_ROWSET **pprows);
 
@@ -156,7 +142,7 @@ uint32_t nsp_bridge_getmatches(GUID session_guid, uint32_t reserved1,
 	if (NULL == pfilter) {
 		pnspres = NULL;
 	} else {
-		pnspres = common_util_alloc(sizeof(NSPRES));
+		pnspres = cu_alloc<NSPRES>();
 		if (NULL == pnspres) {
 			*ppmids = NULL;
 			return EC_ERROR;
@@ -170,7 +156,7 @@ uint32_t nsp_bridge_getmatches(GUID session_guid, uint32_t reserved1,
 	if (NULL == ppropname) {
 		pnspname = NULL;
 	} else {
-		pnspname = common_util_alloc(sizeof(NSP_PROPNAME));
+		pnspname = cu_alloc<NSP_PROPNAME>();
 		if (NULL == pnspname) {
 			*ppmids = NULL;
 			return EC_ERROR;
@@ -229,7 +215,7 @@ uint32_t nsp_bridge_getprops(GUID session_guid, uint32_t flags,
 	if (NULL == prow) {
 		*pprow = NULL;
 	} else {
-		*pprow = common_util_alloc(sizeof(ADDRESSBOOK_PROPLIST));
+		*pprow = cu_alloc<ADDRESSBOOK_PROPLIST>();
 		if (NULL == *pprow) {
 			return EC_ERROR;
 		}
@@ -279,7 +265,7 @@ uint32_t nsp_bridge_getspecialtable(GUID session_guid, uint32_t flags,
 		return EC_SUCCESS;
 	}
 	*prow_count = prows->crows;
-	*pprows = common_util_alloc(prows->crows*sizeof(ADDRESSBOOK_PROPLIST));
+	*pprows = cu_alloc<ADDRESSBOOK_PROPLIST>(prows->crows);
 	if (NULL == *pprows) {
 		return EC_ERROR;
 	}
@@ -315,7 +301,7 @@ uint32_t nsp_bridge_gettemplateinfo(GUID session_guid, uint32_t flags,
 		*pprow = NULL;
 		return EC_SUCCESS;
 	}
-	*pprow = common_util_alloc(sizeof(ADDRESSBOOK_PROPLIST));
+	*pprow = cu_alloc<ADDRESSBOOK_PROPLIST>();
 	if (NULL == *pprow) {
 		return EC_ERROR;
 	}
@@ -342,8 +328,7 @@ uint32_t nsp_bridge_modlinkatt(GUID session_guid, uint32_t flags,
 	if (0 == pentryids->count) {
 		entryid_array.pbin = NULL;
 	} else {
-		entryid_array.pbin = common_util_alloc(
-				sizeof(BINARY)*pentryids->count);
+		entryid_array.pbin = cu_alloc<BINARY>(pentryids->count);
 		if (NULL == entryid_array.pbin) {
 			return EC_ERROR;
 		}
@@ -372,7 +357,7 @@ uint32_t nsp_bridge_modprops(GUID session_guid, uint32_t reserved,
 	if (NULL == pvalues) {
 		prow = NULL;
 	} else {
-		prow = common_util_alloc(sizeof(NSP_PROPROW));
+		prow = cu_alloc<NSP_PROPROW>();
 		if (NULL == prow) {
 			return EC_ERROR;
 		}
@@ -482,7 +467,7 @@ uint32_t nsp_bridge_seekentries(GUID session_guid,
 	if (NULL == ptarget) {
 		ptarget_val = NULL;
 	} else {
-		ptarget_val = common_util_alloc(sizeof(PROPERTY_VALUE));
+		ptarget_val = cu_alloc<PROPERTY_VALUE>();
 		if (NULL == ptarget_val) {
 			return EC_ERROR;
 		}
@@ -517,7 +502,7 @@ uint32_t nsp_bridge_updatestat(GUID session_guid, uint32_t reserved,
 	session_handle.handle_type = HANDLE_EXCHANGE_NSP;
 	session_handle.guid = session_guid;
 	if (0 != delta_requested) {
-		*ppdelta = common_util_alloc(sizeof(int32_t));
+		*ppdelta = cu_alloc<int32_t>();
 		if (NULL == *ppdelta) {
 			return EC_ERROR;
 		}
