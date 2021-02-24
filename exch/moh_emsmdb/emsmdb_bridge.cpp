@@ -1,6 +1,5 @@
 #include "emsmdb_bridge.h"
 #include <gromox/mapi_types.hpp>
-#define EC_SUCCESS ecSuccess
 
 int (*emsmdb_interface_connect_ex)(uint64_t hrpc,
 	EMSMDB_HANDLE *phandle, const char *puser_dn, uint32_t flags,
@@ -37,11 +36,10 @@ uint32_t emsmdb_bridge_connect(const char *puserdn, uint32_t flags,
 		pmax_retry, pretry_delay, pcxr, reinterpret_cast<uint8_t *>(pdn_prefix), reinterpret_cast<uint8_t *>(pdisplayname),
 		pclient_vers, pserver_vers, pbest_vers, &timestamp, pauxin,
 		cb_auxin, pauxout, pcb_auxout);
-	if (EC_SUCCESS != result) {
+	if (result != ecSuccess)
 		return result;
-	}
 	*psession_guid = session_handle.guid;
-	return EC_SUCCESS;
+	return ecSuccess;
 }
 
 uint32_t emsmdb_bridge_execute(GUID session_guid,

@@ -12,7 +12,6 @@
 #include <pthread.h>
 #include <time.h>
 #include <unistd.h>
-#define EC_SUCCESS ecSuccess
 
 DECLARE_API();
 
@@ -823,7 +822,7 @@ static BOOL emsmdb_proc(int context_id,
 							response.connect.pdisplayname,
 							&response.connect.cb_auxout, 
 							response.connect.pauxout);
-		if (EC_SUCCESS == response.connect.result) {
+		if (response.connect.result == ecSuccess) {
 			if (NULL != psession) {
 				/* reconnecting and establishing of a new session */
 				pthread_mutex_lock(&g_hash_lock);
@@ -996,14 +995,14 @@ static int emsmdb_retr(int context_id)
 	case NOTIFICATION_STATUS_TIMED:
 		notification_response2(context_id,
 			&g_status_array[context_id].start_time,
-			EC_SUCCESS, 0);
+			ecSuccess, 0);
 		g_status_array[context_id].notification_status =
 								NOTIFICATION_STATUS_NONE;
 		return HPM_RETRIEVE_WRITE;
 	case NOTIFICATION_STATUS_PENDING:
 		notification_response2(context_id,
 			&g_status_array[context_id].start_time,
-			EC_SUCCESS, FLAG_NOTIFICATION_PENDING);
+			ecSuccess, FLAG_NOTIFICATION_PENDING);
 		g_status_array[context_id].notification_status =
 								NOTIFICATION_STATUS_NONE;
 		return HPM_RETRIEVE_WRITE;
