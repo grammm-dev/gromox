@@ -43,12 +43,12 @@ DECLARE_API();
 
 #define SESSION_VALID_INTERVAL					900
 
-typedef struct _SESSION_DATA {
+struct SESSION_DATA {
 	GUID session_guid;
 	GUID sequence_guid;
 	char username[256];
 	time_t expire_time;
-} SESSION_DATA;
+};
 
 static BOOL nsp_preproc(int context_id);
 

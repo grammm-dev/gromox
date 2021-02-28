@@ -8,10 +8,10 @@
 
 #define FLAG_UNICODESTRINGS								0x00000004
 
-typedef struct _NSP_HANDLE {
+struct NSP_HANDLE {
 	uint32_t handle_type;
 	GUID guid;
-} NSP_HANDLE;
+};
 
 int (*nsp_interface_bind)(uint64_t hrpc, uint32_t flags,
 	const STAT *pstat, FLATUID *pserver_guid, NSP_HANDLE *phandle);
