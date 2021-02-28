@@ -24,12 +24,7 @@ int (*nsp_interface_seek_entries)(NSP_HANDLE handle,
 	uint32_t reserved, STAT *pstat, PROPERTY_VALUE *ptarget,
 	const MID_ARRAY *ptable, const LPROPTAG_ARRAY *pproptags,
 	NSP_ROWSET **pprows);
-int (*nsp_interface_get_matches)(
-	NSP_HANDLE handle, uint32_t reserved1, STAT *pstat,
-	const MID_ARRAY *preserved, uint32_t reserved2,
-	NSPRES *pfilter, NSP_PROPNAME *ppropname,
-	uint32_t requested, MID_ARRAY **ppoutmids,
-	const LPROPTAG_ARRAY *pproptags, NSP_ROWSET **pprows);
+decltype(nsp_interface_get_matches) nsp_interface_get_matches;
 int (*nsp_interface_resort_restriction)(
 	NSP_HANDLE handle, uint32_t reserved, STAT *pstat,
 	const MID_ARRAY *pinmids, MID_ARRAY **ppoutmids);

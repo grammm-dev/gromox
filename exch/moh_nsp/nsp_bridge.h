@@ -4,6 +4,7 @@
 #include "ab_types.h"
 
 using NSP_HANDLE = CONTEXT_HANDLE;
+using STRINGS_ARRAY = STRING_ARRAY;
 
 uint32_t nsp_bridge_bind(uint32_t flags, const STAT *pstat,
 	uint32_t cb_auxin, const uint8_t *pauxin, GUID *psession_guid,
@@ -92,9 +93,9 @@ extern uint32_t (*nsp_interface_unbind)(NSP_HANDLE *, uint32_t reserved);
 extern int (*nsp_interface_update_stat)(NSP_HANDLE, uint32_t reserved, STAT *, int32_t *delta);
 extern int (*nsp_interface_query_rows)(NSP_HANDLE, uint32_t flags, STAT *, uint32_t table_count, uint32_t *table, uint32_t count, const LPROPTAG_ARRAY *, NSP_ROWSET **);
 extern int (*nsp_interface_seek_entries)(NSP_HANDLE, uint32_t reserved, STAT *, PROPERTY_VALUE *target, const MID_ARRAY *table, const LPROPTAG_ARRAY *, NSP_ROWSET **);
-extern int (*nsp_interface_get_matches)(NSP_HANDLE, uint32_t reserved1, STAT *, const MID_ARRAY *reserved, uint32_t reserved2, NSPRES *filter, NSP_PROPNAME *, uint32_t requested, MID_ARRAY **outmids, const LPROPTAG_ARRAY *, NSP_ROWSET **);
+extern int (*nsp_interface_get_matches)(NSP_HANDLE, uint32_t reserved1, STAT *, const MID_ARRAY *reserved, uint32_t reserved2, const NSPRES *filter, const NSP_PROPNAME *, uint32_t requested, MID_ARRAY **outmids, const LPROPTAG_ARRAY *, NSP_ROWSET **);
 extern int (*nsp_interface_resort_restriction)(NSP_HANDLE, uint32_t reserved, STAT *, const MID_ARRAY *inmids, MID_ARRAY **outmids);
-extern int (*nsp_interface_dntomid)(NSP_HANDLE, uint32_t reserved, const STRING_ARRAY *names, MID_ARRAY **outmids);
+extern int (*nsp_interface_dntomid)(NSP_HANDLE, uint32_t reserved, const STRINGS_ARRAY *names, MID_ARRAY **outmids);
 extern int (*nsp_interface_get_proplist)(NSP_HANDLE, uint32_t flags, uint32_t mid, uint32_t codepage, LPROPTAG_ARRAY **);
 extern int (*nsp_interface_get_props)(NSP_HANDLE, uint32_t flags, const STAT *, const LPROPTAG_ARRAY *, NSP_PROPROW **);
 extern int (*nsp_interface_compare_mids)(NSP_HANDLE, uint32_t reserved, const STAT *, uint32_t mid1, uint32_t mid2, uint32_t *result);
