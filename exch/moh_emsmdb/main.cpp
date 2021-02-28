@@ -165,6 +165,7 @@ BOOL HPM_LibMain(int reason, void **ppdata)
 		    !query_service1(emsmdb_interface_rpc_ext2) ||
 		    !query_service1(emsmdb_interface_disconnect) ||
 		    !query_service1(emsmdb_interface_touch_handle) ||
+		    !query_service1(asyncemsmdb_interface_async_wait) ||
 		    !query_service1(asyncemsmdb_interface_register_active) ||
 		    !query_service1(asyncemsmdb_interface_remove)) {
 			printf("[moh_emsmdb]: exchange_emsmdb not loaded\n");
