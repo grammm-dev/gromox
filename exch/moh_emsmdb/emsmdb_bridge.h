@@ -6,10 +6,10 @@
 
 #define HANDLE_EXCHANGE_ASYNCEMSMDB						3
 
-typedef struct _EMSMDB_HANDLE {
+struct EMSMDB_HANDLE {
 	uint32_t handle_type;
 	GUID guid;
-} EMSMDB_HANDLE;
+};
 
 uint32_t emsmdb_bridge_connect(const char *puserdn, uint32_t flags,
 	uint32_t cpid, uint32_t lcid_string, uint32_t lcid_sort,

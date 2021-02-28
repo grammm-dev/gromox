@@ -55,32 +55,32 @@ using namespace gromox;
 #define NOTIFICATION_STATUS_TIMED				1
 #define NOTIFICATION_STATUS_PENDING				2
 
-typedef struct _SESSION_DATA {
+struct SESSION_DATA {
 	GUID session_guid;
 	GUID sequence_guid;
 	char username[256];
 	time_t expire_time;
-} SESSION_DATA;
+};
 
-typedef struct _NOTIFICATION_CONTEXT {
+struct NOTIFICATION_CONTEXT {
 	DOUBLE_LIST_NODE node;
 	uint8_t pending_status;
 	uint8_t notification_status;
 	GUID session_guid;
 	time_t pending_time; /* time for connection pending */
 	struct timeval start_time;
-} NOTIFICATION_CONTEXT;
+};
 
-typedef struct _ECDOASYNCWAITEX_IN {
+struct ECDOASYNCWAITEX_IN {
 	EMSMDB_HANDLE acxh;
 	uint32_t flags_in;
-} ECDOASYNCWAITEX_IN;
+};
 
-typedef struct _ECDOASYNCWAITEX_OUT {
+struct ECDOASYNCWAITEX_OUT {
 	uint32_t flags_out; /* record context_id in the variable
 							for asyncemsmdb_wakeup_proc */
 	int32_t result;
-} ECDOASYNCWAITEX_OUT;
+};
 
 static BOOL emsmdb_preproc(int context_id);
 

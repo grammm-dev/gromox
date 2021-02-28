@@ -2,7 +2,7 @@
 #define _H_MB_TYPES_
 #include <gromox/mapi_types.hpp>
 
-typedef struct _CONNECT_REQUEST {
+struct CONNECT_REQUEST {
 	char *puserdn;
 	uint32_t flags;
 	uint32_t cpid;
@@ -10,9 +10,9 @@ typedef struct _CONNECT_REQUEST {
 	uint32_t lcid_sort;
 	uint32_t cb_auxin;
 	uint8_t *pauxin;
-} CONNECT_REQUEST;
+};
 
-typedef struct _CONNECT_RESPONSE {
+struct CONNECT_RESPONSE {
 	uint32_t status;
 	uint32_t result;
 	uint32_t max_polls;
@@ -22,18 +22,18 @@ typedef struct _CONNECT_RESPONSE {
 	char pdisplayname[1024];
 	uint32_t cb_auxout;
 	uint8_t pauxout[0x1008];
-} CONNECT_RESPONSE;
+};
 
-typedef struct _EXECUTE_REQUEST {
+struct EXECUTE_REQUEST {
 	uint32_t flags;
 	uint32_t cb_in;
 	uint8_t *pin;
 	uint32_t cb_out;
 	uint32_t cb_auxin;	
 	uint8_t *pauxin;
-} EXECUTE_REQUEST;
+};
 
-typedef struct _EXECUTE_RESPONSE {
+struct EXECUTE_RESPONSE {
 	uint32_t status;
 	uint32_t result;
 	uint32_t flags;
@@ -41,42 +41,42 @@ typedef struct _EXECUTE_RESPONSE {
 	uint8_t pout[0x40000];
 	uint32_t cb_auxout;
 	uint8_t pauxout[0x1008];
-} EXECUTE_RESPONSE;
+};
 
-typedef struct _DISCONNECT_REQUEST {
+struct DISCONNECT_REQUEST {
 	uint32_t cb_auxin;
 	uint8_t *pauxin;
-} DISCONNECT_REQUEST;
+};
 
-typedef struct _DISCONNECT_RESPONSE {
+struct DISCONNECT_RESPONSE {
 	uint32_t status;
 	uint32_t result;
-} DISCONNECT_RESPONSE;
+};
 
-typedef struct _NOTIFICATIONWAIT_REQUEST {
+struct NOTIFICATIONWAIT_REQUEST {
 	uint32_t flags;
 	uint32_t cb_auxin;
 	uint8_t *pauxin;
-} NOTIFICATIONWAIT_REQUEST;
+};
 
-typedef struct _NOTIFICATIONWAIT_RESPONSE {
+struct NOTIFICATIONWAIT_RESPONSE {
 	uint32_t status;
 	uint32_t result;
 	uint32_t flags_out;
-} NOTIFICATIONWAIT_RESPONSE;
+};
 
-typedef union _EMSMDB_REQUEST {
+union EMSMDB_REQUEST {
 	CONNECT_REQUEST connect;
 	DISCONNECT_REQUEST disconnect;
 	EXECUTE_REQUEST execute;
 	NOTIFICATIONWAIT_REQUEST notificationwait;
-} EMSMDB_REQUEST;
+};
 
-typedef union _EMSMDB_RESPONSE {
+union EMSMDB_RESPONSE {
 	CONNECT_RESPONSE connect;
 	DISCONNECT_RESPONSE disconnect;
 	EXECUTE_RESPONSE execute;
 	NOTIFICATIONWAIT_RESPONSE notificationwait;
-} EMSMDB_RESPONSE;
+};
 
 #endif /* _H_MB_TYPES_ */
