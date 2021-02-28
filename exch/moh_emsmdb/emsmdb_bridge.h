@@ -1,15 +1,13 @@
 #ifndef _H_EMSMDB_BRIDGE_
 #define _H_EMSMDB_BRIDGE_
 #include <gromox/common_types.hpp>
+#include <gromox/rpc_types.hpp>
 
 #define HANDLE_EXCHANGE_EMSMDB							2
 
 #define HANDLE_EXCHANGE_ASYNCEMSMDB						3
 
-struct EMSMDB_HANDLE {
-	uint32_t handle_type;
-	GUID guid;
-};
+using EMSMDB_HANDLE = CONTEXT_HANDLE;
 
 uint32_t emsmdb_bridge_connect(const char *puserdn, uint32_t flags,
 	uint32_t cpid, uint32_t lcid_string, uint32_t lcid_sort,

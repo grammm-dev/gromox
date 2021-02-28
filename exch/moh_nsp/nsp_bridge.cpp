@@ -1,3 +1,4 @@
+#include <gromox/rpc_types.hpp>
 #include "nsp_bridge.h"
 #include "common_util.h"
 #include <string.h>
@@ -8,10 +9,7 @@
 
 #define FLAG_UNICODESTRINGS								0x00000004
 
-struct NSP_HANDLE {
-	uint32_t handle_type;
-	GUID guid;
-};
+using NSP_HANDLE = CONTEXT_HANDLE;
 
 int (*nsp_interface_bind)(uint64_t hrpc, uint32_t flags,
 	const STAT *pstat, FLATUID *pserver_guid, NSP_HANDLE *phandle);

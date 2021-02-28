@@ -1,8 +1,9 @@
 #ifndef _H_NSP_BRIDGE_
 #define _H_NSP_BRIDGE_
+#include <gromox/rpc_types.hpp>
 #include "ab_types.h"
 
-struct NSP_HANDLE;
+using NSP_HANDLE = CONTEXT_HANDLE;
 
 uint32_t nsp_bridge_bind(uint32_t flags, const STAT *pstat,
 	uint32_t cb_auxin, const uint8_t *pauxin, GUID *psession_guid,
