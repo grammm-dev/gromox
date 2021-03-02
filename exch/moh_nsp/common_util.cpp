@@ -354,43 +354,32 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 	}
 	for (i=0; i<pnsprow->cvalues; i++) {
 		if (PROP_TYPE(pnsprow->pprops[i].proptag) == PT_ERROR) {
-			pabrow->ppvalue[i] = cu_alloc<ADDRESSBOOK_FPROPVAL>();
-			if (NULL == pabrow->ppvalue[i]) {
+			auto ap = cu_alloc<ADDRESSBOOK_FPROPVAL>();
+			if (ap == nullptr)
 				return FALSE;
-			}
+			pabrow->ppvalue[i] = ap;
 			if (pnsprow->pprops[i].value.err == ecNotFound) {
-				((ADDRESSBOOK_FPROPVAL*)pabrow->ppvalue[i])->flag =
-										ADDRESSBOOK_FLAG_UNAVAILABLE;
-				((ADDRESSBOOK_FPROPVAL*)pabrow->ppvalue[i])->pvalue = NULL;
+				ap->flag   = ADDRESSBOOK_FLAG_UNAVAILABLE;
+				ap->pvalue = nullptr;
 			} else {
-				((ADDRESSBOOK_FPROPVAL*)pabrow->ppvalue[i])->flag =
-											ADDRESSBOOK_FLAG_ERROR;
-				((ADDRESSBOOK_FPROPVAL*)pabrow->ppvalue[i])->pvalue =
-								cu_alloc<uint32_t>();
-				if (NULL == ((ADDRESSBOOK_FPROPVAL*)
-					pabrow->ppvalue[i])->pvalue) {
+				ap->flag   = ADDRESSBOOK_FLAG_ERROR;
+				ap->pvalue = cu_alloc<uint32_t>();
+				if (ap->pvalue == nullptr)
 					return FALSE;	
-				}
-				*(uint32_t*)(((ADDRESSBOOK_FPROPVAL*)
-					pabrow->ppvalue[i])->pvalue) =
-					pnsprow->pprops[i].value.err;
+				*static_cast<uint32_t *>(ap->pvalue) = pnsprow->pprops[i].value.err;
 			}
 		} else {
 			if (PROPROW_FLAG_NORMAL == pabrow->flag) {
 				if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED) {
-					pabrow->ppvalue[i] = cu_alloc<ADDRESSBOOK_TYPROPVAL>();
-					if (NULL == pabrow->ppvalue[i]) {
+					auto ap = cu_alloc<ADDRESSBOOK_TYPROPVAL>();
+					if (ap == nullptr)
 						return FALSE;
-					}
-					((ADDRESSBOOK_TYPROPVAL*)pabrow->ppvalue[i])->type =
-									pnsprow->pprops[i].proptag & 0xFFFF;
+					pabrow->ppvalue[i] = ap;
+					ap->type = pnsprow->pprops[i].proptag & 0xFFFF;
 					if (FALSE == common_util_valunion_to_propval(
 						pnsprow->pprops[i].proptag & 0xFFFF,
-						&pnsprow->pprops[i].value,
-						&((ADDRESSBOOK_TYPROPVAL*)
-						pabrow->ppvalue[i])->pvalue)) {
+					    &pnsprow->pprops[i].value, &ap->pvalue))
 						return FALSE;						
-					}
 				} else {
 					if (FALSE == common_util_valunion_to_propval(
 						pnsprow->pprops[i].proptag & 0xFFFF,
@@ -401,35 +390,26 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 				}
 			} else {
 				if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED) {
-					pabrow->ppvalue[i] = cu_alloc<ADDRESSBOOK_TFPROPVAL>();
-					if (NULL == pabrow->ppvalue[i]) {
+					auto ap = cu_alloc<ADDRESSBOOK_TFPROPVAL>();
+					if (ap == nullptr)
 						return FALSE;
-					}
-					((ADDRESSBOOK_TFPROPVAL*)pabrow->ppvalue[i])->flag =
-											ADDRESSBOOK_FLAG_AVAILABLE;
-					((ADDRESSBOOK_TFPROPVAL*)pabrow->ppvalue[i])->type =
-									pnsprow->pprops[i].proptag & 0xFFFF;
+					pabrow->ppvalue[i] = ap;
+					ap->flag = ADDRESSBOOK_FLAG_AVAILABLE;
+					ap->type = pnsprow->pprops[i].proptag & 0xFFFF;
 					if (FALSE == common_util_valunion_to_propval(
 						pnsprow->pprops[i].proptag & 0xFFFF,
-						&pnsprow->pprops[i].value,
-						&((ADDRESSBOOK_TFPROPVAL*)
-						pabrow->ppvalue[i])->pvalue)) {
+					    &pnsprow->pprops[i].value, &ap->pvalue))
 						return FALSE;						
-					}
 				} else {
-					pabrow->ppvalue[i] = cu_alloc<ADDRESSBOOK_FPROPVAL>();
-					if (NULL == pabrow->ppvalue[i]) {
+					auto ap = cu_alloc<ADDRESSBOOK_FPROPVAL>();
+					if (ap == nullptr)
 						return FALSE;
-					}
-					((ADDRESSBOOK_FPROPVAL*)pabrow->ppvalue[i])->flag =
-											ADDRESSBOOK_FLAG_AVAILABLE;
+					pabrow->ppvalue[i] = ap;
+					ap->flag = ADDRESSBOOK_FLAG_AVAILABLE;
 					if (FALSE == common_util_valunion_to_propval(
 						pnsprow->pprops[i].proptag & 0xFFFF,
-						&pnsprow->pprops[i].value,
-						&((ADDRESSBOOK_FPROPVAL*)
-						pabrow->ppvalue[i])->pvalue)) {
+					    &pnsprow->pprops[i].value, &ap->pvalue))
 						return FALSE;						
-					}
 				}
 			}
 		}
