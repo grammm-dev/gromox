@@ -1,0 +1,19 @@
+.TH moh_emsmdb 4gx "" "Gromox" "Gromox admin reference"
+.SH Synopsis
+.PP
+moh_emsmdb \(em MAPI-in-HTTP processor for EMSMDB
+.SH Description
+.PP
+moh_emsmdb is a processing plugin for http(8gx) which reacts to URIs starting
+in \fB/mapi/emsmdb/\fP. The ROP stream inside the HTTP request bodies is handed
+off to exchange_emsmdb(4gx) for processing.
+.SH Config file directives
+.PP
+This plugin has no directives.
+.SH Normative references
+.IP \(bu 4
+MS-OXCMAPIHTTP: Messaging Application Programming Interface (MAPI) Extensions
+for HTTP
+.SH See also
+.PP
+\fBgromox\fP(7), \fBhttp\fP(8gx), \fBexchange_emsmdb\fP(4gx)

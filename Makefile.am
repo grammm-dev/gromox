@@ -310,7 +310,7 @@ man_MANS = \
 	doc/mapi.4gx doc/message_enqueue.4gx doc/midb.8gx doc/midb_agent.4gx \
 	doc/mkmidb.8gx doc/mkprivate.8gx doc/mkpublic.8gx \
 	doc/mod_cache.4gx doc/mod_fastcgi.4gx doc/mod_proxy.4gx doc/mod_rewrite.4gx \
-	doc/mysql_adaptor.4gx \
+	doc/moh_emsmdb.4gx doc/moh_nsp.4gx doc/mysql_adaptor.4gx \
 	doc/pam_gromox.8gx doc/pop3.8gx doc/rebuild.8gx \
 	doc/rtf2html.1gx doc/sa.cfg.5gx doc/smtp.8gx \
 	doc/str_filter.4gx doc/str_table.4gx doc/textmaps.4gx \
