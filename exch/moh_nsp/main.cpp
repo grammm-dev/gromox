@@ -89,7 +89,7 @@ static pthread_mutex_t g_hash_lock;
 static STR_HASH_TABLE *g_user_hash;
 static STR_HASH_TABLE *g_session_hash;
 
-BOOL HPM_LibMain(int reason, void **ppdata)
+static BOOL hpm_moh_nsp(int reason, void **ppdata)
 {
 	int context_num;
 	HPM_INTERFACE interface;
@@ -172,7 +172,9 @@ BOOL HPM_LibMain(int reason, void **ppdata)
 		pthread_mutex_destroy(&g_hash_lock);
 		return TRUE;
 	}
+	return false;
 }
+HPM_ENTRY(hpm_moh_nsp);
 
 static void* scan_work_fun(void *pparam)
 {

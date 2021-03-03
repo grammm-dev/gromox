@@ -129,7 +129,7 @@ static STR_HASH_TABLE *g_user_hash;
 static STR_HASH_TABLE *g_session_hash;
 static NOTIFICATION_CONTEXT *g_status_array;
 
-BOOL HPM_LibMain(int reason, void **ppdata)
+static BOOL hpm_moh_emsmdb(int reason, void **ppdata)
 {
 	int context_num;
 	HPM_INTERFACE interface;
@@ -211,7 +211,9 @@ BOOL HPM_LibMain(int reason, void **ppdata)
 		pthread_mutex_destroy(&g_list_lock);
 		return TRUE;
 	}
+	return false;
 }
+HPM_ENTRY(hpm_moh_emsmdb);
 
 static void* scan_work_func(void *pparam)
 {
@@ -1019,6 +1021,7 @@ static int emsmdb_retr(int context_id)
 	case PENDING_STATUS_WAITING:
 		return HPM_RETRIEVE_WAIT;
 	}
+	return HPM_RETRIEVE_DONE;
 }
 
 static void emsmdb_term(int context_id)
