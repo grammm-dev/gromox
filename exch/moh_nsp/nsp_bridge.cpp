@@ -365,7 +365,7 @@ uint32_t nsp_bridge_modprops(GUID session_guid, uint32_t reserved,
 }
 
 uint32_t nsp_bridge_queryrows(GUID session_guid, uint32_t flags,
-	STAT *pstat, const MID_ARRAY explicit_table, uint32_t count,
+    STAT *pstat, const LPROPTAG_ARRAY explicit_table, uint32_t count,
 	const LPROPTAG_ARRAY *pcolumns, uint32_t cb_auxin,
 	const uint8_t *pauxin, ADDRESSBOOK_COLROW *pcolumn_rows)
 {
@@ -377,7 +377,7 @@ uint32_t nsp_bridge_queryrows(GUID session_guid, uint32_t flags,
 	session_handle.handle_type = HANDLE_EXCHANGE_NSP;
 	session_handle.guid = session_guid;
 	result = nsp_interface_query_rows(session_handle, flags,
-		pstat, explicit_table.count, explicit_table.pmid,
+	         pstat, explicit_table.cvalues, explicit_table.pproptag,
 		count, pcolumns, &prows);
 	if (result != ecSuccess)
 		return result;

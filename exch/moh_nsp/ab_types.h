@@ -44,14 +44,10 @@ struct ADDRESSBOOK_PROPROW {
 };
 
 struct LPROPTAG_ARRAY {
-	uint32_t count;
+	uint32_t cvalues;
 	uint32_t *pproptag;
 };
-
-struct MID_ARRAY {
-	uint32_t count;
-	uint32_t *pmid;
-};
+using MID_ARRAY = LPROPTAG_ARRAY;
 
 struct STAT {
 	uint32_t sort_type;

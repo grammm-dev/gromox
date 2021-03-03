@@ -302,19 +302,18 @@ static int ab_ext_pull_addressbook_tfpropval(EXT_PULL *pext,
 static int ab_ext_pull_addressbook_proprow(EXT_PULL *pext,
 	const LPROPTAG_ARRAY *pcolumns, ADDRESSBOOK_PROPROW *prow)
 {
-	int i;
 	int status;
 	
 	status = ext_buffer_pull_uint8(pext, &prow->flag);
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
-	prow->ppvalue = pext->anew<void *>(pcolumns->count);
+	prow->ppvalue = pext->anew<void *>(pcolumns->cvalues);
 	if (NULL == prow->ppvalue) {
 		return EXT_ERR_ALLOC;
 	}
 	if (PROPROW_FLAG_NORMAL == prow->flag) {
-		for (i=0; i<pcolumns->count; i++) {
+		for (unsigned int i = 0; i < pcolumns->cvalues; ++i) {
 			if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED) {
 				prow->ppvalue[i] = pext->anew<ADDRESSBOOK_TYPROPVAL>();
 				if (NULL == prow->ppvalue[i]) {
@@ -331,7 +330,7 @@ static int ab_ext_pull_addressbook_proprow(EXT_PULL *pext,
 			}
 		}
 	} else if (PROPROW_FLAG_FLAGGED == prow->flag) {
-		for (i=0; i<pcolumns->count; i++) {
+		for (unsigned int i = 0; i < pcolumns->cvalues; ++i) {
 			if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED) {
 				prow->ppvalue[i] = pext->anew<ADDRESSBOOK_TFPROPVAL>();
 				if (NULL == prow->ppvalue[i]) {
@@ -361,18 +360,15 @@ static int ab_ext_pull_addressbook_proprow(EXT_PULL *pext,
 static int ab_ext_pull_lproptag_array(EXT_PULL *pext,
 	LPROPTAG_ARRAY *pproptags)
 {
-	int i;
-	int status;
-	
-	status = ext_buffer_pull_uint32(pext, &pproptags->count);
+	auto status = ext_buffer_pull_uint32(pext, &pproptags->cvalues);
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
-	pproptags->pproptag = pext->anew<uint32_t>(pproptags->count);
+	pproptags->pproptag = pext->anew<uint32_t>(pproptags->cvalues);
 	if (NULL == pproptags->pproptag) {
 		return EXT_ERR_ALLOC;
 	}
-	for (i=0; i<pproptags->count; i++) {
+	for (unsigned int i = 0; i < pproptags->cvalues; ++i) {
 		status = ext_buffer_pull_uint32(pext, pproptags->pproptag + i);
 		if (EXT_ERR_SUCCESS != status) {
 			return status;
@@ -384,23 +380,19 @@ static int ab_ext_pull_lproptag_array(EXT_PULL *pext,
 static int ab_ext_pull_mid_array(EXT_PULL *pext,
 	MID_ARRAY *pmids)
 {
-	int i;
-	int status;
-	
-	status = ext_buffer_pull_uint32(pext, &pmids->count);
+	auto status = ext_buffer_pull_uint32(pext, &pmids->cvalues);
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
-	if (0 == pmids->count) {
-		pmids->pmid = NULL;
+	if (pmids->cvalues == 0) {
+		pmids->pproptag = nullptr;
 	} else {
-		pmids->pmid = pext->anew<uint32_t>(pmids->count);
-		if (NULL == pmids->pmid) {
+		pmids->pproptag = pext->anew<uint32_t>(pmids->cvalues);
+		if (pmids->pproptag == nullptr)
 			return EXT_ERR_ALLOC;
-		}
 	}
-	for (i=0; i<pmids->count; i++) {
-		status = ext_buffer_pull_uint32(pext, pmids->pmid + i);
+	for (unsigned int i = 0; i < pmids->cvalues; ++i) {
+		status = ext_buffer_pull_uint32(pext, &pmids->pproptag[i]);
 		if (EXT_ERR_SUCCESS != status) {
 			return status;
 		}
@@ -1780,7 +1772,6 @@ static int ab_ext_push_addressbook_tfpropval(EXT_PUSH *pext,
 static int ab_ext_push_addressbook_proprow(EXT_PUSH *pext,
 	const LPROPTAG_ARRAY *pcolumns, const ADDRESSBOOK_PROPROW *prow)
 {
-	int i;
 	int status;
 	
 	status = ext_buffer_push_uint8(pext, prow->flag);
@@ -1788,7 +1779,7 @@ static int ab_ext_push_addressbook_proprow(EXT_PUSH *pext,
 		return status;
 	}
 	if (PROPROW_FLAG_NORMAL == prow->flag) {
-		for (i=0; i<pcolumns->count; i++) {
+		for (unsigned int i = 0; i < pcolumns->cvalues; ++i) {
 			if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED)
 				status = ab_ext_push_addressbook_typropval(
 				         pext, static_cast<ADDRESSBOOK_TYPROPVAL *>(prow->ppvalue[i]));
@@ -1800,7 +1791,7 @@ static int ab_ext_push_addressbook_proprow(EXT_PUSH *pext,
 			}
 		}
 	} else if (PROPROW_FLAG_FLAGGED == prow->flag) {
-		for (i=0; i<pcolumns->count; i++) {
+		for (unsigned int i = 0; i < pcolumns->cvalues; ++i) {
 			if (PROP_TYPE(pcolumns->pproptag[i]) == PT_UNSPECIFIED)
 				status = ab_ext_push_addressbook_tfpropval(
 				         pext, static_cast<ADDRESSBOOK_TFPROPVAL *>(prow->ppvalue[i]));
@@ -1820,14 +1811,11 @@ static int ab_ext_push_addressbook_proprow(EXT_PUSH *pext,
 static int ab_ext_push_lproptag_array(EXT_PUSH *pext,
 	const LPROPTAG_ARRAY *pproptags)
 {
-	int i;
-	int status;
-	
-	status = ext_buffer_push_uint32(pext, pproptags->count);
+	auto status = ext_buffer_push_uint32(pext, pproptags->cvalues);
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
-	for (i=0; i<pproptags->count; i++) {
+	for (unsigned int i = 0; i < pproptags->cvalues; ++i) {
 		status = ext_buffer_push_uint32(pext, pproptags->pproptag[i]);
 		if (EXT_ERR_SUCCESS != status) {
 			return status;
@@ -1839,15 +1827,12 @@ static int ab_ext_push_lproptag_array(EXT_PUSH *pext,
 static int ab_ext_push_mid_array(EXT_PUSH *pext,
 	const MID_ARRAY *pmids)
 {
-	int i;
-	int status;
-	
-	status = ext_buffer_push_uint32(pext, pmids->count);
+	auto status = ext_buffer_push_uint32(pext, pmids->cvalues);
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
-	for (i=0; i<pmids->count; i++) {
-		status = ext_buffer_push_uint32(pext, pmids->pmid[i]);
+	for (unsigned int i = 0; i < pmids->cvalues; ++i) {
+		status = ext_buffer_push_uint32(pext, pmids->pproptag[i]);
 		if (EXT_ERR_SUCCESS != status) {
 			return status;
 		}
