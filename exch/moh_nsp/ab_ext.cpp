@@ -323,7 +323,7 @@ static int ab_ext_pull_addressbook_proprow(EXT_PULL *pext,
 				         pext, static_cast<ADDRESSBOOK_TYPROPVAL *>(prow->ppvalue[i]));
 			} else {
 				status = ab_ext_pull_addressbook_propval(pext,
-					pcolumns->pproptag[i]&0xFFFF, prow->ppvalue + i);
+				         PROP_TYPE(pcolumns->pproptag[i]), prow->ppvalue + i);
 			}
 			if (EXT_ERR_SUCCESS != status) {
 				return status;
@@ -345,7 +345,8 @@ static int ab_ext_pull_addressbook_proprow(EXT_PULL *pext,
 					return EXT_ERR_ALLOC;
 				}
 				status = ab_ext_pull_addressbook_fpropval(pext,
-				         pcolumns->pproptag[i] & 0xFFFF, static_cast<ADDRESSBOOK_FPROPVAL *>(prow->ppvalue[i]));
+				         PROP_TYPE(pcolumns->pproptag[i]),
+				         static_cast<ADDRESSBOOK_FPROPVAL *>(prow->ppvalue[i]));
 			}
 			if (EXT_ERR_SUCCESS != status) {
 				return status;
@@ -1785,7 +1786,7 @@ static int ab_ext_push_addressbook_proprow(EXT_PUSH *pext,
 				         pext, static_cast<ADDRESSBOOK_TYPROPVAL *>(prow->ppvalue[i]));
 			else
 				status = ab_ext_push_addressbook_propval(pext,
-					pcolumns->pproptag[i]&0xFFFF, prow->ppvalue[i]);
+				         PROP_TYPE(pcolumns->pproptag[i]), prow->ppvalue[i]);
 			if (EXT_ERR_SUCCESS != status) {
 				return status;
 			}
@@ -1797,7 +1798,8 @@ static int ab_ext_push_addressbook_proprow(EXT_PUSH *pext,
 				         pext, static_cast<ADDRESSBOOK_TFPROPVAL *>(prow->ppvalue[i]));
 			else
 				status = ab_ext_push_addressbook_fpropval(pext,
-				         pcolumns->pproptag[i] & 0xFFFF, static_cast<ADDRESSBOOK_FPROPVAL *>(prow->ppvalue[i]));
+				         PROP_TYPE(pcolumns->pproptag[i]),
+				         static_cast<ADDRESSBOOK_FPROPVAL *>(prow->ppvalue[i]));
 			if (EXT_ERR_SUCCESS != status) {
 				return status;
 			}

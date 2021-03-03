@@ -466,7 +466,7 @@ union PROP_VAL_UNION {
 struct PROPERTY_VALUE {
 	uint32_t proptag;
 	uint32_t reserved;
-	PROP_VAL_UNION value; /* type is proptag&0xFFFF */
+	PROP_VAL_UNION value;
 };
 
 struct NSP_PROPROW {

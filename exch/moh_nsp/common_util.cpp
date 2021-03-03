@@ -293,8 +293,8 @@ BOOL common_util_nsp_proprow_to_addressbook_proplist(
 		return FALSE;
 	}
 	for (i=0; i<prow->cvalues; i++) {
-		pproplist->ppropval[i].type = prow->pprops[i].proptag & 0xFFFF;
-		pproplist->ppropval[i].propid = prow->pprops[i].proptag >> 16;
+		pproplist->ppropval[i].type = PROP_TYPE(prow->pprops[i].proptag);
+		pproplist->ppropval[i].propid = PROP_ID(prow->pprops[i].proptag);
 		if (FALSE == common_util_valunion_to_propval(
 			pproplist->ppropval[i].type, &prow->pprops[i].value,
 			&pproplist->ppropval[i].pvalue)) {
@@ -375,14 +375,12 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 					if (ap == nullptr)
 						return FALSE;
 					pabrow->ppvalue[i] = ap;
-					ap->type = pnsprow->pprops[i].proptag & 0xFFFF;
-					if (FALSE == common_util_valunion_to_propval(
-						pnsprow->pprops[i].proptag & 0xFFFF,
+					ap->type = PROP_TYPE(pnsprow->pprops[i].proptag);
+					if (!common_util_valunion_to_propval(PROP_TYPE(pnsprow->pprops[i].proptag),
 					    &pnsprow->pprops[i].value, &ap->pvalue))
 						return FALSE;						
 				} else {
-					if (FALSE == common_util_valunion_to_propval(
-						pnsprow->pprops[i].proptag & 0xFFFF,
+					if (!common_util_valunion_to_propval(PROP_TYPE(pnsprow->pprops[i].proptag),
 						&pnsprow->pprops[i].value,
 						&pabrow->ppvalue[i])) {
 						return FALSE;						
@@ -395,9 +393,8 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 						return FALSE;
 					pabrow->ppvalue[i] = ap;
 					ap->flag = ADDRESSBOOK_FLAG_AVAILABLE;
-					ap->type = pnsprow->pprops[i].proptag & 0xFFFF;
-					if (FALSE == common_util_valunion_to_propval(
-						pnsprow->pprops[i].proptag & 0xFFFF,
+					ap->type = PROP_TYPE(pnsprow->pprops[i].proptag);
+					if (!common_util_valunion_to_propval(PROP_TYPE(pnsprow->pprops[i].proptag),
 					    &pnsprow->pprops[i].value, &ap->pvalue))
 						return FALSE;						
 				} else {
@@ -406,8 +403,7 @@ static BOOL common_util_nsp_proprow_to_addressbook_proprow(
 						return FALSE;
 					pabrow->ppvalue[i] = ap;
 					ap->flag = ADDRESSBOOK_FLAG_AVAILABLE;
-					if (FALSE == common_util_valunion_to_propval(
-						pnsprow->pprops[i].proptag & 0xFFFF,
+					if (!common_util_valunion_to_propval(PROP_TYPE(pnsprow->pprops[i].proptag),
 					    &pnsprow->pprops[i].value, &ap->pvalue))
 						return FALSE;						
 				}
@@ -479,8 +475,7 @@ static BOOL common_util_to_nspres_content(
 	}
 	pnspres->pprop->proptag = pres->propval.proptag;
 	pnspres->pprop->reserved = 0;
-	return common_util_propval_to_valunion(
-			pres->propval.proptag & 0xFFFF,
+	return common_util_propval_to_valunion(PROP_TYPE(pres->propval.proptag),
 			pres->propval.pvalue,
 			&pnspres->pprop->value);
 }
@@ -496,8 +491,7 @@ static BOOL common_util_to_nspres_property(
 	}
 	pnspres->pprop->proptag = pres->propval.proptag;
 	pnspres->pprop->reserved = 0;
-	return common_util_propval_to_valunion(
-			pres->propval.proptag & 0xFFFF,
+	return common_util_propval_to_valunion(PROP_TYPE(pres->propval.proptag),
 			pres->propval.pvalue,
 			&pnspres->pprop->value);
 }
