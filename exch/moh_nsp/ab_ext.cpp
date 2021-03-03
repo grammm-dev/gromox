@@ -968,7 +968,7 @@ int ab_ext_pull_gettemplateinfo_request(EXT_PULL *pext,
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
-	status - ext_buffer_pull_uint32(pext, &prequest->type);
+	status = ext_buffer_pull_uint32(pext, &prequest->type);
 	if (EXT_ERR_SUCCESS != status) {
 		return status;
 	}
@@ -2077,6 +2077,8 @@ int ab_ext_push_getmatches_response(EXT_PUSH *pext,
 	}
 	if (presponse->result != ecSuccess) {
 		status = ext_buffer_push_uint8(pext, 0);
+		if (status != EXT_ERR_SUCCESS)
+			return status;
 	} else {
 		status = ext_buffer_push_uint8(pext, 0xFF);
 		if (EXT_ERR_SUCCESS != status) {
@@ -2298,6 +2300,8 @@ int ab_ext_push_queryrows_response(EXT_PUSH *pext,
 	}
 	if (presponse->result != ecSuccess) {
 		status = ext_buffer_push_uint8(pext, 0);
+		if (status != EXT_ERR_SUCCESS)
+			return status;
 	} else {
 		status = ext_buffer_push_uint8(pext, 0xFF);
 		if (EXT_ERR_SUCCESS != status) {
@@ -2374,6 +2378,8 @@ int ab_ext_push_resolvenames_response(EXT_PUSH *pext,
 	}
 	if (presponse->result != ecSuccess) {
 		status = ext_buffer_push_uint8(pext, 0);
+		if (status != EXT_ERR_SUCCESS)
+			return status;
 	} else {
 		status = ext_buffer_push_uint8(pext, 0xFF);
 		if (EXT_ERR_SUCCESS != status) {
@@ -2458,6 +2464,8 @@ int ab_ext_push_seekentries_response(EXT_PUSH *pext,
 	}
 	if (presponse->result != ecSuccess) {
 		status = ext_buffer_push_uint8(pext, 0);
+		if (status != EXT_ERR_SUCCESS)
+			return status;
 	} else {
 		status = ext_buffer_push_uint8(pext, 0xFF);
 		if (EXT_ERR_SUCCESS != status) {
