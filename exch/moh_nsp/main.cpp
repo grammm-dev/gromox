@@ -497,7 +497,6 @@ static uint32_t getmailboxurl(GUID session_guid,
 
 static void produce_session(const char *tag, char *session)
 {
-	char *pitem;
 	time_t cur_time;
 	int i, pos, mod;
 	char temp_time[16];

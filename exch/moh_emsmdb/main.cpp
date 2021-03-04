@@ -578,7 +578,6 @@ static BOOL notification_response2(int context_id,
 
 static void produce_session(const char *tag, char *session)
 {
-	char *pitem;
 	time_t cur_time;
 	int i, pos, mod;
 	char temp_time[16];
@@ -992,8 +991,6 @@ static BOOL emsmdb_proc(int context_id,
 
 static int emsmdb_retr(int context_id)
 {
-	char push_buff[32];
-	
 	switch (g_status_array[context_id].notification_status) {
 	case NOTIFICATION_STATUS_TIMED:
 		notification_response2(context_id,
