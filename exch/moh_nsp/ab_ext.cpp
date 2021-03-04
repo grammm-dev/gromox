@@ -5,7 +5,6 @@
 static int ab_ext_pull_string_array(EXT_PULL *pext, STRING_ARRAY *r)
 {
 	int i;
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &r->count));
@@ -31,7 +30,6 @@ static int ab_ext_pull_string_array(EXT_PULL *pext, STRING_ARRAY *r)
 static int ab_ext_pull_wstring_array(EXT_PULL *pext, STRING_ARRAY *r)
 {
 	int i;
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &r->count));
@@ -57,7 +55,6 @@ static int ab_ext_pull_wstring_array(EXT_PULL *pext, STRING_ARRAY *r)
 static int ab_ext_pull_binary_array(EXT_PULL *pext, BINARY_ARRAY *r)
 {
 	int i;
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &r->count));
@@ -134,7 +131,6 @@ static int ab_ext_pull_multiple_val(
 static int ab_ext_pull_addressbook_propval(
 	EXT_PULL *pext, uint16_t type, void **ppval)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	if (type == PT_STRING8 || type == PT_UNICODE ||
@@ -158,8 +154,6 @@ static int ab_ext_pull_addressbook_propval(
 static int ab_ext_pull_addressbook_tapropval(
 	EXT_PULL *pext, ADDRESSBOOK_TAPROPVAL *ppropval)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint16(pext, &ppropval->type));
 	TRY(ext_buffer_pull_uint16(pext, &ppropval->propid));
 	return ab_ext_pull_addressbook_propval(pext,
@@ -170,7 +164,6 @@ static int ab_ext_pull_addressbook_proplist(
 	EXT_PULL *pext, ADDRESSBOOK_PROPLIST *pproplist)
 {
 	int i;
-	int status;
 	
 	TRY(ext_buffer_pull_uint32(pext, &pproplist->count));
 	if (0 == pproplist->count) {
@@ -191,8 +184,6 @@ static int ab_ext_pull_addressbook_proplist(
 static int ab_ext_pull_addressbook_typropval(
 	EXT_PULL *pext, ADDRESSBOOK_TYPROPVAL *ppropval)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint16(pext, &ppropval->type));
 	return ab_ext_pull_addressbook_propval(pext,
 			ppropval->type, &ppropval->pvalue);	
@@ -201,8 +192,6 @@ static int ab_ext_pull_addressbook_typropval(
 static int ab_ext_pull_addressbook_fpropval(EXT_PULL *pext,
 	uint16_t type, ADDRESSBOOK_FPROPVAL *ppropval)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint8(pext, &ppropval->flag));
 	switch (ppropval->flag) {
 	case ADDRESSBOOK_FLAG_AVAILABLE:
@@ -224,8 +213,6 @@ static int ab_ext_pull_addressbook_fpropval(EXT_PULL *pext,
 static int ab_ext_pull_addressbook_tfpropval(EXT_PULL *pext,
 	ADDRESSBOOK_TFPROPVAL *ppropval)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint16(pext, &ppropval->type));
 	TRY(ext_buffer_pull_uint8(pext, &ppropval->flag));
 	switch (ppropval->flag) {
@@ -248,8 +235,6 @@ static int ab_ext_pull_addressbook_tfpropval(EXT_PULL *pext,
 static int ab_ext_pull_addressbook_proprow(EXT_PULL *pext,
 	const LPROPTAG_ARRAY *pcolumns, ADDRESSBOOK_PROPROW *prow)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint8(pext, &prow->flag));
 	prow->ppvalue = pext->anew<void *>(pcolumns->cvalues);
 	if (NULL == prow->ppvalue) {
@@ -328,8 +313,6 @@ static int ab_ext_pull_mid_array(EXT_PULL *pext,
 
 static int ab_ext_pull_stat(EXT_PULL *pext, STAT *pstat)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint32(pext, &pstat->sort_type));
 	TRY(ext_buffer_pull_uint32(pext, &pstat->container_id));
 	TRY(ext_buffer_pull_uint32(pext, &pstat->cur_rec));
@@ -344,8 +327,6 @@ static int ab_ext_pull_stat(EXT_PULL *pext, STAT *pstat)
 static int ab_ext_pull_addressbook_propname(
 	EXT_PULL *pext, ADDRESSBOOK_PROPNAME *ppropname)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_guid(pext, &ppropname->guid));
 	return ext_buffer_pull_uint32(pext, &ppropname->id);
 }
@@ -354,7 +335,6 @@ static int ab_ext_pull_addressbook_colrow(
 	EXT_PULL *pext, ADDRESSBOOK_COLROW *pcolrow)
 {
 	int i;
-	int status;
 	
 	TRY(ab_ext_pull_lproptag_array(pext, &pcolrow->columns));
 	TRY(ext_buffer_pull_uint32(pext, &pcolrow->row_count));
@@ -371,8 +351,6 @@ static int ab_ext_pull_addressbook_colrow(
 
 static int ab_ext_pull_nsp_entryid(EXT_PULL *pext, NSP_ENTRYID *pentryid)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint8(pext, &pentryid->id_type));
 	if (0x87 != pentryid->id_type && 0x0 != pentryid->id_type) {
 		return EXT_ERR_FORMAT;
@@ -392,7 +370,6 @@ static int ab_ext_pull_nsp_entryid(EXT_PULL *pext, NSP_ENTRYID *pentryid)
 static int ab_ext_pull_nsp_entryids(EXT_PULL *pext, NSP_ENTRYIDS *pentryids)
 {
 	int i;
-	int status;
 	
 	TRY(ext_buffer_pull_uint32(pext, &pentryids->count));
 	pentryids->pentryid = pext->anew<NSP_ENTRYID>(pentryids->count);
@@ -407,7 +384,6 @@ static int ab_ext_pull_nsp_entryids(EXT_PULL *pext, NSP_ENTRYIDS *pentryids)
 
 int ab_ext_pull_bind_request(EXT_PULL *pext, BIND_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->flags));
@@ -436,8 +412,6 @@ int ab_ext_pull_bind_request(EXT_PULL *pext, BIND_REQUEST *prequest)
 
 int ab_ext_pull_unbind_request(EXT_PULL *pext, UNBIND_REQUEST *prequest)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->reserved));
 	TRY(ext_buffer_pull_uint32(pext, &prequest->cb_auxin));
 	if (0 == prequest->cb_auxin) {
@@ -455,7 +429,6 @@ int ab_ext_pull_unbind_request(EXT_PULL *pext, UNBIND_REQUEST *prequest)
 int ab_ext_pull_comparemids_request(EXT_PULL *pext,
 	COMPAREMIDS_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->reserved));
@@ -486,7 +459,6 @@ int ab_ext_pull_comparemids_request(EXT_PULL *pext,
 
 int ab_ext_pull_dntomid_request(EXT_PULL *pext, DNTOMID_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->reserved));
@@ -516,7 +488,6 @@ int ab_ext_pull_dntomid_request(EXT_PULL *pext, DNTOMID_REQUEST *prequest)
 int ab_ext_pull_getmatches_request(
 	EXT_PULL *pext, GETMATCHES_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->reserved1));
@@ -589,8 +560,6 @@ int ab_ext_pull_getmatches_request(
 int ab_ext_pull_getproplist_request(EXT_PULL *pext,
 	GETPROPLIST_REQUEST *prequest)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->flags));
 	TRY(ext_buffer_pull_uint32(pext, &prequest->mid));
 	TRY(ext_buffer_pull_uint32(pext, &prequest->codepage));
@@ -609,7 +578,6 @@ int ab_ext_pull_getproplist_request(EXT_PULL *pext,
 
 int ab_ext_pull_getprops_request(EXT_PULL *pext, GETPROPS_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->flags));
@@ -649,7 +617,6 @@ int ab_ext_pull_getprops_request(EXT_PULL *pext, GETPROPS_REQUEST *prequest)
 int ab_ext_pull_getspecialtable_request(EXT_PULL *pext,
 	GETSPECIALTABLE_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->flags));
@@ -689,7 +656,6 @@ int ab_ext_pull_getspecialtable_request(EXT_PULL *pext,
 int ab_ext_pull_gettemplateinfo_request(EXT_PULL *pext,
 	GETTEMPLATEINFO_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->flags));
@@ -718,8 +684,6 @@ int ab_ext_pull_gettemplateinfo_request(EXT_PULL *pext,
 int ab_ext_pull_modlinkatt_request(EXT_PULL *pext,
 	MODLINKATT_REQUEST *prequest)
 {
-	int i;
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->flags));
@@ -747,7 +711,6 @@ int ab_ext_pull_modlinkatt_request(EXT_PULL *pext,
 
 int ab_ext_pull_modprops_request(EXT_PULL *pext, MODPROPS_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->reserved));
@@ -797,7 +760,6 @@ int ab_ext_pull_modprops_request(EXT_PULL *pext, MODPROPS_REQUEST *prequest)
 int ab_ext_pull_queryrows_request(EXT_PULL *pext,
 	QUERYROWS_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->flags));
@@ -839,8 +801,6 @@ int ab_ext_pull_queryrows_request(EXT_PULL *pext,
 int ab_ext_pull_querycolumns_request(EXT_PULL *pext,
 	QUERYCOLUMNS_REQUEST *prequest)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->reserved));
 	TRY(ext_buffer_pull_uint32(pext, &prequest->flags));
 	TRY(ext_buffer_pull_uint32(pext, &prequest->cb_auxin));
@@ -859,7 +819,6 @@ int ab_ext_pull_querycolumns_request(EXT_PULL *pext,
 int ab_ext_pull_resolvenames_request(
 	EXT_PULL *pext, RESOLVENAMES_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->reserved));
@@ -909,7 +868,6 @@ int ab_ext_pull_resolvenames_request(
 int ab_ext_pull_resortrestriction_request(EXT_PULL *pext,
 	RESORTRESTRICTION_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->reserved));
@@ -949,7 +907,6 @@ int ab_ext_pull_resortrestriction_request(EXT_PULL *pext,
 int ab_ext_pull_seekentries_request(EXT_PULL *pext,
 	SEEKENTRIES_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->reserved));
@@ -1009,7 +966,6 @@ int ab_ext_pull_seekentries_request(EXT_PULL *pext,
 int ab_ext_pull_updatestat_request(EXT_PULL *pext,
 	UPDATESTAT_REQUEST *prequest)
 {
-	int status;
 	uint8_t tmp_byte;
 	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->reserved));
@@ -1040,8 +996,6 @@ int ab_ext_pull_updatestat_request(EXT_PULL *pext,
 int ab_ext_pull_getmailboxurl_request(EXT_PULL *pext,
 	GETMAILBOXURL_REQUEST *prequest)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->flags));
 	TRY(ext_buffer_pull_wstring(pext, &prequest->puser_dn));
 	TRY(ext_buffer_pull_uint32(pext, &prequest->cb_auxin));
@@ -1060,8 +1014,6 @@ int ab_ext_pull_getmailboxurl_request(EXT_PULL *pext,
 int ab_ext_pull_getaddressbookurl_request(EXT_PULL *pext,
 	GETADDRESSBOOKURL_REQUEST *prequest)
 {
-	int status;
-	
 	TRY(ext_buffer_pull_uint32(pext, &prequest->flags));
 	TRY(ext_buffer_pull_wstring(pext, &prequest->puser_dn));
 	TRY(ext_buffer_pull_uint32(pext, &prequest->cb_auxin));
@@ -1082,7 +1034,6 @@ int ab_ext_pull_getaddressbookurl_request(EXT_PULL *pext,
 static int ab_ext_push_string_array(EXT_PUSH *pext, const STRING_ARRAY *r)
 {
 	int i;
-	int status;
 	
 	TRY(ext_buffer_push_uint32(pext, r->count));
 	for (i=0; i<r->count; i++) {
@@ -1099,7 +1050,6 @@ static int ab_ext_push_string_array(EXT_PUSH *pext, const STRING_ARRAY *r)
 static int ab_ext_push_wstring_array(EXT_PUSH *pext, const STRING_ARRAY *r)
 {
 	int i;
-	int status;
 	
 	TRY(ext_buffer_push_uint32(pext, r->count));
 	for (i=0; i<r->count; i++) {
@@ -1116,7 +1066,6 @@ static int ab_ext_push_wstring_array(EXT_PUSH *pext, const STRING_ARRAY *r)
 static int ab_ext_push_binary_array(EXT_PUSH *pext, const BINARY_ARRAY *r)
 {
 	int i;
-	int status;
 	
 	TRY(ext_buffer_push_uint32(pext, r->count));
 	for (i=0; i<r->count; i++) {
@@ -1155,8 +1104,6 @@ static int ab_ext_push_multiple_val(EXT_PUSH *pext,
 static int ab_ext_push_addressbook_propval(
 	EXT_PUSH *pext, uint16_t type, const void *pval)
 {
-	int status;
-	
 	if (type == PT_STRING8 || type == PT_UNICODE || type == PT_BINARY ||
 	    (type & MV_FLAG)) {
 		if (NULL == pval) {
@@ -1172,8 +1119,6 @@ static int ab_ext_push_addressbook_propval(
 static int ab_ext_push_addressbook_tapropval(
 	EXT_PUSH *pext, const ADDRESSBOOK_TAPROPVAL *ppropval)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint16(pext, ppropval->type));
 	TRY(ext_buffer_push_uint16(pext, ppropval->propid));
 	return ab_ext_push_addressbook_propval(pext,
@@ -1184,7 +1129,6 @@ static int ab_ext_push_addressbook_proplist(
 	EXT_PUSH *pext, const ADDRESSBOOK_PROPLIST *pproplist)
 {
 	int i;
-	int status;
 	
 	TRY(ext_buffer_push_uint32(pext, pproplist->count));
 	for (i=0; i<pproplist->count; i++) {
@@ -1197,8 +1141,6 @@ static int ab_ext_push_addressbook_proplist(
 static int ab_ext_push_addressbook_typropval(
 	EXT_PUSH *pext, const ADDRESSBOOK_TYPROPVAL *ppropval)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint16(pext, ppropval->type));
 	return ab_ext_push_addressbook_propval(pext,
 			ppropval->type, ppropval->pvalue);	
@@ -1207,8 +1149,6 @@ static int ab_ext_push_addressbook_typropval(
 static int ab_ext_push_addressbook_fpropval(EXT_PUSH *pext,
 	uint16_t type, const ADDRESSBOOK_FPROPVAL *ppropval)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint8(pext, ppropval->flag));
 	switch (ppropval->flag) {
 	case ADDRESSBOOK_FLAG_AVAILABLE:
@@ -1225,8 +1165,6 @@ static int ab_ext_push_addressbook_fpropval(EXT_PUSH *pext,
 static int ab_ext_push_addressbook_tfpropval(EXT_PUSH *pext,
 	const ADDRESSBOOK_TFPROPVAL *ppropval)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint16(pext, ppropval->type));
 	TRY(ext_buffer_push_uint8(pext, ppropval->flag));
 	switch (ppropval->flag) {
@@ -1244,8 +1182,6 @@ static int ab_ext_push_addressbook_tfpropval(EXT_PUSH *pext,
 static int ab_ext_push_addressbook_proprow(EXT_PUSH *pext,
 	const LPROPTAG_ARRAY *pcolumns, const ADDRESSBOOK_PROPROW *prow)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint8(pext, prow->flag));
 	if (PROPROW_FLAG_NORMAL == prow->flag) {
 		for (unsigned int i = 0; i < pcolumns->cvalues; ++i) {
@@ -1294,8 +1230,6 @@ static int ab_ext_push_mid_array(EXT_PUSH *pext,
 
 static int ab_ext_push_stat(EXT_PUSH *pext, const STAT *pstat)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, pstat->sort_type));
 	TRY(ext_buffer_push_uint32(pext, pstat->container_id));
 	TRY(ext_buffer_push_uint32(pext, pstat->cur_rec));
@@ -1310,8 +1244,6 @@ static int ab_ext_push_stat(EXT_PUSH *pext, const STAT *pstat)
 static int ab_ext_push_addressbook_propname(
 	EXT_PUSH *pext, const ADDRESSBOOK_PROPNAME *ppropname)
 {
-	int status;
-	
 	TRY(ext_buffer_push_guid(pext, &ppropname->guid));
 	return ext_buffer_push_uint32(pext, ppropname->id);
 }
@@ -1320,7 +1252,6 @@ static int ab_ext_push_addressbook_colrow(
 	EXT_PUSH *pext, const ADDRESSBOOK_COLROW *pcolrow)
 {
 	int i;
-	int status;
 	
 	TRY(ab_ext_push_lproptag_array(pext, &pcolrow->columns));
 	TRY(ext_buffer_push_uint32(pext, pcolrow->row_count));
@@ -1334,8 +1265,6 @@ static int ab_ext_push_addressbook_colrow(
 static int ab_ext_push_nsp_entryid(
 	EXT_PUSH *pext, const NSP_ENTRYID *pentryid)
 {
-	int status;
-	
 	if (0x87 != pentryid->id_type && 0x0 != pentryid->id_type) {
 		return EXT_ERR_FORMAT;
 	}
@@ -1355,8 +1284,6 @@ static int ab_ext_push_nsp_entryid(
 int ab_ext_push_bind_response(EXT_PUSH *pext,
 	const BIND_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	TRY(ext_buffer_push_guid(pext, &presponse->server_guid));
@@ -1366,8 +1293,6 @@ int ab_ext_push_bind_response(EXT_PUSH *pext,
 int ab_ext_push_unbind_response(EXT_PUSH *pext,
 	const UNBIND_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	return ext_buffer_push_uint32(pext, 0);
@@ -1376,8 +1301,6 @@ int ab_ext_push_unbind_response(EXT_PUSH *pext,
 int ab_ext_push_comparemids_response(EXT_PUSH *pext,
 	const COMPAREMIDS_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	TRY(ext_buffer_push_uint32(pext, presponse->result1));
@@ -1387,8 +1310,6 @@ int ab_ext_push_comparemids_response(EXT_PUSH *pext,
 int ab_ext_push_dntomid_response(EXT_PUSH *pext,
 	const DNTOMID_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	if (NULL == presponse->poutmids) {
@@ -1403,8 +1324,6 @@ int ab_ext_push_dntomid_response(EXT_PUSH *pext,
 int ab_ext_push_getmatches_response(EXT_PUSH *pext,
 	const GETMATCHES_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	if (NULL == presponse->pstat) {
@@ -1432,8 +1351,6 @@ int ab_ext_push_getmatches_response(EXT_PUSH *pext,
 int ab_ext_push_getproplist_response(EXT_PUSH *pext,
 	const GETPROPLIST_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	if (NULL == presponse->pproptags) {
@@ -1448,8 +1365,6 @@ int ab_ext_push_getproplist_response(EXT_PUSH *pext,
 int ab_ext_push_getprops_response(EXT_PUSH *pext,
 	const GETPROPS_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	TRY(ext_buffer_push_uint32(pext, presponse->codepage));
@@ -1466,7 +1381,6 @@ int ab_ext_push_getspecialtable_response(EXT_PUSH *pext,
 	const GETSPECIALTABLE_RESPONSE *presponse)
 {
 	int i;
-	int status;
 	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
@@ -1493,8 +1407,6 @@ int ab_ext_push_getspecialtable_response(EXT_PUSH *pext,
 int ab_ext_push_gettemplateinfo_response(EXT_PUSH *pext,
 	const GETTEMPLATEINFO_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	TRY(ext_buffer_push_uint32(pext, presponse->codepage));
@@ -1510,8 +1422,6 @@ int ab_ext_push_gettemplateinfo_response(EXT_PUSH *pext,
 int ab_ext_push_modlinkatt_response(EXT_PUSH *pext,
 	const MODLINKATT_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	return ext_buffer_push_uint32(pext, 0);
@@ -1520,8 +1430,6 @@ int ab_ext_push_modlinkatt_response(EXT_PUSH *pext,
 int ab_ext_push_modprops_response(EXT_PUSH *pext,
 	const MODPROPS_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	return ext_buffer_push_uint32(pext, 0);
@@ -1530,8 +1438,6 @@ int ab_ext_push_modprops_response(EXT_PUSH *pext,
 int ab_ext_push_queryrows_response(EXT_PUSH *pext,
 	const QUERYROWS_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	if (NULL == presponse->pstat) {
@@ -1553,8 +1459,6 @@ int ab_ext_push_queryrows_response(EXT_PUSH *pext,
 int ab_ext_push_querycolumns_response(EXT_PUSH *pext,
 	const QUERYCOLUMNS_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	if (NULL == presponse->pcolumns) {
@@ -1569,8 +1473,6 @@ int ab_ext_push_querycolumns_response(EXT_PUSH *pext,
 int ab_ext_push_resolvenames_response(EXT_PUSH *pext,
 	const RESOLVENAMES_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	TRY(ext_buffer_push_uint32(pext, presponse->codepage));
@@ -1593,8 +1495,6 @@ int ab_ext_push_resolvenames_response(EXT_PUSH *pext,
 int ab_ext_push_resortrestriction_response(EXT_PUSH *pext,
 	const RESORTRESTRICTION_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	if (NULL == presponse->pstat) {
@@ -1615,8 +1515,6 @@ int ab_ext_push_resortrestriction_response(EXT_PUSH *pext,
 int ab_ext_push_seekentries_response(EXT_PUSH *pext,
 	const SEEKENTRIES_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	if (NULL == presponse->pstat) {
@@ -1638,8 +1536,6 @@ int ab_ext_push_seekentries_response(EXT_PUSH *pext,
 int ab_ext_push_updatestat_response(EXT_PUSH *pext,
 	const UPDATESTAT_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	if (NULL == presponse->pstat) {
@@ -1660,8 +1556,6 @@ int ab_ext_push_updatestat_response(EXT_PUSH *pext,
 int ab_ext_push_getmailboxurl_response(EXT_PUSH *pext,
 	const GETMAILBOXURL_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	TRY(ext_buffer_push_wstring(pext, presponse->server_url));
@@ -1671,8 +1565,6 @@ int ab_ext_push_getmailboxurl_response(EXT_PUSH *pext,
 int ab_ext_push_getaddressbookurl_response(EXT_PUSH *pext,
 	const GETADDRESSBOOKURL_RESPONSE *presponse)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, presponse->status));
 	TRY(ext_buffer_push_uint32(pext, presponse->result));
 	TRY(ext_buffer_push_wstring(pext, presponse->server_url));
@@ -1681,8 +1573,6 @@ int ab_ext_push_getaddressbookurl_response(EXT_PUSH *pext,
 
 int ab_ext_push_failure_response(EXT_PUSH *pext, uint32_t status_code)
 {
-	int status;
-	
 	TRY(ext_buffer_push_uint32(pext, status_code));
 	return ext_buffer_push_uint32(pext, 0);
 }

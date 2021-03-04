@@ -337,7 +337,6 @@ uint32_t nsp_bridge_modprops(GUID session_guid, uint32_t reserved,
 	const ADDRESSBOOK_PROPLIST *pvalues, uint32_t cb_auxin,
 	const uint8_t *pauxin)
 {
-	uint32_t result;
 	NSP_PROPROW *prow;
 	NSP_HANDLE session_handle;
 	
@@ -389,7 +388,6 @@ uint32_t nsp_bridge_querycolumns(GUID session_guid,
 	uint32_t reserved, uint32_t flags, uint32_t cb_auxin,
 	const uint8_t *pauxin, LPROPTAG_ARRAY **ppcolumns)
 {
-	NSP_ROWSET *prows;
 	NSP_HANDLE session_handle;
 	
 	session_handle.handle_type = HANDLE_EXCHANGE_NSP;
