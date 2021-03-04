@@ -170,11 +170,10 @@ static int ab_ext_pull_addressbook_propval(
 			return status;
 		}
 		if (0xFF == tmp_byte) {
-			if (type & 0x1000) {
+			if (type & MV_FLAG)
 				return ab_ext_pull_multiple_val(pext, type, ppval);
-			} else {
+			else
 				return ext_buffer_pull_propval(pext, type, ppval);
-			}
 		} else if (0 == tmp_byte) {
 			*ppval = NULL;
 			return EXT_ERR_SUCCESS;
@@ -1667,9 +1666,8 @@ static int ab_ext_push_addressbook_propval(
 		if (EXT_ERR_SUCCESS != status) {
 			return status;
 		}
-		if (type & 0x1000) {
+		if (type & MV_FLAG)
 			return ab_ext_push_multiple_val(pext, type, pval);
-		}
 	}
 	return ext_buffer_push_propval(pext, type, pval);
 }
