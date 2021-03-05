@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only WITH linking exception
 #include "emsmdb_bridge.h"
 #include <gromox/mapi_types.hpp>
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only WITH linking exception
 #include <gromox/rpc_types.hpp>
 #include "nsp_bridge.h"
 #include "common_util.h"
